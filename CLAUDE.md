@@ -321,6 +321,7 @@ for await (const message of conversation) {
 - **mock 数据必须反映真实结构** — 如 SDK mock 必须用 `{ type: 'assistant', uuid, message: { content: [...blocks] } }` 嵌套结构
 - **集成测试与单元测试分离** — `__tests__/` 放纯函数单元测试，`__integration__/` 放真实 API 调用测试，`pnpm test` 不跑集成测试
 - **新增适配层后必须跑 `pnpm --filter codeck test:integration`** 验证类型镜像与真实 SDK 输出一致
+- **`vitest run` 不检查类型** — esbuild 转译会剥离类型，fixture 缺少 `readonly X | undefined` 字段不会报错；修改接口后必须跑 `pnpm --filter @codeck/config run typecheck`
 
 ## Store 层 IPC 模式
 
@@ -399,6 +400,22 @@ updateSettings: async (partial) => {
   4. 更新 `message-parser.ts` 添加新分支
   5. 更新 `__tests__/fixtures.ts` 添加真实结构 fixture
   6. 运行 `pnpm test` 验证单元测试
+
+### Vitest — Electron & Workspace 包解析
+
+- `electron` 通过 `app/vitest.config.ts` 的 alias 全局 mock → `src/__mocks__/electron.ts`，测试文件无需各自 `vi.mock('electron')`；新增直接或间接导入 `electron` 的服务文件时不需要额外操作
+- `@codeck/config` 同样通过 alias 指向 TypeScript 源码，无需先 `pnpm build`；**新增 workspace 包时需同步在 vitest alias 中注册**，否则 CI 会报 "Failed to resolve entry for package"
+- CI 用 `ELECTRON_SKIP_BINARY_DOWNLOAD=1`，本地因 binary 存在不会暴露此问题——两者差异只能通过 alias mock 消除
+
+### Vitest — 平台相关测试
+
+- `encodeProjectPath()` 内部调用 `path.resolve()`，Windows 路径（`C:\foo`）在 Linux CI 上被当作相对路径，走 URL-encode 分支而非 Windows 驱动器分支
+- 用 `it.skipIf(process.platform !== 'win32')` 隔离 Windows 专属测试，并补充对应的 Unix 平台测试，保证两端各自覆盖
+
+### CI 预检（推送前必跑）
+
+- 根目录 `pnpm test` **不等价于 CI**——它不跑 `@codeck/config typecheck`，本地全绿不代表 CI 全绿
+- CI 等价命令：`pnpm --filter @codeck/config run test && pnpm --filter @codeck/config run typecheck && pnpm --filter @codeck/sessions run test && pnpm --filter codeck run test`
 
 ## 运行时抽象（Adapter 模式）
 
