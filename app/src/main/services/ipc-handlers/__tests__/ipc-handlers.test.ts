@@ -36,14 +36,14 @@ vi.mock('electron', () => ({
   BrowserWindow: class { },
 }));
 
-vi.mock('../app-preferences', () => ({
+vi.mock('../../app-preferences', () => ({
   appPreferencesService: {
     get: vi.fn(),
     update: vi.fn(),
   },
 }));
 
-vi.mock('../config-bridge', () => ({
+vi.mock('../../config-bridge', () => ({
   configReader: mockConfigReader,
   getConfigWriter: () => mockConfigWriter,
   getProjectPath: () => '/mock/project',
@@ -61,13 +61,13 @@ const mockRunCcusage = vi.hoisted(() => vi.fn())
 const mockWarmUsageCache = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
 const mockInvalidateUsageCache = vi.hoisted(() => vi.fn())
 
-vi.mock('../ccusage-runner', () => ({
+vi.mock('../../ccusage-runner', () => ({
   runCcusage: mockRunCcusage,
   warmUsageCache: mockWarmUsageCache,
   invalidateUsageCache: mockInvalidateUsageCache,
 }));
 
-vi.mock('../session-orchestrator', () => ({
+vi.mock('../../session-orchestrator', () => ({
   sessionOrchestrator: {
     onProjectSelected: vi.fn(),
     listSessions: vi.fn(),
@@ -83,8 +83,8 @@ vi.mock('../session-orchestrator', () => ({
   },
 }));
 
-import { registerIpcHandlers } from '../ipc-handlers';
-import { sessionOrchestrator } from '../session-orchestrator';
+import { registerIpcHandlers } from '../index';
+import { sessionOrchestrator } from '../../session-orchestrator';
 
 describe('ipc-handlers', () => {
   const handlers = new Map<string, (...args: unknown[]) => Promise<unknown>>();

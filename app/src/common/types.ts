@@ -524,7 +524,6 @@ export interface ElectronAPI {
   onPermissionRequest: (callback: (request: PermissionRequest) => void) => () => void
   onAskUserQuestion: (callback: (request: AskUserQuestionRequest) => void) => () => void
   onExitPlanMode: (callback: (request: ExitPlanModeRequest) => void) => () => void
-  onSessionStateChanged: (callback: (state: SessionManagerState) => void) => () => void
   onMultiSessionStateChanged: (callback: (state: import('./multi-session-types').MultiSessionManagerState) => void) => () => void
   onUsageStatsUpdated: (callback: () => void) => () => void
   onSyncCompleted: (callback: (result: import('./sync-types').SyncResult) => void) => () => void

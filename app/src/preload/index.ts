@@ -18,7 +18,6 @@ import type {
   RewindFilesResult,
   ProjectInfo,
   AppPreferences,
-  SessionManagerState,
   PluginInfo,
   AgentInfo,
   McpServerConfig,
@@ -243,16 +242,6 @@ const api: ElectronAPI = {
       ipcRenderer.removeListener(MAIN_TO_RENDERER.EXIT_PLAN_MODE_REQUEST, handler)
     }
   },
-  onSessionStateChanged: (callback: (state: SessionManagerState) => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, state: SessionManagerState): void => {
-      callback(state)
-    }
-    ipcRenderer.on(MAIN_TO_RENDERER.SESSION_STATE_CHANGED, handler)
-    return () => {
-      ipcRenderer.removeListener(MAIN_TO_RENDERER.SESSION_STATE_CHANGED, handler)
-    }
-  },
-
   onMultiSessionStateChanged: (callback: (state: MultiSessionManagerState) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, state: MultiSessionManagerState): void => {
       callback(state)
