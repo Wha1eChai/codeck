@@ -3,7 +3,7 @@
 // ============================================================
 
 import type { ExecutionOptions, HookSettings, PermissionMode } from '@common/types'
-import type { SDKCanUseToolCallback, SDKMcpServerConfig } from './sdk-types'
+import type { SDKCanUseToolCallback, SDKMcpServerConfig, SDKAgentDefinition } from './sdk-types'
 import { buildPreToolUseHooks, buildPostToolUseHooks, buildStopHooks } from './hooks-builder'
 import type { HookCallbackMatcher, ToolLogEntry, StopLogEntry } from './hooks-builder'
 import { resolveModelAlias } from './model-alias-resolver'
@@ -29,6 +29,8 @@ export interface SessionParams {
   readonly onStopLog?: (entry: StopLogEntry) => void
   /** Model alias → full ID mappings from AppPreferences. */
   readonly modelAliases?: Readonly<Record<string, string>>
+  /** Phase 4: Agent definitions loaded from config */
+  readonly agents?: Record<string, SDKAgentDefinition>
 }
 
 export interface QueryArgs {
@@ -57,6 +59,8 @@ export interface QueryArgs {
     readonly settingSources?: ('user' | 'project' | 'local')[]
     // Phase 3: MCP servers
     readonly mcpServers?: Record<string, SDKMcpServerConfig>
+    // Phase 4: Agent definitions
+    readonly agents?: Record<string, SDKAgentDefinition>
   }
 }
 
@@ -123,6 +127,8 @@ export function buildQueryArgs(
       settingSources: ['user', 'project'],
       // Phase 3: MCP servers (only include if non-empty)
       ...(params.mcpServers && Object.keys(params.mcpServers).length > 0 ? { mcpServers: params.mcpServers } : {}),
+      // Phase 4: Agent definitions (only include if non-empty)
+      ...(params.agents && Object.keys(params.agents).length > 0 ? { agents: params.agents } : {}),
     },
   }
 }

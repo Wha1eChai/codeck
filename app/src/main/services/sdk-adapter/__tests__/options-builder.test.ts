@@ -369,6 +369,38 @@ describe('buildQueryArgs — MCP Servers (Phase 3)', () => {
   })
 })
 
+describe('buildQueryArgs — Agents (Phase 4)', () => {
+  it('should include agents when non-empty', () => {
+    const agents = {
+      'my-agent': { description: 'Test agent', prompt: 'Do stuff' },
+    }
+    const result = buildQueryArgs(
+      { prompt: 'Hello', cwd: '/project', permissionMode: 'default', agents },
+      mockCanUseTool,
+      new AbortController(),
+    )
+    expect(result.options.agents).toEqual(agents)
+  })
+
+  it('should not include agents when empty object', () => {
+    const result = buildQueryArgs(
+      { prompt: 'Hello', cwd: '/project', permissionMode: 'default', agents: {} },
+      mockCanUseTool,
+      new AbortController(),
+    )
+    expect('agents' in result.options).toBe(false)
+  })
+
+  it('should not include agents when undefined', () => {
+    const result = buildQueryArgs(
+      { prompt: 'Hello', cwd: '/project', permissionMode: 'default' },
+      mockCanUseTool,
+      new AbortController(),
+    )
+    expect('agents' in result.options).toBe(false)
+  })
+})
+
 describe('buildQueryArgs — Stop Hooks (Phase 3)', () => {
   it('should include Stop hooks when onStopLog provided', () => {
     const result = buildQueryArgs(

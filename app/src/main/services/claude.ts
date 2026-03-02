@@ -19,6 +19,7 @@ import {
   buildQueryArgs,
   getSDKEnv,
   mapMcpServersToSDKConfig,
+  mapAgentsToSDKDefinitions,
 } from './sdk-adapter';
 import type {
   SessionMetadata,
@@ -166,11 +167,13 @@ export class ClaudeService {
         decisionStore: permissionStore,
       });
 
-      const [prefs, mcpEntries] = await Promise.all([
+      const [prefs, mcpEntries, agentEntries] = await Promise.all([
         appPreferencesService.get(),
         configReader.getMcpServers(params.cwd).catch(() => []),
+        configReader.getAllAgents(params.cwd).catch(() => []),
       ]);
       const mcpServers = mapMcpServersToSDKConfig(mcpEntries);
+      const agents = mapAgentsToSDKDefinitions(agentEntries);
 
       const queryArgs = buildQueryArgs(
         {
@@ -181,6 +184,7 @@ export class ClaudeService {
           hookSettings: params.hookSettings,
           checkpointEnabled: prefs.checkpointEnabled,
           mcpServers,
+          agents,
           modelAliases: prefs.modelAliases,
         },
         canUseTool,

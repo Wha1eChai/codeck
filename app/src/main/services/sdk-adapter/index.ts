@@ -31,6 +31,8 @@ export type { ClaudeEnvConfig } from './env-loader'
 
 export { mapMcpServersToSDKConfig } from './mcp-mapper'
 
+export { mapAgentsToSDKDefinitions } from './agent-mapper'
+
 export type {
   SessionMetadata,
   SDKCanUseToolCallback,
