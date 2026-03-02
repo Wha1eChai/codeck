@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+out/
+*.tsbuildinfo
+
+# Electron
+.electron-vite/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Test output
+coverage/
+*.lcov
+test-results/
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# SQLite (generated data)
+*.sqlite
+*.sqlite-journal
+
+# Claude Code runtime data (generated if running claude from repo root)
+.claude/
+
+# Archives (large, not version controlled)
+archives/

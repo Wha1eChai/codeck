@@ -1,0 +1,32 @@
+node_modules/
+out/
+dist/
+*.log
+.DS_Store
+Thumbs.db
+
+# electron-vite
+.electron-vite/
+
+# env
+.env
+.env.local
+.env.*.local
+
+# Claude Code 运行时数据（用户本地数据，非项目代码）
+.claude/
+docs/
+e2e-test/
+
+# sessions-server 运行时数据（SQLite）
+data/
+
+# 测试输出
+coverage/
+*.lcov
+test-results/
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json

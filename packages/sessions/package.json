@@ -1,0 +1,50 @@
+{
+  "name": "@codeck/sessions",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": {
+      "import": "./src/shared/api-types.ts",
+      "types": "./src/shared/api-types.ts"
+    },
+    "./server": {
+      "import": "./src/server/app.ts",
+      "types": "./src/server/app.ts"
+    }
+  },
+  "scripts": {
+    "dev": "tsx watch src/server/app.ts",
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "analyze:scan": "tsx src/analysis/01-scan-projects.ts",
+    "analyze:census": "tsx src/analysis/02-message-census.ts",
+    "analyze:tokens": "tsx src/analysis/03-token-cost.ts",
+    "analyze:tools": "tsx src/analysis/04-tool-usage.ts",
+    "analyze:files": "tsx src/analysis/05-file-changes.ts",
+    "analyze:flow": "tsx src/analysis/06-conversation-flow.ts",
+    "analyze:subagents": "tsx src/analysis/07-subagent-patterns.ts",
+    "analyze:all": "tsx src/analysis/01-scan-projects.ts && tsx src/analysis/02-message-census.ts && tsx src/analysis/03-token-cost.ts && tsx src/analysis/04-tool-usage.ts && tsx src/analysis/05-file-changes.ts && tsx src/analysis/06-conversation-flow.ts && tsx src/analysis/07-subagent-patterns.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.9",
+    "better-sqlite3": "^11.7.0",
+    "drizzle-orm": "^0.38.0",
+    "hono": "^4.7.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.10.0",
+    "drizzle-kit": "^0.30.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
+  },
+  "author": "Wha1eChai <whaleora@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Wha1eChai/codeck.git",
+    "directory": "packages/sessions"
+  }
+}

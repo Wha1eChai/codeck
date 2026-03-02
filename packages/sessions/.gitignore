@@ -1,0 +1,22 @@
+node_modules/
+
+# SQLite database (auto-generated, not committed)
+data/
+
+# Analysis output (generated from real user data, not committed)
+src/analysis/output/
+
+# Validation reports (contain local file paths)
+src/validation/reports/
+
+# Build output
+dist/
+out/
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db

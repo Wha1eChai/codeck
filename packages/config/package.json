@@ -1,0 +1,51 @@
+{
+  "name": "@codeck/config",
+  "version": "0.1.0",
+  "description": "Claude Code configuration parsing and management library",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "verify": "vitest run -c vitest.verify.config.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.0",
+    "tsup": "^8.4.0",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "author": "Wha1eChai <whaleora@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Wha1eChai/codeck.git",
+    "directory": "packages/config"
+  },
+  "license": "AGPL-3.0-only"
+}

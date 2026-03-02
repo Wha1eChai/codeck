@@ -1,0 +1,3284 @@
+{
+  "summary": {
+    "totalScenarios": 8,
+    "totalMessages": 55,
+    "allTopLevelTypes": [
+      "assistant",
+      "result",
+      "stream_event",
+      "system",
+      "user"
+    ],
+    "allSystemSubtypes": [
+      "error_max_turns",
+      "init",
+      "success"
+    ],
+    "allContentBlockTypes": [
+      "text",
+      "thinking",
+      "tool_use"
+    ],
+    "allStreamEventTypes": [
+      "content_block_delta",
+      "content_block_start",
+      "content_block_stop",
+      "message_delta",
+      "message_start",
+      "message_stop"
+    ],
+    "scenarioSummaries": [
+      {
+        "name": "01_simple_text",
+        "messageCount": 3,
+        "types": [
+          "system",
+          "assistant",
+          "result"
+        ],
+        "subtypes": [
+          "init",
+          "success"
+        ],
+        "blockTypes": [
+          "text"
+        ]
+      },
+      {
+        "name": "02_thinking_and_text",
+        "messageCount": 4,
+        "types": [
+          "system",
+          "assistant",
+          "result"
+        ],
+        "subtypes": [
+          "init",
+          "success"
+        ],
+        "blockTypes": [
+          "thinking",
+          "text"
+        ]
+      },
+      {
+        "name": "03_tool_use_read",
+        "messageCount": 9,
+        "types": [
+          "system",
+          "assistant",
+          "user",
+          "result"
+        ],
+        "subtypes": [
+          "init",
+          "error_max_turns"
+        ],
+        "blockTypes": [
+          "thinking",
+          "tool_use"
+        ]
+      },
+      {
+        "name": "04_tool_use_bash",
+        "messageCount": 6,
+        "types": [
+          "system",
+          "assistant",
+          "user",
+          "result"
+        ],
+        "subtypes": [
+          "init",
+          "success"
+        ],
+        "blockTypes": [
+          "thinking",
+          "tool_use",
+          "text"
+        ]
+      },
+      {
+        "name": "05_multi_tool",
+        "messageCount": 9,
+        "types": [
+          "system",
+          "assistant",
+          "user",
+          "result"
+        ],
+        "subtypes": [
+          "init",
+          "success"
+        ],
+        "blockTypes": [
+          "thinking",
+          "tool_use",
+          "text"
+        ]
+      },
+      {
+        "name": "06_stream_events",
+        "messageCount": 14,
+        "types": [
+          "system",
+          "stream_event",
+          "assistant",
+          "result"
+        ],
+        "subtypes": [
+          "init",
+          "success"
+        ],
+        "blockTypes": [
+          "thinking",
+          "text"
+        ]
+      },
+      {
+        "name": "07_error_max_turns",
+        "messageCount": 5,
+        "types": [
+          "system",
+          "assistant",
+          "user",
+          "result"
+        ],
+        "subtypes": [
+          "init",
+          "error_max_turns"
+        ],
+        "blockTypes": [
+          "thinking",
+          "tool_use"
+        ]
+      },
+      {
+        "name": "08_plan_mode",
+        "messageCount": 5,
+        "types": [
+          "system",
+          "assistant",
+          "user",
+          "result"
+        ],
+        "subtypes": [
+          "init",
+          "error_max_turns"
+        ],
+        "blockTypes": [
+          "thinking",
+          "tool_use"
+        ]
+      }
+    ]
+  },
+  "scenarios": [
+    {
+      "name": "01_simple_text",
+      "prompt": "Respond with exactly: Hello World",
+      "permissionMode": "default",
+      "messageCount": 3,
+      "uniqueTypes": [
+        "system",
+        "assistant",
+        "result"
+      ],
+      "uniqueSubtypes": [
+        "init",
+        "success"
+      ],
+      "uniqueContentBlockTypes": [
+        "text"
+      ],
+      "messages": [
+        {
+          "scenarioName": "01_simple_text",
+          "index": 0,
+          "type": "system",
+          "subtype": "init",
+          "keys": [
+            "type",
+            "subtype",
+            "cwd",
+            "session_id",
+            "tools",
+            "mcp_servers",
+            "model",
+            "permissionMode",
+            "slash_commands",
+            "apiKeySource",
+            "claude_code_version",
+            "output_style",
+            "agents",
+            "skills",
+            "plugins",
+            "uuid",
+            "fast_mode_state"
+          ],
+          "raw": {
+            "type": "system",
+            "subtype": "init",
+            "cwd": "D:\\coding\\programs\\ccui\\my-cc-desk",
+            "session_id": "1900c54e-08dc-40d2-aa1a-4d982cf59892",
+            "tools": [
+              "Task",
+              "TaskOutput",
+              "Bash",
+              "Glob",
+              "Grep",
+              "ExitPlanMode",
+              "Read",
+              "Edit",
+              "Write",
+              "NotebookEdit",
+              "WebFetch",
+              "TodoWrite",
+              "WebSearch",
+              "TaskStop",
+              "AskUserQuestion",
+              "Skill",
+              "EnterPlanMode",
+              "TeamCreate",
+              "TeamDelete",
+              "SendMessage"
+            ],
+            "mcp_servers": [],
+            "model": "gemini-3-pro-high",
+            "permissionMode": "default",
+            "slash_commands": [
+              "debug",
+              "compact",
+              "context",
+              "cost",
+              "init",
+              "pr-comments",
+              "release-notes",
+              "review",
+              "security-review",
+              "insights"
+            ],
+            "apiKeySource": "ANTHROPIC_API_KEY",
+            "claude_code_version": "2.1.39",
+            "output_style": "default",
+            "agents": [
+              "Bash",
+              "general-purpose",
+              "statusline-setup",
+              "Explore",
+              "Plan",
+              "claude-code-guide"
+            ],
+            "skills": [
+              "debug"
+            ],
+            "plugins": [],
+            "uuid": "5c186755-1533-492a-81b1-9ab439473015",
+            "fast_mode_state": "off"
+          }
+        },
+        {
+          "scenarioName": "01_simple_text",
+          "index": 1,
+          "type": "assistant",
+          "keys": [
+            "type",
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "uuid"
+          ],
+          "raw": {
+            "type": "assistant",
+            "message": {
+              "content": [
+                {
+                  "text": "Hello World",
+                  "type": "text"
+                }
+              ],
+              "id": "HwONaabIIZTjz7IPwL6QwA8",
+              "model": "gemini-3-pro-high",
+              "role": "assistant",
+              "stop_reason": null,
+              "stop_sequence": null,
+              "type": "message",
+              "usage": {
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+                "input_tokens": 16756,
+                "output_tokens": 2
+              },
+              "context_management": null
+            },
+            "parent_tool_use_id": null,
+            "session_id": "1900c54e-08dc-40d2-aa1a-4d982cf59892",
+            "uuid": "83e9cabb-2188-4321-95a3-55befbabd735"
+          },
+          "contentBlocks": [
+            {
+              "blockIndex": 0,
+              "type": "text",
+              "keys": [
+                "text",
+                "type"
+              ],
+              "preview": "{\"text\":\"Hello World\",\"type\":\"text\"}"
+            }
+          ]
+        },
+        {
+          "scenarioName": "01_simple_text",
+          "index": 2,
+          "type": "result",
+          "subtype": "success",
+          "keys": [
+            "type",
+            "subtype",
+            "is_error",
+            "duration_ms",
+            "duration_api_ms",
+            "num_turns",
+            "result",
+            "stop_reason",
+            "session_id",
+            "total_cost_usd",
+            "usage",
+            "modelUsage",
+            "permission_denials",
+            "uuid"
+          ],
+          "raw": {
+            "type": "result",
+            "subtype": "success",
+            "is_error": false,
+            "duration_ms": 3873,
+            "duration_api_ms": 3678,
+            "num_turns": 1,
+            "result": "Hello World",
+            "stop_reason": null,
+            "session_id": "1900c54e-08dc-40d2-aa1a-4d982cf59892",
+            "total_cost_usd": 0.050298,
+            "usage": {
+              "input_tokens": 16756,
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "output_tokens": 2,
+              "server_tool_use": {
+                "web_search_requests": 0,
+                "web_fetch_requests": 0
+              },
+              "service_tier": "standard",
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 0,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "inference_geo": "",
+              "iterations": []
+            },
+            "modelUsage": {
+              "gemini-3-pro-high": {
+                "inputTokens": 16756,
+                "outputTokens": 2,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0,
+                "webSearchRequests": 0,
+                "costUSD": 0.050298,
+                "contextWindow": 200000,
+                "maxOutputTokens": 32000
+              }
+            },
+            "permission_denials": [],
+            "uuid": "b56d113c-cbac-4831-9ae8-52d2b2a05377"
+          }
+        }
+      ]
+    },
+    {
+      "name": "02_thinking_and_text",
+      "prompt": "Think step by step about what 2+2 equals, then answer with just the number.",
+      "permissionMode": "default",
+      "messageCount": 4,
+      "uniqueTypes": [
+        "system",
+        "assistant",
+        "result"
+      ],
+      "uniqueSubtypes": [
+        "init",
+        "success"
+      ],
+      "uniqueContentBlockTypes": [
+        "thinking",
+        "text"
+      ],
+      "messages": [
+        {
+          "scenarioName": "02_thinking_and_text",
+          "index": 0,
+          "type": "system",
+          "subtype": "init",
+          "keys": [
+            "type",
+            "subtype",
+            "cwd",
+            "session_id",
+            "tools",
+            "mcp_servers",
+            "model",
+            "permissionMode",
+            "slash_commands",
+            "apiKeySource",
+            "claude_code_version",
+            "output_style",
+            "agents",
+            "skills",
+            "plugins",
+            "uuid",
+            "fast_mode_state"
+          ],
+          "raw": {
+            "type": "system",
+            "subtype": "init",
+            "cwd": "D:\\coding\\programs\\ccui\\my-cc-desk",
+            "session_id": "3c0b6900-af60-4e13-b22d-f991173d31c9",
+            "tools": [
+              "Task",
+              "TaskOutput",
+              "Bash",
+              "Glob",
+              "Grep",
+              "ExitPlanMode",
+              "Read",
+              "Edit",
+              "Write",
+              "NotebookEdit",
+              "WebFetch",
+              "TodoWrite",
+              "WebSearch",
+              "TaskStop",
+              "AskUserQuestion",
+              "Skill",
+              "EnterPlanMode",
+              "TeamCreate",
+              "TeamDelete",
+              "SendMessage"
+            ],
+            "mcp_servers": [],
+            "model": "gemini-3-pro-high",
+            "permissionMode": "default",
+            "slash_commands": [
+              "debug",
+              "compact",
+              "context",
+              "cost",
+              "init",
+              "pr-comments",
+              "release-notes",
+              "review",
+              "security-review",
+              "insights"
+            ],
+            "apiKeySource": "ANTHROPIC_API_KEY",
+            "claude_code_version": "2.1.39",
+            "output_style": "default",
+            "agents": [
+              "Bash",
+              "general-purpose",
+              "statusline-setup",
+              "Explore",
+              "Plan",
+              "claude-code-guide"
+            ],
+            "skills": [
+              "debug"
+            ],
+            "plugins": [],
+            "uuid": "05d1c911-f267-4e6f-a1c0-b9653f281971",
+            "fast_mode_state": "off"
+          }
+        },
+        {
+          "scenarioName": "02_thinking_and_text",
+          "index": 1,
+          "type": "assistant",
+          "keys": [
+            "type",
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "uuid"
+          ],
+          "raw": {
+            "type": "assistant",
+            "message": {
+              "content": [
+                {
+                  "thinking": "**Initiating Basic Arithmetic**\n\nOkay, I've got it. My initial focus is understanding the user's request, which is a straightforward arithmetic problem: compute 2 + 2. I'm taking this at face value, breaking it down into a simple operation to perform. I am proceeding, step by step.\n\n\n**Analyzing User Intent**\n\nI am now carefully analyzing the instructions again, especially the subtle nuances. I see I must think and generate the output in a `thought` block, and answer with just \"4\" in the chat re...[TRUNCATED]",
+                  "type": "thinking",
+                  "signature": ""
+                }
+              ],
+              "id": "JQONac6oIebpz7IPlPCX-Aw",
+              "model": "gemini-3-pro-high",
+              "role": "assistant",
+              "stop_reason": null,
+              "stop_sequence": null,
+              "type": "message",
+              "usage": {
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+                "input_tokens": 16769,
+                "output_tokens": 0
+              },
+              "context_management": null
+            },
+            "parent_tool_use_id": null,
+            "session_id": "3c0b6900-af60-4e13-b22d-f991173d31c9",
+            "uuid": "da77a164-c982-40a7-80df-ecb8eb0413bc"
+          },
+          "contentBlocks": [
+            {
+              "blockIndex": 0,
+              "type": "thinking",
+              "keys": [
+                "thinking",
+                "type",
+                "signature"
+              ],
+              "preview": "{\"thinking\":\"**Initiating Basic Arithmetic**\\n\\nOkay, I've got it. My initial focus is understanding the user's request, which is a straightforward arithmetic problem: compute 2 + 2. I'm taking this at face value, breaking it down into a simple operation to perform. I am proceeding, step by step.\\n\\"
+            }
+          ]
+        },
+        {
+          "scenarioName": "02_thinking_and_text",
+          "index": 2,
+          "type": "assistant",
+          "keys": [
+            "type",
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "uuid"
+          ],
+          "raw": {
+            "type": "assistant",
+            "message": {
+              "content": [
+                {
+                  "text": "4",
+                  "type": "text"
+                }
+              ],
+              "id": "JQONac6oIebpz7IPlPCX-Aw",
+              "model": "gemini-3-pro-high",
+              "role": "assistant",
+              "stop_reason": null,
+              "stop_sequence": null,
+              "type": "message",
+              "usage": {
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+                "input_tokens": 16769,
+                "output_tokens": 0
+              },
+              "context_management": null
+            },
+            "parent_tool_use_id": null,
+            "session_id": "3c0b6900-af60-4e13-b22d-f991173d31c9",
+            "uuid": "4dd3cc61-6d28-4aae-9ce7-324c4436bdef"
+          },
+          "contentBlocks": [
+            {
+              "blockIndex": 0,
+              "type": "text",
+              "keys": [
+                "text",
+                "type"
+              ],
+              "preview": "{\"text\":\"4\",\"type\":\"text\"}"
+            }
+          ]
+        },
+        {
+          "scenarioName": "02_thinking_and_text",
+          "index": 3,
+          "type": "result",
+          "subtype": "success",
+          "keys": [
+            "type",
+            "subtype",
+            "is_error",
+            "duration_ms",
+            "duration_api_ms",
+            "num_turns",
+            "result",
+            "stop_reason",
+            "session_id",
+            "total_cost_usd",
+            "usage",
+            "modelUsage",
+            "permission_denials",
+            "uuid"
+          ],
+          "raw": {
+            "type": "result",
+            "subtype": "success",
+            "is_error": false,
+            "duration_ms": 7331,
+            "duration_api_ms": 7136,
+            "num_turns": 1,
+            "result": "4",
+            "stop_reason": null,
+            "session_id": "3c0b6900-af60-4e13-b22d-f991173d31c9",
+            "total_cost_usd": 0.0063633000000000006,
+            "usage": {
+              "input_tokens": 488,
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 16281,
+              "output_tokens": 1,
+              "server_tool_use": {
+                "web_search_requests": 0,
+                "web_fetch_requests": 0
+              },
+              "service_tier": "standard",
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 0,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "inference_geo": "",
+              "iterations": []
+            },
+            "modelUsage": {
+              "gemini-3-pro-high": {
+                "inputTokens": 488,
+                "outputTokens": 1,
+                "cacheReadInputTokens": 16281,
+                "cacheCreationInputTokens": 0,
+                "webSearchRequests": 0,
+                "costUSD": 0.0063633000000000006,
+                "contextWindow": 200000,
+                "maxOutputTokens": 32000
+              }
+            },
+            "permission_denials": [],
+            "uuid": "2cc0894a-7cab-4b83-bb3b-abab1b84c9eb"
+          }
+        }
+      ]
+    },
+    {
+      "name": "03_tool_use_read",
+      "prompt": "Read the file package.json and tell me the project name. Only read that one file.",
+      "permissionMode": "acceptEdits",
+      "messageCount": 9,
+      "uniqueTypes": [
+        "system",
+        "assistant",
+        "user",
+        "result"
+      ],
+      "uniqueSubtypes": [
+        "init",
+        "error_max_turns"
+      ],
+      "uniqueContentBlockTypes": [
+        "thinking",
+        "tool_use"
+      ],
+      "messages": [
+        {
+          "scenarioName": "03_tool_use_read",
+          "index": 0,
+          "type": "system",
+          "subtype": "init",
+          "keys": [
+            "type",
+            "subtype",
+            "cwd",
+            "session_id",
+            "tools",
+            "mcp_servers",
+            "model",
+            "permissionMode",
+            "slash_commands",
+            "apiKeySource",
+            "claude_code_version",
+            "output_style",
+            "agents",
+            "skills",
+            "plugins",
+            "uuid",
+            "fast_mode_state"
+          ],
+          "raw": {
+            "type": "system",
+            "subtype": "init",
+            "cwd": "D:\\coding\\programs\\ccui\\my-cc-desk",
+            "session_id": "10fc47ce-1da1-4385-bdf9-26f1d04346cc",
+            "tools": [
+              "Task",
+              "TaskOutput",
+              "Bash",
+              "Glob",
+              "Grep",
+              "ExitPlanMode",
+              "Read",
+              "Edit",
+              "Write",
+              "NotebookEdit",
+              "WebFetch",
+              "TodoWrite",
+              "WebSearch",
+              "TaskStop",
+              "AskUserQuestion",
+              "Skill",
+              "EnterPlanMode",
+              "TeamCreate",
+              "TeamDelete",
+              "SendMessage"
+            ],
+            "mcp_servers": [],
+            "model": "gemini-3-pro-high",
+            "permissionMode": "acceptEdits",
+            "slash_commands": [
+              "debug",
+              "compact",
+              "context",
+              "cost",
+              "init",
+              "pr-comments",
+              "release-notes",
+              "review",
+              "security-review",
+              "insights"
+            ],
+            "apiKeySource": "ANTHROPIC_API_KEY",
+            "claude_code_version": "2.1.39",
+            "output_style": "default",
+            "agents": [
+              "Bash",
+              "general-purpose",
+              "statusline-setup",
+              "Explore",
+              "Plan",
+              "claude-code-guide"
+            ],
+            "skills": [
+              "debug"
+            ],
+            "plugins": [],
+            "uuid": "c9ee635b-01ca-4496-9903-8d3cafbab188",
+            "fast_mode_state": "off"
+          }
+        },
+        {
+          "scenarioName": "03_tool_use_read",
+          "index": 1,
+          "type": "assistant",
+          "keys": [
+            "type",
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "uuid"
+          ],
+          "raw": {
+            "type": "assistant",
+            "message": {
+              "content": [
+                {
+                  "thinking": "**Locating Package Details**\n\nI'm now focused on extracting the project name from the `package.json` file. The user's request to exclusively use that file is key. I've decided to employ the `Read` tool to access the contents of `package.json`. My next step is pinpointing the absolute file path, which requires a bit more research.\n\n\n",
+                  "type": "thinking",
+                  "signature": ""
+                }
+              ],
+              "id": "LwONae-aJMHVz7IP4va5kAQ",
+              "model": "gemini-3-pro-high",
+              "role": "assistant",
+              "stop_reason": null,
+              "stop_sequence": null,
+              "type": "message",
+              "usage": {
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+                "input_tokens": 16769,
+                "output_tokens": 0
+              },
+              "context_management": null
+            },
+            "parent_tool_use_id": null,
+            "session_id": "10fc47ce-1da1-4385-bdf9-26f1d04346cc",
+            "uuid": "e7932ee2-b8d4-4797-822d-54c20d3a27ae"
+          },
+          "contentBlocks": [
+            {
+              "blockIndex": 0,
+              "type": "thinking",
+              "keys": [
+                "thinking",
+                "type",
+                "signature"
+              ],
+              "preview": "{\"thinking\":\"**Locating Package Details**\\n\\nI'm now focused on extracting the project name from the `package.json` file. The user's request to exclusively use that file is key. I've decided to employ the `Read` tool to access the contents of `package.json`. My next step is pinpointing the absolute "
+            }
+          ]
+        },
+        {
+          "scenarioName": "03_tool_use_read",
+          "index": 2,
+          "type": "assistant",
+          "keys": [
+            "type",
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "uuid"
+          ],
+          "raw": {
+            "type": "assistant",
+            "message": {
+              "content": [
+                {
+                  "id": "Bash-YEZkiMaY",
+                  "input": {
+                    "command": "ls -F"
+                  },
+                  "name": "Bash",
+                  "signature": "EvoLCvcLAb4+9vv61Nb7y9ZoKZQDGkeqgYKeZaDcHxwRsRmsfuA0CKmCHz78/fRKEhmHs3xy0vnZuLeFy2TFEPLwomkZGHHFOMGRiRC9lULodAp+rYfHWLrJWDgZS1c29SYOh6AVHQlwbrkMTtxQh0qrN2ttxUURulhJfsFEL7ui8ALcjQomVlbEJ3pYzC7HXxi5ZkdFONUnx3bIl0g9BnOBNjJSWoCp0WmevEvwBtovYOFHl259FtVKAVcGn/w86oXnqnSzxr4J+pk4Cf5wkfPxVhIO7hBaztYVMXoAGkzfkuKb1mCjYH3LldDO8LyCcgCazaUnWVpNdQdX5FIcpV57W/bc+hhAIc1fzFQ5IjhQsmPbS7J1tQKW1XDglCRVbJysQ3I5qT8SLJlpe4Ax1UAKyMQAudOc0px0Ifxciap814hi61MAlhz/Cs7o9QGsq4fzrBnYmsLFHCBAvimchKyhUhHLBOe+LM9r+4cA6n0T936zqsAU...[TRUNCATED]",
+                  "type": "tool_use"
+                }
+              ],
+              "id": "LwONae-aJMHVz7IP4va5kAQ",
+              "model": "gemini-3-pro-high",
+              "role": "assistant",
+              "stop_reason": null,
+              "stop_sequence": null,
+              "type": "message",
+              "usage": {
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+                "input_tokens": 16769,
+                "output_tokens": 0
+              },
+              "context_management": null
+            },
+            "parent_tool_use_id": null,
+            "session_id": "10fc47ce-1da1-4385-bdf9-26f1d04346cc",
+            "uuid": "3543d0fa-8ba8-41a8-bd1a-98adb4a20e39"
+          },
+          "contentBlocks": [
+            {
+              "blockIndex": 0,
+              "type": "tool_use",
+              "keys": [
+                "id",
+                "input",
+                "name",
+                "signature",
+                "type"
+              ],
+              "preview": "{\"id\":\"Bash-YEZkiMaY\",\"input\":{\"command\":\"ls -F\"},\"name\":\"Bash\",\"signature\":\"EvoLCvcLAb4+9vv61Nb7y9ZoKZQDGkeqgYKeZaDcHxwRsRmsfuA0CKmCHz78/fRKEhmHs3xy0vnZuLeFy2TFEPLwomkZGHHFOMGRiRC9lULodAp+rYfHWLrJWDgZS1c29SYOh6AVHQlwbrkMTtxQh0qrN2ttxUURulhJfsFEL7ui8ALcjQomVlbEJ3pYzC7HXxi5ZkdFONUnx3bIl0g9BnOBNjJSWoC"
+            }
+          ]
+        },
+        {
+          "scenarioName": "03_tool_use_read",
+          "index": 3,
+          "type": "assistant",
+          "keys": [
+            "type",
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "uuid"
+          ],
+          "raw": {
+            "type": "assistant",
+            "message": {
+              "content": [
+                {
+                  "id": "Bash-0l7yMYMD",
+                  "input": {
+                    "command": "pwd"
+                  },
+                  "name": "Bash",
+                  "type": "tool_use"
+                }
+              ],
+              "id": "LwONae-aJMHVz7IP4va5kAQ",
+              "model": "gemini-3-pro-high",
+              "role": "assistant",
+              "stop_reason": null,
+              "stop_sequence": null,
+              "type": "message",
+              "usage": {
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+                "input_tokens": 16769,
+                "output_tokens": 0
+              },
+              "context_management": null
+            },
+            "parent_tool_use_id": null,
+            "session_id": "10fc47ce-1da1-4385-bdf9-26f1d04346cc",
+            "uuid": "996e9aeb-6382-4095-b9e0-540ad1298dfb"
+          },
+          "contentBlocks": [
+            {
+              "blockIndex": 0,
+              "type": "tool_use",
+              "keys": [
+                "id",
+                "input",
+                "name",
+                "type"
+              ],
+              "preview": "{\"id\":\"Bash-0l7yMYMD\",\"input\":{\"command\":\"pwd\"},\"name\":\"Bash\",\"type\":\"tool_use\"}"
+            }
+          ]
+        },
+        {
+          "scenarioName": "03_tool_use_read",
+          "index": 4,
+          "type": "user",
+          "keys": [
+            "type",
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "uuid",
+            "tool_use_result"
+          ],
+          "raw": {
+            "type": "user",
+            "message": {
+              "role": "user",
+              "content": [
+                {
+                  "tool_use_id": "Bash-0l7yMYMD",
+                  "type": "tool_result",
+                  "content": "/d/coding/programs/ccui/my-cc-desk",
+                  "is_error": false
+                }
+              ]
+            },
+            "parent_tool_use_id": null,
+            "session_id": "10fc47ce-1da1-4385-bdf9-26f1d04346cc",
+            "uuid": "c59571e1-6309-4010-8cc9-e6e6dd9b21f5",
+            "tool_use_result": {
+              "stdout": "/d/coding/programs/ccui/my-cc-desk\r",
+              "stderr": "",
+              "interrupted": false,
+              "isImage": false,
+              "noOutputExpected": false
+            }
+          }
+        },
+        {
+          "scenarioName": "03_tool_use_read",
+          "index": 5,
+          "type": "user",
+          "keys": [
+            "type",
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "uuid",
+            "tool_use_result"
+          ],
+          "raw": {
+            "type": "user",
+            "message": {
+              "role": "user",
+              "content": [
+                {
+                  "tool_use_id": "Bash-YEZkiMaY",
+                  "type": "tool_result",
+                  "content": "CLAUDE.md\ndocs/\ne2e-test/\nelectron.vite.config.ts\nelectron-builder.yml\nnode_modules/\nnul\nout/\npackage.json\npnpm-lock.yaml\npnpm-workspace.yaml\nsrc/\ntsconfig.json\ntsconfig.main.json\ntsconfig.preload.json\ntsconfig.renderer.json\nvitest.config.ts\nvitest.integration.config.ts",
+                  "is_error": false
+                }
+              ]
+            },
+            "parent_tool_use_id": null,
+            "session_id": "10fc47ce-1da1-4385-bdf9-26f1d04346cc",
+            "uuid": "2324d98b-cb00-4579-af1a-67a72e117566",
+            "tool_use_result": {
+              "stdout": "CLAUDE.md\ndocs/\ne2e-test/\nelectron.vite.config.ts\nelectron-builder.yml\nnode_modules/\nnul\nout/\npackage.json\npnpm-lock.yaml\npnpm-workspace.yaml\nsrc/\ntsconfig.json\ntsconfig.main.json\ntsconfig.preload.json\ntsconfig.renderer.json\nvitest.config.ts\nvitest.integration.config.ts\r",
+              "stderr": "",
+              "interrupted": false,
+              "isImage": false,
+              "noOutputExpected": false
+            }
+          }
+        },
+        {
+          "scenarioName": "03_tool_use_read",
+          "index": 6,
+          "type": "assistant",
+          "keys": [
+            "type",
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "uuid"
+          ],
+          "raw": {
+            "type": "assistant",
+            "message": {
+              "content": [
+                {
+                  "id": "Read-lXcU7wnz",
+                  "input": {
+                    "file_path": "/d/coding/programs/ccui/app/package.json"
+                  },
+                  "name": "Read",
+                  "signature": "EqYDCqMDAb4+9vu8o5gzkqkUyu5G6cqTD8thZXeHo/MeasrigkDoHRwc10DxFqPySNJfDu28+/voMtYk9HMB3GsOTnAei6pFKuTmDk2cXAfRvSqhnI4363346gPAwUfcUCZE1oVMdDYQzR/fT2RsOHSvhrVVzwtVjggYMWsTiS9P0BUv/hJlukbAXHGFQ4/E10WO5KEkD9oXMAxuZNPPcKr0mEC4N4d4EIJia/elFUqm3hVBe45Q8vxbiD0HHJ58tq+2I0tqGxPsQ4hJSsxVcNLWcb6H7CWj0R6Kbw35zmKHZFA0Ny2TSTzAgILyoF0QnKooe7K3uL89P5FmjYqC4GwrJb0sn8T5AkVaJlikGrj1aOUIzBHQl3rA5XHNr7PFXSaoSL3gmu5bJbQKLJyt9t4tgT+uG/WjNO2H39k0QS2z4Ol4IZUKbUgMhsMIkAcINJMigjkrF6EpOD9fvk65EgkverLnEz7umT/lZIZEEqU38MuYbGgt...[TRUNCATED]",
+                  "type": "tool_use"
+                }
+              ],
+              "id": "OAONacaQFI6CqtsP-8TJsA8",
+              "model": "gemini-3-pro-high",
+              "role": "assistant",
+              "stop_reason": null,
+              "stop_sequence": null,
+              "type": "message",
+              "usage": {
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+                "input_tokens": 16959,
+                "output_tokens": 34
+              },
+              "context_management": null
+            },
+            "parent_tool_use_id": null,
+            "session_id": "10fc47ce-1da1-4385-bdf9-26f1d04346cc",
+            "uuid": "68d31a08-886d-44b8-a57b-47a6e7e9dfa6"
+          },
+          "contentBlocks": [
+            {
+              "blockIndex": 0,
+              "type": "tool_use",
+              "keys": [
+                "id",
+                "input",
+                "name",
+                "signature",
+                "type"
+              ],
+              "preview": "{\"id\":\"Read-lXcU7wnz\",\"input\":{\"file_path\":\"/d/coding/programs/ccui/app/package.json\"},\"name\":\"Read\",\"signature\":\"EqYDCqMDAb4+9vu8o5gzkqkUyu5G6cqTD8thZXeHo/MeasrigkDoHRwc10DxFqPySNJfDu28+/voMtYk9HMB3GsOTnAei6pFKuTmDk2cXAfRvSqhnI4363346gPAwUfcUCZE1oVMdDYQzR/fT2RsOHSvhrVVzwtVjggYMWsTiS9P0BUv/hJ"
+            }
+          ]
+        },
+        {
+          "scenarioName": "03_tool_use_read",
+          "index": 7,
+          "type": "user",
+          "keys": [
+            "type",
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "uuid",
+            "tool_use_result"
+          ],
+          "raw": {
+            "type": "user",
+            "message": {
+              "role": "user",
+              "content": [
+                {
+                  "tool_use_id": "Read-lXcU7wnz",
+                  "type": "tool_result",
+                  "content": "     1→{\n     2→  \"name\": \"my-cc-desk\",\n     3→  \"version\": \"0.1.0\",\n     4→  \"description\": \"Claude Code 桌面客户端 — Electron + React GUI\",\n     5→  \"main\": \"./out/main/index.js\",\n     6→  \"author\": \"\",\n     7→  \"license\": \"MIT\",\n     8→  \"scripts\": {\n     9→    \"dev\": \"electron-vite dev\",\n    10→    \"build\": \"electron-vite build\",\n    11→    \"preview\": \"electron-vite preview\",\n    12→    \"postinstall\": \"electron-builder install-app-deps\",\n    13→    \"typecheck:main\": \"tsc --noEmit -p tsconfig.main...[TRUNCATED]"
+                }
+              ]
+            },
+            "parent_tool_use_id": null,
+            "session_id": "10fc47ce-1da1-4385-bdf9-26f1d04346cc",
+            "uuid": "65d97470-d0bf-4461-b630-6302da3c05c1",
+            "tool_use_result": {
+              "type": "text",
+              "file": {
+                "filePath": "/d/coding/programs/ccui/app/package.json",
+                "content": "{\n  \"name\": \"my-cc-desk\",\n  \"version\": \"0.1.0\",\n  \"description\": \"Claude Code 桌面客户端 — Electron + React GUI\",\n  \"main\": \"./out/main/index.js\",\n  \"author\": \"\",\n  \"license\": \"MIT\",\n  \"scripts\": {\n    \"dev\": \"electron-vite dev\",\n    \"build\": \"electron-vite build\",\n    \"preview\": \"electron-vite preview\",\n    \"postinstall\": \"electron-builder install-app-deps\",\n    \"typecheck:main\": \"tsc --noEmit -p tsconfig.main.json\",\n    \"typecheck:preload\": \"tsc --noEmit -p tsconfig.preload.json\",\n    \"typecheck:re...[TRUNCATED]",
+                "numLines": 58,
+                "startLine": 1,
+                "totalLines": 58
+              }
+            }
+          }
+        },
+        {
+          "scenarioName": "03_tool_use_read",
+          "index": 8,
+          "type": "result",
+          "subtype": "error_max_turns",
+          "keys": [
+            "type",
+            "subtype",
+            "duration_ms",
+            "duration_api_ms",
+            "is_error",
+            "num_turns",
+            "stop_reason",
+            "session_id",
+            "total_cost_usd",
+            "usage",
+            "modelUsage",
+            "permission_denials",
+            "uuid",
+            "errors"
+          ],
+          "raw": {
+            "type": "result",
+            "subtype": "error_max_turns",
+            "duration_ms": 14121,
+            "duration_api_ms": 17678,
+            "is_error": false,
+            "num_turns": 3,
+            "stop_reason": null,
+            "session_id": "10fc47ce-1da1-4385-bdf9-26f1d04346cc",
+            "total_cost_usd": 0.0180546,
+            "usage": {
+              "input_tokens": 1186,
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 32542,
+              "output_tokens": 64,
+              "server_tool_use": {
+                "web_search_requests": 0,
+                "web_fetch_requests": 0
+              },
+              "service_tier": "standard",
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 0,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "inference_geo": "",
+              "iterations": []
+            },
+            "modelUsage": {
+              "gemini-3-pro-high": {
+                "inputTokens": 1186,
+                "outputTokens": 64,
+                "cacheReadInputTokens": 32542,
+                "cacheCreationInputTokens": 0,
+                "webSearchRequests": 0,
+                "costUSD": 0.014280600000000001,
+                "contextWindow": 200000,
+                "maxOutputTokens": 32000
+              },
+              "gemini-3-flash": {
+                "inputTokens": 968,
+                "outputTokens": 58,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0,
+                "webSearchRequests": 0,
+                "costUSD": 0.003774,
+                "contextWindow": 200000,
+                "maxOutputTokens": 32000
+              }
+            },
+            "permission_denials": [],
+            "uuid": "6076a9a4-7078-4e4c-80e0-b73956014b94",
+            "errors": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "04_tool_use_bash",
+      "prompt": "Run the command \"echo DIAGNOSTIC_TEST\" and tell me the output.",
+      "permissionMode": "acceptEdits",
+      "messageCount": 6,
+      "uniqueTypes": [
+        "system",
+        "assistant",
+        "user",
+        "result"
+      ],
+      "uniqueSubtypes": [
+        "init",
+        "success"
+      ],
+      "uniqueContentBlockTypes": [
+        "thinking",
+        "tool_use",
+        "text"
+      ],
+      "messages": [
+        {
+          "scenarioName": "04_tool_use_bash",
+          "index": 0,
+          "type": "system",
+          "subtype": "init",
+          "keys": [
+            "type",
+            "subtype",
+            "cwd",
+            "session_id",
+            "tools",
+            "mcp_servers",
+            "model",
+            "permissionMode",
+            "slash_commands",
+            "apiKeySource",
+            "claude_code_version",
+            "output_style",
+            "agents",
+            "skills",
+            "plugins",
+            "uuid",
+            "fast_mode_state"
+          ],
+          "raw": {
+            "type": "system",
+            "subtype": "init",
+            "cwd": "D:\\coding\\programs\\ccui\\my-cc-desk",
+            "session_id": "c82c3bb9-1560-44ba-a2a1-5f249d009a33",
+            "tools": [
+              "Task",
+              "TaskOutput",
+              "Bash",
+              "Glob",
+              "Grep",
+              "ExitPlanMode",
+              "Read",
+              "Edit",
+              "Write",
+              "NotebookEdit",
+              "WebFetch",
+              "TodoWrite",
+              "WebSearch",
+              "TaskStop",
+              "AskUserQuestion",
+              "Skill",
+              "EnterPlanMode",
+              "TeamCreate",
+              "TeamDelete",
+              "SendMessage"
+            ],
+            "mcp_servers": [],
+            "model": "gemini-3-pro-high",
+            "permissionMode": "acceptEdits",
+            "slash_commands": [
+              "debug",
+              "compact",
+              "context",
+              "cost",
+              "init",
+              "pr-comments",
+              "release-notes",
+              "review",
+              "security-review",
+              "insights"
+            ],
+            "apiKeySource": "ANTHROPIC_API_KEY",
+            "claude_code_version": "2.1.39",
+            "output_style": "default",
+            "agents": [
+              "Bash",
+              "general-purpose",
+              "statusline-setup",
+              "Explore",
+              "Plan",
+              "claude-code-guide"
+            ],
+            "skills": [
+              "debug"
+            ],
+            "plugins": [],
+            "uuid": "befc96e9-16af-4ab4-a301-222aca4545e6",
+            "fast_mode_state": "off"
+          }
+        },
+        {
+          "scenarioName": "04_tool_use_bash",
+          "index": 1,
+          "type": "assistant",
+          "keys": [
+            "type",
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "uuid"
+          ],
+          "raw": {
+            "type": "assistant",
+            "message": {
+              "content": [
+                {
+                  "thinking": "**Analyzing the Request**\n\nI've identified the user's intent: execute a simple `echo` command. I'm choosing the Bash tool for this task, as it's the right fit for running terminal instructions. I'm now ready to proceed with executing this instruction.\n\n\n",
+                  "type": "thinking",
+                  "signature": ""
+                }
+              ],
+              "id": "SQONadqNG9Pnz7IPutqFkQ0",
+              "model": "gemini-3-pro-high",
+              "role": "assistant",
+              "stop_reason": null,
+              "stop_sequence": null,
+              "type": "message",
+              "usage": {
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+                "input_tokens": 16766,
+                "output_tokens": 0
+              },
+              "context_management": null
+            },
+            "parent_tool_use_id": null,
+            "session_id": "c82c3bb9-1560-44ba-a2a1-5f249d009a33",
+            "uuid": "afbe6159-6513-47c1-8ac8-8ebf694cf8e4"
+          },
+          "contentBlocks": [
+            {
+              "blockIndex": 0,
+              "type": "thinking",
+              "keys": [
+                "thinking",
+                "type",
+                "signature"
+              ],
+              "preview": "{\"thinking\":\"**Analyzing the Request**\\n\\nI've identified the user's intent: execute a simple `echo` command. I'm choosing the Bash tool for this task, as it's the right fit for running terminal instructions. I'm now ready to proceed with executing this instruction.\\n\\n\\n\",\"type\":\"thinking\",\"signatu"
+            }
+          ]
+        },
+        {
+          "scenarioName": "04_tool_use_bash",
+          "index": 2,
+          "type": "assistant",
+          "keys": [
+            "type",
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "uuid"
+          ],
+          "raw": {
+            "type": "assistant",
+            "message": {
+              "content": [
+                {
+                  "id": "Bash-DqG3e6jS",
+                  "input": {
+                    "command": "echo DIAGNOSTIC_TEST",
+                    "description": "Echo a diagnostic test string"
+                  },
+                  "name": "Bash",
+                  "signature": "EtcGCtQGAb4+9vtdAw9A3c+LpJlV3xMymYJEd2qRnA8xOBWqjHsYNTP92BYdfgbWI76xcvE1wq8FXbQid1AQK69uF2Jrkb+f208bQdNmyubN6BkibnwxV7ZG/otsiP0skU0HP1xzEjn2aOv7eIsD2OmKS8kwc8Bp4mcWvUE1LTIjee36/abJoHM4QEo7EetFXNjlH7zThtC2h3uymaOTj8YrIRI29wjsquAmEKx/yXSq+EqfOuE9c5z5etfX1iYEhRj3J1RDVHcYzG7gg9Cz7HR0nnTzopejr9Et/MZITd1EVd7oU6vQ1GFAk8vtYpRIl4Sep6jF8w7f6YKDNUy3dRNx9uPAmT/hs7Nd2/SUR2Ii4uhkdNxpgf+JPW3dP4LgICxCtMv1JGeN/fbYxVGuyF+UNjqf/EJRdy/wSTRfX0L7ehZD/85dIIkql1w99Pthc3yPLjpz00hTFisCdZ+gbiaWkaI+g4g2ghHqE6OcRBIEHVBPCH5u...[TRUNCATED]",
+                  "type": "tool_use"
+                }
+              ],
+              "id": "SQONadqNG9Pnz7IPutqFkQ0",
+              "model": "gemini-3-pro-high",
+              "role": "assistant",
+              "stop_reason": null,
+              "stop_sequence": null,
+              "type": "message",
+              "usage": {
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+                "input_tokens": 16766,
+                "output_tokens": 0
+              },
+              "context_management": null
+            },
+            "parent_tool_use_id": null,
+            "session_id": "c82c3bb9-1560-44ba-a2a1-5f249d009a33",
+            "uuid": "b2ec6557-1059-4130-a25f-2d76b85cce85"
+          },
+          "contentBlocks": [
+            {
+              "blockIndex": 0,
+              "type": "tool_use",
+              "keys": [
+                "id",
+                "input",
+                "name",
+                "signature",
+                "type"
+              ],
+              "preview": "{\"id\":\"Bash-DqG3e6jS\",\"input\":{\"command\":\"echo DIAGNOSTIC_TEST\",\"description\":\"Echo a diagnostic test string\"},\"name\":\"Bash\",\"signature\":\"EtcGCtQGAb4+9vtdAw9A3c+LpJlV3xMymYJEd2qRnA8xOBWqjHsYNTP92BYdfgbWI76xcvE1wq8FXbQid1AQK69uF2Jrkb+f208bQdNmyubN6BkibnwxV7ZG/otsiP0skU0HP1xzEjn2aOv7eIsD2OmKS8kwc8Bp4m"
+            }
+          ]
+        },
+        {
+          "scenarioName": "04_tool_use_bash",
+          "index": 3,
+          "type": "user",
+          "keys": [
+            "type",
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "uuid",
+            "tool_use_result"
+          ],
+          "raw": {
+            "type": "user",
+            "message": {
+              "role": "user",
+              "content": [
+                {
+                  "tool_use_id": "Bash-DqG3e6jS",
+                  "type": "tool_result",
+                  "content": "DIAGNOSTIC_TEST",
+                  "is_error": false
+                }
+              ]
+            },
+            "parent_tool_use_id": null,
+            "session_id": "c82c3bb9-1560-44ba-a2a1-5f249d009a33",
+            "uuid": "28c5957d-7610-4d97-8612-c11246da104b",
+            "tool_use_result": {
+              "stdout": "DIAGNOSTIC_TEST\r",
+              "stderr": "",
+              "interrupted": false,
+              "isImage": false,
+              "noOutputExpected": false
+            }
+          }
+        },
+        {
+          "scenarioName": "04_tool_use_bash",
+          "index": 4,
+          "type": "assistant",
+          "keys": [
+            "type",
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "uuid"
+          ],
+          "raw": {
+            "type": "assistant",
+            "message": {
+              "content": [
+                {
+                  "text": "The output is:\nDIAGNOSTIC_TEST",
+                  "type": "text"
+                }
+              ],
+              "id": "VwONaYqjJ_Gtz7IPhNPa4AI",
+              "model": "gemini-3-pro-high",
+              "role": "assistant",
+              "stop_reason": null,
+              "stop_sequence": null,
+              "type": "message",
+              "usage": {
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+                "input_tokens": 16839,
+                "output_tokens": 4
+              },
+              "context_management": null
+            },
+            "parent_tool_use_id": null,
+            "session_id": "c82c3bb9-1560-44ba-a2a1-5f249d009a33",
+            "uuid": "320599ea-969d-47de-95c7-718a84f58428"
+          },
+          "contentBlocks": [
+            {
+              "blockIndex": 0,
+              "type": "text",
+              "keys": [
+                "text",
+                "type"
+              ],
+              "preview": "{\"text\":\"The output is:\\nDIAGNOSTIC_TEST\",\"type\":\"text\"}"
+            }
+          ]
+        },
+        {
+          "scenarioName": "04_tool_use_bash",
+          "index": 5,
+          "type": "result",
+          "subtype": "success",
+          "keys": [
+            "type",
+            "subtype",
+            "is_error",
+            "duration_ms",
+            "duration_api_ms",
+            "num_turns",
+            "result",
+            "stop_reason",
+            "session_id",
+            "total_cost_usd",
+            "usage",
+            "modelUsage",
+            "permission_denials",
+            "uuid"
+          ],
+          "raw": {
+            "type": "result",
+            "subtype": "success",
+            "is_error": false,
+            "duration_ms": 28934,
+            "duration_api_ms": 28178,
+            "num_turns": 2,
+            "result": "The output is:\nDIAGNOSTIC_TEST",
+            "stop_reason": null,
+            "session_id": "c82c3bb9-1560-44ba-a2a1-5f249d009a33",
+            "total_cost_usd": 0.015278700000000003,
+            "usage": {
+              "input_tokens": 1056,
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 32549,
+              "output_tokens": 40,
+              "server_tool_use": {
+                "web_search_requests": 0,
+                "web_fetch_requests": 0
+              },
+              "service_tier": "standard",
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 0,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "inference_geo": "",
+              "iterations": []
+            },
+            "modelUsage": {
+              "gemini-3-pro-high": {
+                "inputTokens": 1056,
+                "outputTokens": 40,
+                "cacheReadInputTokens": 32549,
+                "cacheCreationInputTokens": 0,
+                "webSearchRequests": 0,
+                "costUSD": 0.013532700000000002,
+                "contextWindow": 200000,
+                "maxOutputTokens": 32000
+              },
+              "gemini-3-flash": {
+                "inputTokens": 437,
+                "outputTokens": 29,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0,
+                "webSearchRequests": 0,
+                "costUSD": 0.0017460000000000002,
+                "contextWindow": 200000,
+                "maxOutputTokens": 32000
+              }
+            },
+            "permission_denials": [],
+            "uuid": "6f6197fe-e9e2-4e08-863a-06ec6f3cb8eb"
+          }
+        }
+      ]
+    },
+    {
+      "name": "05_multi_tool",
+      "prompt": "List the files in the current directory using ls, then read package.json. Report the project name.",
+      "permissionMode": "acceptEdits",
+      "messageCount": 9,
+      "uniqueTypes": [
+        "system",
+        "assistant",
+        "user",
+        "result"
+      ],
+      "uniqueSubtypes": [
+        "init",
+        "success"
+      ],
+      "uniqueContentBlockTypes": [
+        "thinking",
+        "tool_use",
+        "text"
+      ],
+      "messages": [
+        {
+          "scenarioName": "05_multi_tool",
+          "index": 0,
+          "type": "system",
+          "subtype": "init",
+          "keys": [
+            "type",
+            "subtype",
+            "cwd",
+            "session_id",
+            "tools",
+            "mcp_servers",
+            "model",
+            "permissionMode",
+            "slash_commands",
+            "apiKeySource",
+            "claude_code_version",
+            "output_style",
+            "agents",
+            "skills",
+            "plugins",
+            "uuid",
+            "fast_mode_state"
+          ],
+          "raw": {
+            "type": "system",
+            "subtype": "init",
+            "cwd": "D:\\coding\\programs\\ccui\\my-cc-desk",
+            "session_id": "d63e7683-837e-4c90-a72f-e58786ef6f06",
+            "tools": [
+              "Task",
+              "TaskOutput",
+              "Bash",
+              "Glob",
+              "Grep",
+              "ExitPlanMode",
+              "Read",
+              "Edit",
+              "Write",
+              "NotebookEdit",
+              "WebFetch",
+              "TodoWrite",
+              "WebSearch",
+              "TaskStop",
+              "AskUserQuestion",
+              "Skill",
+              "EnterPlanMode",
+              "TeamCreate",
+              "TeamDelete",
+              "SendMessage"
+            ],
+            "mcp_servers": [],
+            "model": "gemini-3-pro-high",
+            "permissionMode": "acceptEdits",
+            "slash_commands": [
+              "debug",
+              "compact",
+              "context",
+              "cost",
+              "init",
+              "pr-comments",
+              "release-notes",
+              "review",
+              "security-review",
+              "insights"
+            ],
+            "apiKeySource": "ANTHROPIC_API_KEY",
+            "claude_code_version": "2.1.39",
+            "output_style": "default",
+            "agents": [
+              "Bash",
+              "general-purpose",
+              "statusline-setup",
+              "Explore",
+              "Plan",
+              "claude-code-guide"
+            ],
+            "skills": [
+              "debug"
+            ],
+            "plugins": [],
+            "uuid": "947b4930-e046-4ac7-bbc2-60074c2ed24c",
+            "fast_mode_state": "off"
+          }
+        },
+        {
+          "scenarioName": "05_multi_tool",
+          "index": 1,
+          "type": "assistant",
+          "keys": [
+            "type",
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "uuid"
+          ],
+          "raw": {
+            "type": "assistant",
+            "message": {
+              "content": [
+                {
+                  "thinking": "**Listing Files and Reading**\n\nI've initiated the process by listing files in the current directory using `ls -F` via the Bash tool. The next logical step is parsing the contents of `package.json`, and I will now proceed to read this file.\n\n\n**Constructing Path and Reading**\n\nNow, I'm refining my approach. Initially, the plan was to read `package.json` after confirming its existence via `ls`. I've realized, however, that I need the absolute path for the `Read` tool. Therefore, I will use `ls -F`...[TRUNCATED]",
+                  "type": "thinking",
+                  "signature": ""
+                }
+              ],
+              "id": "XQONafKAKe3Vz7IP7b-w0QI",
+              "model": "gemini-3-pro-high",
+              "role": "assistant",
+              "stop_reason": null,
+              "stop_sequence": null,
+              "type": "message",
+              "usage": {
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+                "input_tokens": 16771,
+                "output_tokens": 0
+              },
+              "context_management": null
+            },
+            "parent_tool_use_id": null,
+            "session_id": "d63e7683-837e-4c90-a72f-e58786ef6f06",
+            "uuid": "87efd877-713c-4f7b-b6ab-1b2b565bc8bc"
+          },
+          "contentBlocks": [
+            {
+              "blockIndex": 0,
+              "type": "thinking",
+              "keys": [
+                "thinking",
+                "type",
+                "signature"
+              ],
+              "preview": "{\"thinking\":\"**Listing Files and Reading**\\n\\nI've initiated the process by listing files in the current directory using `ls -F` via the Bash tool. The next logical step is parsing the contents of `package.json`, and I will now proceed to read this file.\\n\\n\\n**Constructing Path and Reading**\\n\\nNow"
+            }
+          ]
+        },
+        {
+          "scenarioName": "05_multi_tool",
+          "index": 2,
+          "type": "assistant",
+          "keys": [
+            "type",
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "uuid"
+          ],
+          "raw": {
+            "type": "assistant",
+            "message": {
+              "content": [
+                {
+                  "id": "Bash-PAfZafcB",
+                  "input": {
+                    "command": "ls -F && pwd"
+                  },
+                  "name": "Bash",
+                  "signature": "Ep4PCpsPAb4+9vvZXypjgM87O11AO4/onStfgpbUC0SU98pDn9jJqNQ8M0fM7bmKXjoBOMoOoGu52vj4aiRp2m2uidA+K8jHB5ZQVH4FXPgZb3hUK/vvDhzvJxXX2zSgY0Da8bNvn13EZx1/94OMTZyj5vgpXy2T6Cv5cfKQtPUFAY/YQjX7Jxs2HKgwKGR2EdetB6NxaHnGsQm/cQmYYs+aUlmJ6wo4b8SO4qH6jleAYCkjw5PujGgAmux2nJBV6xvR53LSilDQ0cftBaEdZuOvdZlkMVKH9yR4PFCgr0AEQbFXVqw+P5E2vhLp98mgLR6KdaZ3b7R0QVAHHMLflk9bdk4vK6i4KQUOmFn9yX37iZS1w1EX22Opd7n9ebvWMD7UIUvTxJ4F+/c/ywV+b5Azxi1KCTbaI/Od5fZzXCGQbYle39cyqvI+40ezXGyyo2lRtGqwbi86SMt09bZzXdkfQrtavNCf6Jp0XDC6+0qlSObrj5dh...[TRUNCATED]",
+                  "type": "tool_use"
+                }
+              ],
+              "id": "XQONafKAKe3Vz7IP7b-w0QI",
+              "model": "gemini-3-pro-high",
+              "role": "assistant",
+              "stop_reason": null,
+              "stop_sequence": null,
+              "type": "message",
+              "usage": {
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+                "input_tokens": 16771,
+                "output_tokens": 0
+              },
+              "context_management": null
+            },
+            "parent_tool_use_id": null,
+            "session_id": "d63e7683-837e-4c90-a72f-e58786ef6f06",
+            "uuid": "1e95010f-6751-412e-b481-cf10b857f481"
+          },
+          "contentBlocks": [
+            {
+              "blockIndex": 0,
+              "type": "tool_use",
+              "keys": [
+                "id",
+                "input",
+                "name",
+                "signature",
+                "type"
+              ],
+              "preview": "{\"id\":\"Bash-PAfZafcB\",\"input\":{\"command\":\"ls -F && pwd\"},\"name\":\"Bash\",\"signature\":\"Ep4PCpsPAb4+9vvZXypjgM87O11AO4/onStfgpbUC0SU98pDn9jJqNQ8M0fM7bmKXjoBOMoOoGu52vj4aiRp2m2uidA+K8jHB5ZQVH4FXPgZb3hUK/vvDhzvJxXX2zSgY0Da8bNvn13EZx1/94OMTZyj5vgpXy2T6Cv5cfKQtPUFAY/YQjX7Jxs2HKgwKGR2EdetB6NxaHnGsQm/cQmYYs+a"
+            }
+          ]
+        },
+        {
+          "scenarioName": "05_multi_tool",
+          "index": 3,
+          "type": "user",
+          "keys": [
+            "type",
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "uuid",
+            "tool_use_result"
+          ],
+          "raw": {
+            "type": "user",
+            "message": {
+              "role": "user",
+              "content": [
+                {
+                  "tool_use_id": "Bash-PAfZafcB",
+                  "type": "tool_result",
+                  "content": "CLAUDE.md\ndocs/\ne2e-test/\nelectron.vite.config.ts\nelectron-builder.yml\nnode_modules/\nnul\nout/\npackage.json\npnpm-lock.yaml\npnpm-workspace.yaml\nsrc/\ntsconfig.json\ntsconfig.main.json\ntsconfig.preload.json\ntsconfig.renderer.json\nvitest.config.ts\nvitest.integration.config.ts\n/d/coding/programs/ccui/my-cc-desk",
+                  "is_error": false
+                }
+              ]
+            },
+            "parent_tool_use_id": null,
+            "session_id": "d63e7683-837e-4c90-a72f-e58786ef6f06",
+            "uuid": "ade67d92-11f4-4acb-9032-c2b3ff246003",
+            "tool_use_result": {
+              "stdout": "CLAUDE.md\ndocs/\ne2e-test/\nelectron.vite.config.ts\nelectron-builder.yml\nnode_modules/\nnul\nout/\npackage.json\npnpm-lock.yaml\npnpm-workspace.yaml\nsrc/\ntsconfig.json\ntsconfig.main.json\ntsconfig.preload.json\ntsconfig.renderer.json\nvitest.config.ts\nvitest.integration.config.ts\n/d/coding/programs/ccui/my-cc-desk\r",
+              "stderr": "",
+              "interrupted": false,
+              "isImage": false,
+              "noOutputExpected": false
+            }
+          }
+        },
+        {
+          "scenarioName": "05_multi_tool",
+          "index": 4,
+          "type": "assistant",
+          "keys": [
+            "type",
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "uuid"
+          ],
+          "raw": {
+            "type": "assistant",
+            "message": {
+              "content": [
+                {
+                  "thinking": "**Reading Package.json**\n\nI've got the file listing done. My next step is to tackle `package.json`. My focus is on extracting that project name. Once I have the file contents I'll be reading it and parsing it to find the name to report.\n\n\n",
+                  "type": "thinking",
+                  "signature": ""
+                }
+              ],
+              "id": "dwONafaOOYKez7IPtuDvqQ0",
+              "model": "gemini-3-pro-high",
+              "role": "assistant",
+              "stop_reason": null,
+              "stop_sequence": null,
+              "type": "message",
+              "usage": {
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+                "input_tokens": 16941,
+                "output_tokens": 0
+              },
+              "context_management": null
+            },
+            "parent_tool_use_id": null,
+            "session_id": "d63e7683-837e-4c90-a72f-e58786ef6f06",
+            "uuid": "b9899a52-e089-4de9-9a46-521b09c1766b"
+          },
+          "contentBlocks": [
+            {
+              "blockIndex": 0,
+              "type": "thinking",
+              "keys": [
+                "thinking",
+                "type",
+                "signature"
+              ],
+              "preview": "{\"thinking\":\"**Reading Package.json**\\n\\nI've got the file listing done. My next step is to tackle `package.json`. My focus is on extracting that project name. Once I have the file contents I'll be reading it and parsing it to find the name to report.\\n\\n\\n\",\"type\":\"thinking\",\"signature\":\"\"}"
+            }
+          ]
+        },
+        {
+          "scenarioName": "05_multi_tool",
+          "index": 5,
+          "type": "assistant",
+          "keys": [
+            "type",
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "uuid"
+          ],
+          "raw": {
+            "type": "assistant",
+            "message": {
+              "content": [
+                {
+                  "id": "Read-ciULO8Jl",
+                  "input": {
+                    "file_path": "/d/coding/programs/ccui/app/package.json"
+                  },
+                  "name": "Read",
+                  "signature": "ErMGCrAGAb4+9vtAFCUq0duIQ6m2YPWpoGLIFSrtyKyKCq2IUQdFRA6Zxeu/VuDPjSnuIzdN7B+S54lU3dntRB8k/M9Sbqc3BBjcvh6a3OoBCYcNN63gpYuiJxuk3gNCtZClVbNYblokyOovoF2w8sYs2db1XTO5VA985BwF5M4TGYMlBsCWrPn0KZXMnA1lNyBpKBu+Vqf/Z10Trbcjk8jKAsVjLQeY09EDxGN4cGL9mzW6Nyr5pO2i+c/yHk6i1IfmU69WROsIaolphVD0hE45IH++2F31+pT9VGxDKnVKtkmscqt/EjTSwbaiKBdBLueg++apqTLKG6RLcxjJbbM45TlIDbr9859MGuxVHojZkoIcJUK+FjO/BFhuqBvJIIBk3zas8Zpzwxfft8rkFTaUEMnEhI63wyfGQzaWgKLsDxJ3/P1B56l63ZWZXF5+Yd5PLwkkTwcBuKvUHFVgDmHZX8tYY8ngqNeuBH+Lx530kClqKZFh...[TRUNCATED]",
+                  "type": "tool_use"
+                }
+              ],
+              "id": "dwONafaOOYKez7IPtuDvqQ0",
+              "model": "gemini-3-pro-high",
+              "role": "assistant",
+              "stop_reason": null,
+              "stop_sequence": null,
+              "type": "message",
+              "usage": {
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+                "input_tokens": 16941,
+                "output_tokens": 0
+              },
+              "context_management": null
+            },
+            "parent_tool_use_id": null,
+            "session_id": "d63e7683-837e-4c90-a72f-e58786ef6f06",
+            "uuid": "1f2e27aa-ce37-4490-a0c1-3226b6fc60bb"
+          },
+          "contentBlocks": [
+            {
+              "blockIndex": 0,
+              "type": "tool_use",
+              "keys": [
+                "id",
+                "input",
+                "name",
+                "signature",
+                "type"
+              ],
+              "preview": "{\"id\":\"Read-ciULO8Jl\",\"input\":{\"file_path\":\"/d/coding/programs/ccui/app/package.json\"},\"name\":\"Read\",\"signature\":\"ErMGCrAGAb4+9vtAFCUq0duIQ6m2YPWpoGLIFSrtyKyKCq2IUQdFRA6Zxeu/VuDPjSnuIzdN7B+S54lU3dntRB8k/M9Sbqc3BBjcvh6a3OoBCYcNN63gpYuiJxuk3gNCtZClVbNYblokyOovoF2w8sYs2db1XTO5VA985BwF5M4TGYMlBsC"
+            }
+          ]
+        },
+        {
+          "scenarioName": "05_multi_tool",
+          "index": 6,
+          "type": "user",
+          "keys": [
+            "type",
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "uuid",
+            "tool_use_result"
+          ],
+          "raw": {
+            "type": "user",
+            "message": {
+              "role": "user",
+              "content": [
+                {
+                  "tool_use_id": "Read-ciULO8Jl",
+                  "type": "tool_result",
+                  "content": "     1→{\n     2→  \"name\": \"my-cc-desk\",\n     3→  \"version\": \"0.1.0\",\n     4→  \"description\": \"Claude Code 桌面客户端 — Electron + React GUI\",\n     5→  \"main\": \"./out/main/index.js\",\n     6→  \"author\": \"\",\n     7→  \"license\": \"MIT\",\n     8→  \"scripts\": {\n     9→    \"dev\": \"electron-vite dev\",\n    10→    \"build\": \"electron-vite build\",\n    11→    \"preview\": \"electron-vite preview\",\n    12→    \"postinstall\": \"electron-builder install-app-deps\",\n    13→    \"typecheck:main\": \"tsc --noEmit -p tsconfig.main...[TRUNCATED]"
+                }
+              ]
+            },
+            "parent_tool_use_id": null,
+            "session_id": "d63e7683-837e-4c90-a72f-e58786ef6f06",
+            "uuid": "aca11038-5831-49af-a7d8-956c928052c3",
+            "tool_use_result": {
+              "type": "text",
+              "file": {
+                "filePath": "/d/coding/programs/ccui/app/package.json",
+                "content": "{\n  \"name\": \"my-cc-desk\",\n  \"version\": \"0.1.0\",\n  \"description\": \"Claude Code 桌面客户端 — Electron + React GUI\",\n  \"main\": \"./out/main/index.js\",\n  \"author\": \"\",\n  \"license\": \"MIT\",\n  \"scripts\": {\n    \"dev\": \"electron-vite dev\",\n    \"build\": \"electron-vite build\",\n    \"preview\": \"electron-vite preview\",\n    \"postinstall\": \"electron-builder install-app-deps\",\n    \"typecheck:main\": \"tsc --noEmit -p tsconfig.main.json\",\n    \"typecheck:preload\": \"tsc --noEmit -p tsconfig.preload.json\",\n    \"typecheck:re...[TRUNCATED]",
+                "numLines": 58,
+                "startLine": 1,
+                "totalLines": 58
+              }
+            }
+          }
+        },
+        {
+          "scenarioName": "05_multi_tool",
+          "index": 7,
+          "type": "assistant",
+          "keys": [
+            "type",
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "uuid"
+          ],
+          "raw": {
+            "type": "assistant",
+            "message": {
+              "content": [
+                {
+                  "text": "The project name is **my-cc-desk**.",
+                  "type": "text"
+                }
+              ],
+              "id": "fQONaeCMKL-1qtsPx87R4Q4",
+              "model": "gemini-3-pro-high",
+              "role": "assistant",
+              "stop_reason": null,
+              "stop_sequence": null,
+              "type": "message",
+              "usage": {
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+                "input_tokens": 18071,
+                "output_tokens": 9
+              },
+              "context_management": null
+            },
+            "parent_tool_use_id": null,
+            "session_id": "d63e7683-837e-4c90-a72f-e58786ef6f06",
+            "uuid": "a639d20c-35d0-4743-8db1-e37469e1f9c6"
+          },
+          "contentBlocks": [
+            {
+              "blockIndex": 0,
+              "type": "text",
+              "keys": [
+                "text",
+                "type"
+              ],
+              "preview": "{\"text\":\"The project name is **my-cc-desk**.\",\"type\":\"text\"}"
+            }
+          ]
+        },
+        {
+          "scenarioName": "05_multi_tool",
+          "index": 8,
+          "type": "result",
+          "subtype": "success",
+          "keys": [
+            "type",
+            "subtype",
+            "is_error",
+            "duration_ms",
+            "duration_api_ms",
+            "num_turns",
+            "result",
+            "stop_reason",
+            "session_id",
+            "total_cost_usd",
+            "usage",
+            "modelUsage",
+            "permission_denials",
+            "uuid"
+          ],
+          "raw": {
+            "type": "result",
+            "subtype": "success",
+            "is_error": false,
+            "duration_ms": 36161,
+            "duration_api_ms": 35003,
+            "num_turns": 3,
+            "result": "The project name is **my-cc-desk**.",
+            "stop_reason": null,
+            "session_id": "d63e7683-837e-4c90-a72f-e58786ef6f06",
+            "total_cost_usd": 0.0265527,
+            "usage": {
+              "input_tokens": 2964,
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 48819,
+              "output_tokens": 63,
+              "server_tool_use": {
+                "web_search_requests": 0,
+                "web_fetch_requests": 0
+              },
+              "service_tier": "standard",
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 0,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "inference_geo": "",
+              "iterations": []
+            },
+            "modelUsage": {
+              "gemini-3-pro-high": {
+                "inputTokens": 2964,
+                "outputTokens": 63,
+                "cacheReadInputTokens": 48819,
+                "cacheCreationInputTokens": 0,
+                "webSearchRequests": 0,
+                "costUSD": 0.0244827,
+                "contextWindow": 200000,
+                "maxOutputTokens": 32000
+              },
+              "gemini-3-flash": {
+                "inputTokens": 545,
+                "outputTokens": 29,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0,
+                "webSearchRequests": 0,
+                "costUSD": 0.0020700000000000002,
+                "contextWindow": 200000,
+                "maxOutputTokens": 32000
+              }
+            },
+            "permission_denials": [],
+            "uuid": "0406b263-060d-4c0e-83d1-d4dcc58f3049"
+          }
+        }
+      ]
+    },
+    {
+      "name": "06_stream_events",
+      "prompt": "Write a short haiku about coding.",
+      "permissionMode": "default",
+      "messageCount": 14,
+      "uniqueTypes": [
+        "system",
+        "stream_event",
+        "assistant",
+        "result"
+      ],
+      "uniqueSubtypes": [
+        "init",
+        "success"
+      ],
+      "uniqueContentBlockTypes": [
+        "thinking",
+        "text"
+      ],
+      "messages": [
+        {
+          "scenarioName": "06_stream_events",
+          "index": 0,
+          "type": "system",
+          "subtype": "init",
+          "keys": [
+            "type",
+            "subtype",
+            "cwd",
+            "session_id",
+            "tools",
+            "mcp_servers",
+            "model",
+            "permissionMode",
+            "slash_commands",
+            "apiKeySource",
+            "claude_code_version",
+            "output_style",
+            "agents",
+            "skills",
+            "plugins",
+            "uuid",
+            "fast_mode_state"
+          ],
+          "raw": {
+            "type": "system",
+            "subtype": "init",
+            "cwd": "D:\\coding\\programs\\ccui\\my-cc-desk",
+            "session_id": "b59f613e-517b-4bb0-98b4-eb576d3a4964",
+            "tools": [
+              "Task",
+              "TaskOutput",
+              "Bash",
+              "Glob",
+              "Grep",
+              "ExitPlanMode",
+              "Read",
+              "Edit",
+              "Write",
+              "NotebookEdit",
+              "WebFetch",
+              "TodoWrite",
+              "WebSearch",
+              "TaskStop",
+              "AskUserQuestion",
+              "Skill",
+              "EnterPlanMode",
+              "TeamCreate",
+              "TeamDelete",
+              "SendMessage"
+            ],
+            "mcp_servers": [],
+            "model": "gemini-3-pro-high",
+            "permissionMode": "default",
+            "slash_commands": [
+              "debug",
+              "compact",
+              "context",
+              "cost",
+              "init",
+              "pr-comments",
+              "release-notes",
+              "review",
+              "security-review",
+              "insights"
+            ],
+            "apiKeySource": "ANTHROPIC_API_KEY",
+            "claude_code_version": "2.1.39",
+            "output_style": "default",
+            "agents": [
+              "Bash",
+              "general-purpose",
+              "statusline-setup",
+              "Explore",
+              "Plan",
+              "claude-code-guide"
+            ],
+            "skills": [
+              "debug"
+            ],
+            "plugins": [],
+            "uuid": "d9b3000f-eaac-405d-94a2-6cab286bcd83",
+            "fast_mode_state": "off"
+          }
+        },
+        {
+          "scenarioName": "06_stream_events",
+          "index": 1,
+          "type": "stream_event",
+          "keys": [
+            "type",
+            "event",
+            "session_id",
+            "parent_tool_use_id",
+            "uuid"
+          ],
+          "raw": {
+            "type": "stream_event",
+            "event": {
+              "message": {
+                "content": [],
+                "id": "hAONaaSRHuWIqtsPy9qi8A4",
+                "model": "gemini-3-pro-high",
+                "role": "assistant",
+                "stop_reason": null,
+                "stop_sequence": null,
+                "type": "message",
+                "usage": {
+                  "cache_creation_input_tokens": 0,
+                  "cache_read_input_tokens": 0,
+                  "input_tokens": 16758,
+                  "output_tokens": 0
+                }
+              },
+              "type": "message_start"
+            },
+            "session_id": "b59f613e-517b-4bb0-98b4-eb576d3a4964",
+            "parent_tool_use_id": null,
+            "uuid": "af6489ce-bd96-48c8-9415-08a323d3e23c"
+          },
+          "streamEventType": "message_start"
+        },
+        {
+          "scenarioName": "06_stream_events",
+          "index": 2,
+          "type": "stream_event",
+          "keys": [
+            "type",
+            "event",
+            "session_id",
+            "parent_tool_use_id",
+            "uuid"
+          ],
+          "raw": {
+            "type": "stream_event",
+            "event": {
+              "content_block": {
+                "thinking": "",
+                "type": "thinking"
+              },
+              "index": 0,
+              "type": "content_block_start"
+            },
+            "session_id": "b59f613e-517b-4bb0-98b4-eb576d3a4964",
+            "parent_tool_use_id": null,
+            "uuid": "f3865a4a-5c5f-45c9-9353-f32ba7d8fa28"
+          },
+          "streamEventType": "content_block_start"
+        },
+        {
+          "scenarioName": "06_stream_events",
+          "index": 3,
+          "type": "stream_event",
+          "keys": [
+            "type",
+            "event",
+            "session_id",
+            "parent_tool_use_id",
+            "uuid"
+          ],
+          "raw": {
+            "type": "stream_event",
+            "event": {
+              "delta": {
+                "thinking": "**Composing A Haiku**\n\nI'm focusing on the haiku's structure: 5-7-5 syllables. Since this is a creative task, there's no need for file manipulation or complex AI interactions. I'm ready to craft the poem and deliver it to the user.\n\n\n",
+                "type": "thinking_delta"
+              },
+              "index": 0,
+              "type": "content_block_delta"
+            },
+            "session_id": "b59f613e-517b-4bb0-98b4-eb576d3a4964",
+            "parent_tool_use_id": null,
+            "uuid": "3883b4bf-53bd-4e78-b4a5-aa80e9d10108"
+          },
+          "streamEventType": "content_block_delta"
+        },
+        {
+          "scenarioName": "06_stream_events",
+          "index": 4,
+          "type": "assistant",
+          "keys": [
+            "type",
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "uuid"
+          ],
+          "raw": {
+            "type": "assistant",
+            "message": {
+              "content": [
+                {
+                  "thinking": "**Composing A Haiku**\n\nI'm focusing on the haiku's structure: 5-7-5 syllables. Since this is a creative task, there's no need for file manipulation or complex AI interactions. I'm ready to craft the poem and deliver it to the user.\n\n\n",
+                  "type": "thinking",
+                  "signature": ""
+                }
+              ],
+              "id": "hAONaaSRHuWIqtsPy9qi8A4",
+              "model": "gemini-3-pro-high",
+              "role": "assistant",
+              "stop_reason": null,
+              "stop_sequence": null,
+              "type": "message",
+              "usage": {
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+                "input_tokens": 16758,
+                "output_tokens": 0
+              },
+              "context_management": null
+            },
+            "parent_tool_use_id": null,
+            "session_id": "b59f613e-517b-4bb0-98b4-eb576d3a4964",
+            "uuid": "7e7cdf06-beab-44c1-af69-71f633137bb8"
+          },
+          "contentBlocks": [
+            {
+              "blockIndex": 0,
+              "type": "thinking",
+              "keys": [
+                "thinking",
+                "type",
+                "signature"
+              ],
+              "preview": "{\"thinking\":\"**Composing A Haiku**\\n\\nI'm focusing on the haiku's structure: 5-7-5 syllables. Since this is a creative task, there's no need for file manipulation or complex AI interactions. I'm ready to craft the poem and deliver it to the user.\\n\\n\\n\",\"type\":\"thinking\",\"signature\":\"\"}"
+            }
+          ]
+        },
+        {
+          "scenarioName": "06_stream_events",
+          "index": 5,
+          "type": "stream_event",
+          "keys": [
+            "type",
+            "event",
+            "session_id",
+            "parent_tool_use_id",
+            "uuid"
+          ],
+          "raw": {
+            "type": "stream_event",
+            "event": {
+              "index": 0,
+              "type": "content_block_stop"
+            },
+            "session_id": "b59f613e-517b-4bb0-98b4-eb576d3a4964",
+            "parent_tool_use_id": null,
+            "uuid": "2fecfa6f-a9b9-40b7-8963-639e63a86a09"
+          },
+          "streamEventType": "content_block_stop"
+        },
+        {
+          "scenarioName": "06_stream_events",
+          "index": 6,
+          "type": "stream_event",
+          "keys": [
+            "type",
+            "event",
+            "session_id",
+            "parent_tool_use_id",
+            "uuid"
+          ],
+          "raw": {
+            "type": "stream_event",
+            "event": {
+              "content_block": {
+                "text": "",
+                "type": "text"
+              },
+              "index": 1,
+              "type": "content_block_start"
+            },
+            "session_id": "b59f613e-517b-4bb0-98b4-eb576d3a4964",
+            "parent_tool_use_id": null,
+            "uuid": "d00c79d1-99a0-4485-829c-a6ca94877d2d"
+          },
+          "streamEventType": "content_block_start"
+        },
+        {
+          "scenarioName": "06_stream_events",
+          "index": 7,
+          "type": "stream_event",
+          "keys": [
+            "type",
+            "event",
+            "session_id",
+            "parent_tool_use_id",
+            "uuid"
+          ],
+          "raw": {
+            "type": "stream_event",
+            "event": {
+              "delta": {
+                "text": "Logic flows like streams,\nBuilding worlds from simple text,\nHello world is",
+                "type": "text_delta"
+              },
+              "index": 1,
+              "type": "content_block_delta"
+            },
+            "session_id": "b59f613e-517b-4bb0-98b4-eb576d3a4964",
+            "parent_tool_use_id": null,
+            "uuid": "6884bf4b-0534-46a2-bce0-ba2c167ed67c"
+          },
+          "streamEventType": "content_block_delta"
+        },
+        {
+          "scenarioName": "06_stream_events",
+          "index": 8,
+          "type": "stream_event",
+          "keys": [
+            "type",
+            "event",
+            "session_id",
+            "parent_tool_use_id",
+            "uuid"
+          ],
+          "raw": {
+            "type": "stream_event",
+            "event": {
+              "delta": {
+                "text": " born.",
+                "type": "text_delta"
+              },
+              "index": 1,
+              "type": "content_block_delta"
+            },
+            "session_id": "b59f613e-517b-4bb0-98b4-eb576d3a4964",
+            "parent_tool_use_id": null,
+            "uuid": "2526e914-4737-4cdd-bc0a-c1e4318050eb"
+          },
+          "streamEventType": "content_block_delta"
+        },
+        {
+          "scenarioName": "06_stream_events",
+          "index": 9,
+          "type": "assistant",
+          "keys": [
+            "type",
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "uuid"
+          ],
+          "raw": {
+            "type": "assistant",
+            "message": {
+              "content": [
+                {
+                  "text": "Logic flows like streams,\nBuilding worlds from simple text,\nHello world is born.",
+                  "type": "text"
+                }
+              ],
+              "id": "hAONaaSRHuWIqtsPy9qi8A4",
+              "model": "gemini-3-pro-high",
+              "role": "assistant",
+              "stop_reason": null,
+              "stop_sequence": null,
+              "type": "message",
+              "usage": {
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+                "input_tokens": 16758,
+                "output_tokens": 0
+              },
+              "context_management": null
+            },
+            "parent_tool_use_id": null,
+            "session_id": "b59f613e-517b-4bb0-98b4-eb576d3a4964",
+            "uuid": "6b8af039-31ea-4386-8d71-90eebd243652"
+          },
+          "contentBlocks": [
+            {
+              "blockIndex": 0,
+              "type": "text",
+              "keys": [
+                "text",
+                "type"
+              ],
+              "preview": "{\"text\":\"Logic flows like streams,\\nBuilding worlds from simple text,\\nHello world is born.\",\"type\":\"text\"}"
+            }
+          ]
+        },
+        {
+          "scenarioName": "06_stream_events",
+          "index": 10,
+          "type": "stream_event",
+          "keys": [
+            "type",
+            "event",
+            "session_id",
+            "parent_tool_use_id",
+            "uuid"
+          ],
+          "raw": {
+            "type": "stream_event",
+            "event": {
+              "index": 1,
+              "type": "content_block_stop"
+            },
+            "session_id": "b59f613e-517b-4bb0-98b4-eb576d3a4964",
+            "parent_tool_use_id": null,
+            "uuid": "71076629-7fc5-43f1-9218-fb26692b26ce"
+          },
+          "streamEventType": "content_block_stop"
+        },
+        {
+          "scenarioName": "06_stream_events",
+          "index": 11,
+          "type": "stream_event",
+          "keys": [
+            "type",
+            "event",
+            "session_id",
+            "parent_tool_use_id",
+            "uuid"
+          ],
+          "raw": {
+            "type": "stream_event",
+            "event": {
+              "delta": {
+                "stop_reason": "end_turn",
+                "stop_sequence": null
+              },
+              "type": "message_delta",
+              "usage": {
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 16281,
+                "input_tokens": 477,
+                "output_tokens": 18
+              }
+            },
+            "session_id": "b59f613e-517b-4bb0-98b4-eb576d3a4964",
+            "parent_tool_use_id": null,
+            "uuid": "b2ed775d-fe0e-49bc-aa7c-b3529524fbdb"
+          },
+          "streamEventType": "message_delta"
+        },
+        {
+          "scenarioName": "06_stream_events",
+          "index": 12,
+          "type": "stream_event",
+          "keys": [
+            "type",
+            "event",
+            "session_id",
+            "parent_tool_use_id",
+            "uuid"
+          ],
+          "raw": {
+            "type": "stream_event",
+            "event": {
+              "type": "message_stop"
+            },
+            "session_id": "b59f613e-517b-4bb0-98b4-eb576d3a4964",
+            "parent_tool_use_id": null,
+            "uuid": "73313022-4e3c-4300-9ef3-44f858868b21"
+          },
+          "streamEventType": "message_stop"
+        },
+        {
+          "scenarioName": "06_stream_events",
+          "index": 13,
+          "type": "result",
+          "subtype": "success",
+          "keys": [
+            "type",
+            "subtype",
+            "is_error",
+            "duration_ms",
+            "duration_api_ms",
+            "num_turns",
+            "result",
+            "stop_reason",
+            "session_id",
+            "total_cost_usd",
+            "usage",
+            "modelUsage",
+            "permission_denials",
+            "uuid"
+          ],
+          "raw": {
+            "type": "result",
+            "subtype": "success",
+            "is_error": false,
+            "duration_ms": 7328,
+            "duration_api_ms": 7177,
+            "num_turns": 1,
+            "result": "Logic flows like streams,\nBuilding worlds from simple text,\nHello world is born.",
+            "stop_reason": null,
+            "session_id": "b59f613e-517b-4bb0-98b4-eb576d3a4964",
+            "total_cost_usd": 0.0065853000000000005,
+            "usage": {
+              "input_tokens": 477,
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 16281,
+              "output_tokens": 18,
+              "server_tool_use": {
+                "web_search_requests": 0,
+                "web_fetch_requests": 0
+              },
+              "service_tier": "standard",
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 0,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "inference_geo": "",
+              "iterations": []
+            },
+            "modelUsage": {
+              "gemini-3-pro-high": {
+                "inputTokens": 477,
+                "outputTokens": 18,
+                "cacheReadInputTokens": 16281,
+                "cacheCreationInputTokens": 0,
+                "webSearchRequests": 0,
+                "costUSD": 0.0065853000000000005,
+                "contextWindow": 200000,
+                "maxOutputTokens": 32000
+              }
+            },
+            "permission_denials": [],
+            "uuid": "e0023635-5fc8-46dd-b68a-785d6c0a1720"
+          }
+        }
+      ]
+    },
+    {
+      "name": "07_error_max_turns",
+      "prompt": "Read every file in the src directory one by one. Do not stop until you have read all of them.",
+      "permissionMode": "acceptEdits",
+      "messageCount": 5,
+      "uniqueTypes": [
+        "system",
+        "assistant",
+        "user",
+        "result"
+      ],
+      "uniqueSubtypes": [
+        "init",
+        "error_max_turns"
+      ],
+      "uniqueContentBlockTypes": [
+        "thinking",
+        "tool_use"
+      ],
+      "messages": [
+        {
+          "scenarioName": "07_error_max_turns",
+          "index": 0,
+          "type": "system",
+          "subtype": "init",
+          "keys": [
+            "type",
+            "subtype",
+            "cwd",
+            "session_id",
+            "tools",
+            "mcp_servers",
+            "model",
+            "permissionMode",
+            "slash_commands",
+            "apiKeySource",
+            "claude_code_version",
+            "output_style",
+            "agents",
+            "skills",
+            "plugins",
+            "uuid",
+            "fast_mode_state"
+          ],
+          "raw": {
+            "type": "system",
+            "subtype": "init",
+            "cwd": "D:\\coding\\programs\\ccui\\my-cc-desk",
+            "session_id": "2384d93e-85d3-4c84-a25b-cea7557adc9e",
+            "tools": [
+              "Task",
+              "TaskOutput",
+              "Bash",
+              "Glob",
+              "Grep",
+              "ExitPlanMode",
+              "Read",
+              "Edit",
+              "Write",
+              "NotebookEdit",
+              "WebFetch",
+              "TodoWrite",
+              "WebSearch",
+              "TaskStop",
+              "AskUserQuestion",
+              "Skill",
+              "EnterPlanMode",
+              "TeamCreate",
+              "TeamDelete",
+              "SendMessage"
+            ],
+            "mcp_servers": [],
+            "model": "gemini-3-pro-high",
+            "permissionMode": "acceptEdits",
+            "slash_commands": [
+              "debug",
+              "compact",
+              "context",
+              "cost",
+              "init",
+              "pr-comments",
+              "release-notes",
+              "review",
+              "security-review",
+              "insights"
+            ],
+            "apiKeySource": "ANTHROPIC_API_KEY",
+            "claude_code_version": "2.1.39",
+            "output_style": "default",
+            "agents": [
+              "Bash",
+              "general-purpose",
+              "statusline-setup",
+              "Explore",
+              "Plan",
+              "claude-code-guide"
+            ],
+            "skills": [
+              "debug"
+            ],
+            "plugins": [],
+            "uuid": "715c08aa-cf68-4927-a3ac-750e8783df25",
+            "fast_mode_state": "off"
+          }
+        },
+        {
+          "scenarioName": "07_error_max_turns",
+          "index": 1,
+          "type": "assistant",
+          "keys": [
+            "type",
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "uuid"
+          ],
+          "raw": {
+            "type": "assistant",
+            "message": {
+              "content": [
+                {
+                  "thinking": "**Initiating File Discovery**\n\nI've begun exploring the `src` directory. My initial step involves listing all files within it. This directory listing will provide the basis for the next phase of this process, which will be iterating over each file. This is the first action to read each file one by one.\n\n\n",
+                  "type": "thinking",
+                  "signature": ""
+                }
+              ],
+              "id": "jAONae-wNbCnmtkP9tawiQ8",
+              "model": "gemini-3-pro-high",
+              "role": "assistant",
+              "stop_reason": null,
+              "stop_sequence": null,
+              "type": "message",
+              "usage": {
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+                "input_tokens": 16772,
+                "output_tokens": 0
+              },
+              "context_management": null
+            },
+            "parent_tool_use_id": null,
+            "session_id": "2384d93e-85d3-4c84-a25b-cea7557adc9e",
+            "uuid": "0dc168c8-f752-4199-96fe-8cdb5dfdb383"
+          },
+          "contentBlocks": [
+            {
+              "blockIndex": 0,
+              "type": "thinking",
+              "keys": [
+                "thinking",
+                "type",
+                "signature"
+              ],
+              "preview": "{\"thinking\":\"**Initiating File Discovery**\\n\\nI've begun exploring the `src` directory. My initial step involves listing all files within it. This directory listing will provide the basis for the next phase of this process, which will be iterating over each file. This is the first action to read eac"
+            }
+          ]
+        },
+        {
+          "scenarioName": "07_error_max_turns",
+          "index": 2,
+          "type": "assistant",
+          "keys": [
+            "type",
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "uuid"
+          ],
+          "raw": {
+            "type": "assistant",
+            "message": {
+              "content": [
+                {
+                  "id": "Bash-2C3LsHcW",
+                  "input": {
+                    "command": "ls -R src"
+                  },
+                  "name": "Bash",
+                  "signature": "EpMFCpAFAb4+9vsq4dOrXVIRS2ocgCtzjsyU0ql4yPsTL6UuZF4f2eBfG+9kyLybaFnnAYfg7d5CnbFqB7FqWbQKO9wuodGi6widP6yGRywddAeQ/jBcWEBs4SILueUc8If4iycyNP3C3+budOV0ANPRqq0BK9OvoelyQZ3XiecCFBI7lZEHopXE6QspiP5X1B11w0gLuP47/xwhKBAF56M0z+OaT78p+F3U9Q5gWxmWFOE2QsQrzoLH7yY5LZnxgFhc4yybIq4isK/Yar7CJZq/kObadkaPIbQ+QtHjw2rAE+R39ZHSBzoi057XFqnQq7q0zyi6zfo6M2LwEwmR+JTsDJHPXPlr8sIgh3mTy6AfZ2SLxYCw38neynjbIozvqNRpT6YkhiyMuwVoWChzGLALLaHI67PG/xnGh8ltBejRw1snC+EZZCeTqjEbLRHQvPawqfZIB0AP+XevXDxOL7kzHRskw51aGfDKnCjKs+61Pms/aIdB...[TRUNCATED]",
+                  "type": "tool_use"
+                }
+              ],
+              "id": "jAONae-wNbCnmtkP9tawiQ8",
+              "model": "gemini-3-pro-high",
+              "role": "assistant",
+              "stop_reason": null,
+              "stop_sequence": null,
+              "type": "message",
+              "usage": {
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+                "input_tokens": 16772,
+                "output_tokens": 0
+              },
+              "context_management": null
+            },
+            "parent_tool_use_id": null,
+            "session_id": "2384d93e-85d3-4c84-a25b-cea7557adc9e",
+            "uuid": "085518e2-70e5-4783-934e-0cccf17b1c73"
+          },
+          "contentBlocks": [
+            {
+              "blockIndex": 0,
+              "type": "tool_use",
+              "keys": [
+                "id",
+                "input",
+                "name",
+                "signature",
+                "type"
+              ],
+              "preview": "{\"id\":\"Bash-2C3LsHcW\",\"input\":{\"command\":\"ls -R src\"},\"name\":\"Bash\",\"signature\":\"EpMFCpAFAb4+9vsq4dOrXVIRS2ocgCtzjsyU0ql4yPsTL6UuZF4f2eBfG+9kyLybaFnnAYfg7d5CnbFqB7FqWbQKO9wuodGi6widP6yGRywddAeQ/jBcWEBs4SILueUc8If4iycyNP3C3+budOV0ANPRqq0BK9OvoelyQZ3XiecCFBI7lZEHopXE6QspiP5X1B11w0gLuP47/xwhKBAF56M0z+O"
+            }
+          ]
+        },
+        {
+          "scenarioName": "07_error_max_turns",
+          "index": 3,
+          "type": "user",
+          "keys": [
+            "type",
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "uuid",
+            "tool_use_result"
+          ],
+          "raw": {
+            "type": "user",
+            "message": {
+              "role": "user",
+              "content": [
+                {
+                  "tool_use_id": "Bash-2C3LsHcW",
+                  "type": "tool_result",
+                  "content": "src:\ncommon\nmain\npreload\nrenderer\n\nsrc/common:\nipc-channels.ts\ntypes.ts\n\nsrc/main:\nindex.ts\nservices\n\nsrc/main/services:\n__tests__\nclaude.ts\nclaude-files.ts\nipc-handlers.ts\nsdk-adapter\nsettings.test.ts\nsettings.ts\n\nsrc/main/services/__tests__:\nclaude.test.ts\nclaude-files.test.ts\nclaude-integration.test.ts\n\nsrc/main/services/sdk-adapter:\n__integration__\n__tests__\ncontent-block-parser.ts\nenv-loader.ts\nindex.ts\nmessage-parser.ts\noptions-builder.ts\npermission-adapter.ts\nsdk-types.ts\n\nsrc/main/servic...[TRUNCATED]",
+                  "is_error": false
+                }
+              ]
+            },
+            "parent_tool_use_id": null,
+            "session_id": "2384d93e-85d3-4c84-a25b-cea7557adc9e",
+            "uuid": "d2d278a7-1e86-4ad9-9dd7-83dff21bd971",
+            "tool_use_result": {
+              "stdout": "src:\ncommon\nmain\npreload\nrenderer\n\nsrc/common:\nipc-channels.ts\ntypes.ts\n\nsrc/main:\nindex.ts\nservices\n\nsrc/main/services:\n__tests__\nclaude.ts\nclaude-files.ts\nipc-handlers.ts\nsdk-adapter\nsettings.test.ts\nsettings.ts\n\nsrc/main/services/__tests__:\nclaude.test.ts\nclaude-files.test.ts\nclaude-integration.test.ts\n\nsrc/main/services/sdk-adapter:\n__integration__\n__tests__\ncontent-block-parser.ts\nenv-loader.ts\nindex.ts\nmessage-parser.ts\noptions-builder.ts\npermission-adapter.ts\nsdk-types.ts\n\nsrc/main/servic...[TRUNCATED]",
+              "stderr": "",
+              "interrupted": false,
+              "isImage": false,
+              "noOutputExpected": false
+            }
+          }
+        },
+        {
+          "scenarioName": "07_error_max_turns",
+          "index": 4,
+          "type": "result",
+          "subtype": "error_max_turns",
+          "keys": [
+            "type",
+            "subtype",
+            "duration_ms",
+            "duration_api_ms",
+            "is_error",
+            "num_turns",
+            "stop_reason",
+            "session_id",
+            "total_cost_usd",
+            "usage",
+            "modelUsage",
+            "permission_denials",
+            "uuid",
+            "errors"
+          ],
+          "raw": {
+            "type": "result",
+            "subtype": "error_max_turns",
+            "duration_ms": 6783,
+            "duration_api_ms": 5034,
+            "is_error": false,
+            "num_turns": 2,
+            "stop_reason": null,
+            "session_id": "2384d93e-85d3-4c84-a25b-cea7557adc9e",
+            "total_cost_usd": 0.0066123,
+            "usage": {
+              "input_tokens": 491,
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 16281,
+              "output_tokens": 17,
+              "server_tool_use": {
+                "web_search_requests": 0,
+                "web_fetch_requests": 0
+              },
+              "service_tier": "standard",
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 0,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "inference_geo": "",
+              "iterations": []
+            },
+            "modelUsage": {
+              "gemini-3-pro-high": {
+                "inputTokens": 491,
+                "outputTokens": 17,
+                "cacheReadInputTokens": 16281,
+                "cacheCreationInputTokens": 0,
+                "webSearchRequests": 0,
+                "costUSD": 0.0066123,
+                "contextWindow": 200000,
+                "maxOutputTokens": 32000
+              }
+            },
+            "permission_denials": [],
+            "uuid": "cd1e3280-7d67-45ca-8878-43a2768d171e",
+            "errors": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "08_plan_mode",
+      "prompt": "Analyze the project structure and suggest improvements.",
+      "permissionMode": "plan",
+      "messageCount": 5,
+      "uniqueTypes": [
+        "system",
+        "assistant",
+        "user",
+        "result"
+      ],
+      "uniqueSubtypes": [
+        "init",
+        "error_max_turns"
+      ],
+      "uniqueContentBlockTypes": [
+        "thinking",
+        "tool_use"
+      ],
+      "messages": [
+        {
+          "scenarioName": "08_plan_mode",
+          "index": 0,
+          "type": "system",
+          "subtype": "init",
+          "keys": [
+            "type",
+            "subtype",
+            "cwd",
+            "session_id",
+            "tools",
+            "mcp_servers",
+            "model",
+            "permissionMode",
+            "slash_commands",
+            "apiKeySource",
+            "claude_code_version",
+            "output_style",
+            "agents",
+            "skills",
+            "plugins",
+            "uuid",
+            "fast_mode_state"
+          ],
+          "raw": {
+            "type": "system",
+            "subtype": "init",
+            "cwd": "D:\\coding\\programs\\ccui\\my-cc-desk",
+            "session_id": "08a2611c-f020-434d-b79e-3dec91803de2",
+            "tools": [
+              "Task",
+              "TaskOutput",
+              "Bash",
+              "Glob",
+              "Grep",
+              "ExitPlanMode",
+              "Read",
+              "Edit",
+              "Write",
+              "NotebookEdit",
+              "WebFetch",
+              "TodoWrite",
+              "WebSearch",
+              "TaskStop",
+              "AskUserQuestion",
+              "Skill",
+              "EnterPlanMode",
+              "TeamCreate",
+              "TeamDelete",
+              "SendMessage"
+            ],
+            "mcp_servers": [],
+            "model": "gemini-3-pro-high",
+            "permissionMode": "plan",
+            "slash_commands": [
+              "debug",
+              "compact",
+              "context",
+              "cost",
+              "init",
+              "pr-comments",
+              "release-notes",
+              "review",
+              "security-review",
+              "insights"
+            ],
+            "apiKeySource": "ANTHROPIC_API_KEY",
+            "claude_code_version": "2.1.39",
+            "output_style": "default",
+            "agents": [
+              "Bash",
+              "general-purpose",
+              "statusline-setup",
+              "Explore",
+              "Plan",
+              "claude-code-guide"
+            ],
+            "skills": [
+              "debug"
+            ],
+            "plugins": [],
+            "uuid": "acfad167-5a4c-4e0e-8d82-a08910c5971e",
+            "fast_mode_state": "off"
+          }
+        },
+        {
+          "scenarioName": "08_plan_mode",
+          "index": 1,
+          "type": "assistant",
+          "keys": [
+            "type",
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "uuid"
+          ],
+          "raw": {
+            "type": "assistant",
+            "message": {
+              "content": [
+                {
+                  "thinking": "**Initiating Project Analysis**\n\nI'm now in \"Plan Mode,\" focused on understanding this project's architecture. My initial step involves listing the files within the current directory. This will give me a high-level overview before I delve deeper with the \"Explore\" agent, to get a handle on the project.\n\n\n",
+                  "type": "thinking",
+                  "signature": ""
+                }
+              ],
+              "id": "lAONaa_gLYqmqtsP9eeRuQ4",
+              "model": "gemini-3-pro-high",
+              "role": "assistant",
+              "stop_reason": null,
+              "stop_sequence": null,
+              "type": "message",
+              "usage": {
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+                "input_tokens": 17786,
+                "output_tokens": 0
+              },
+              "context_management": null
+            },
+            "parent_tool_use_id": null,
+            "session_id": "08a2611c-f020-434d-b79e-3dec91803de2",
+            "uuid": "35e4bd05-16b1-47e8-863f-e1dc4d87a85f"
+          },
+          "contentBlocks": [
+            {
+              "blockIndex": 0,
+              "type": "thinking",
+              "keys": [
+                "thinking",
+                "type",
+                "signature"
+              ],
+              "preview": "{\"thinking\":\"**Initiating Project Analysis**\\n\\nI'm now in \\\"Plan Mode,\\\" focused on understanding this project's architecture. My initial step involves listing the files within the current directory. This will give me a high-level overview before I delve deeper with the \\\"Explore\\\" agent, to get a "
+            }
+          ]
+        },
+        {
+          "scenarioName": "08_plan_mode",
+          "index": 2,
+          "type": "assistant",
+          "keys": [
+            "type",
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "uuid"
+          ],
+          "raw": {
+            "type": "assistant",
+            "message": {
+              "content": [
+                {
+                  "id": "Bash-jQ9Jikes",
+                  "input": {
+                    "command": "ls -F"
+                  },
+                  "name": "Bash",
+                  "signature": "EqUGCqIGAb4+9vtG2KPAlzeQ5ubWpKRZBVy1PjPhd6tEfcmyalCAh4coyBVsXXwwgsg+kysq5TbcnK7eXNfbAO7r7g0xdCcrQ5to7R5XMsvfPovXqXYlP72N3W3zzsRnM/WY98kPTqYvDAuENpFc5YpKjqqHzheNn/yCB9717aSFnlpq5bmWPkOR/u0PPceeNtMqYWm2vVUIlK9BNoR1swO/SvwE78v4k0LaF7Y8H9W0/9DNXLmBXVEm7X6h/M/7asccW07Rh9D5alRdPX180nvcTN+c7td6qMUvrbwmAueHA8cC+fzl/gYnXjrcyFtyWUOusqxL5FuI6zEsq29ukZJ0037KJQgETcqCA7n0kLuW9p2GCLim4V7+W8/w5cmPoIQyKBEGvIUX+xhRQ5CCdGaHkaFpcG5YChE0+PXg5HNuRcTBs6PGb/NSZRGc7dQCLIHZGoRa8q2HSF2Y8lKP3/R38Rks2Jo+rwmbfIAeR+aTKFtx4KvE...[TRUNCATED]",
+                  "type": "tool_use"
+                }
+              ],
+              "id": "lAONaa_gLYqmqtsP9eeRuQ4",
+              "model": "gemini-3-pro-high",
+              "role": "assistant",
+              "stop_reason": null,
+              "stop_sequence": null,
+              "type": "message",
+              "usage": {
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+                "input_tokens": 17786,
+                "output_tokens": 0
+              },
+              "context_management": null
+            },
+            "parent_tool_use_id": null,
+            "session_id": "08a2611c-f020-434d-b79e-3dec91803de2",
+            "uuid": "a66ba841-fa33-40bb-8e77-bff296cda3a7"
+          },
+          "contentBlocks": [
+            {
+              "blockIndex": 0,
+              "type": "tool_use",
+              "keys": [
+                "id",
+                "input",
+                "name",
+                "signature",
+                "type"
+              ],
+              "preview": "{\"id\":\"Bash-jQ9Jikes\",\"input\":{\"command\":\"ls -F\"},\"name\":\"Bash\",\"signature\":\"EqUGCqIGAb4+9vtG2KPAlzeQ5ubWpKRZBVy1PjPhd6tEfcmyalCAh4coyBVsXXwwgsg+kysq5TbcnK7eXNfbAO7r7g0xdCcrQ5to7R5XMsvfPovXqXYlP72N3W3zzsRnM/WY98kPTqYvDAuENpFc5YpKjqqHzheNn/yCB9717aSFnlpq5bmWPkOR/u0PPceeNtMqYWm2vVUIlK9BNoR1swO/SvwE78v"
+            }
+          ]
+        },
+        {
+          "scenarioName": "08_plan_mode",
+          "index": 3,
+          "type": "user",
+          "keys": [
+            "type",
+            "message",
+            "parent_tool_use_id",
+            "session_id",
+            "uuid",
+            "tool_use_result"
+          ],
+          "raw": {
+            "type": "user",
+            "message": {
+              "role": "user",
+              "content": [
+                {
+                  "tool_use_id": "Bash-jQ9Jikes",
+                  "type": "tool_result",
+                  "content": "CLAUDE.md\ndocs/\ne2e-test/\nelectron.vite.config.ts\nelectron-builder.yml\nnode_modules/\nnul\nout/\npackage.json\npnpm-lock.yaml\npnpm-workspace.yaml\nsrc/\ntsconfig.json\ntsconfig.main.json\ntsconfig.preload.json\ntsconfig.renderer.json\nvitest.config.ts\nvitest.integration.config.ts",
+                  "is_error": false
+                }
+              ]
+            },
+            "parent_tool_use_id": null,
+            "session_id": "08a2611c-f020-434d-b79e-3dec91803de2",
+            "uuid": "d44cb6c3-5a64-4468-b45b-891428e2fb1d",
+            "tool_use_result": {
+              "stdout": "CLAUDE.md\ndocs/\ne2e-test/\nelectron.vite.config.ts\nelectron-builder.yml\nnode_modules/\nnul\nout/\npackage.json\npnpm-lock.yaml\npnpm-workspace.yaml\nsrc/\ntsconfig.json\ntsconfig.main.json\ntsconfig.preload.json\ntsconfig.renderer.json\nvitest.config.ts\nvitest.integration.config.ts\r",
+              "stderr": "",
+              "interrupted": false,
+              "isImage": false,
+              "noOutputExpected": false
+            }
+          }
+        },
+        {
+          "scenarioName": "08_plan_mode",
+          "index": 4,
+          "type": "result",
+          "subtype": "error_max_turns",
+          "keys": [
+            "type",
+            "subtype",
+            "duration_ms",
+            "duration_api_ms",
+            "is_error",
+            "num_turns",
+            "stop_reason",
+            "session_id",
+            "total_cost_usd",
+            "usage",
+            "modelUsage",
+            "permission_denials",
+            "uuid",
+            "errors"
+          ],
+          "raw": {
+            "type": "result",
+            "subtype": "error_max_turns",
+            "duration_ms": 6463,
+            "duration_api_ms": 4679,
+            "is_error": false,
+            "num_turns": 2,
+            "stop_reason": null,
+            "session_id": "08a2611c-f020-434d-b79e-3dec91803de2",
+            "total_cost_usd": 0.0096258,
+            "usage": {
+              "input_tokens": 1500,
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 16286,
+              "output_tokens": 16,
+              "server_tool_use": {
+                "web_search_requests": 0,
+                "web_fetch_requests": 0
+              },
+              "service_tier": "standard",
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 0,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "inference_geo": "",
+              "iterations": []
+            },
+            "modelUsage": {
+              "gemini-3-pro-high": {
+                "inputTokens": 1500,
+                "outputTokens": 16,
+                "cacheReadInputTokens": 16286,
+                "cacheCreationInputTokens": 0,
+                "webSearchRequests": 0,
+                "costUSD": 0.0096258,
+                "contextWindow": 200000,
+                "maxOutputTokens": 32000
+              }
+            },
+            "permission_denials": [],
+            "uuid": "0d5b2695-a3d9-48fa-9737-159e151fd45f",
+            "errors": []
+          }
+        }
+      ]
+    }
+  ]
+}

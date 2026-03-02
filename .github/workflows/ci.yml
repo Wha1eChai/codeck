@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Test & Typecheck
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies (skip Electron binary)
+        run: pnpm install --frozen-lockfile
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: 1
+
+      - name: Test @codeck/config
+        run: pnpm --filter @codeck/config run test
+
+      - name: Typecheck @codeck/config
+        run: pnpm --filter @codeck/config run typecheck
+
+      - name: Test @codeck/sessions
+        run: pnpm --filter @codeck/sessions run test
+
+      - name: Test app (unit)
+        run: pnpm --filter codeck run test

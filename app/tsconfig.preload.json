@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ESNext", "DOM"],
+    "paths": {
+      "@common/*": ["./src/common/*"]
+    }
+  },
+  "include": ["src/preload/**/*", "src/common/**/*"],
+  "exclude": [
+    "src/**/__tests__/**",
+    "src/**/*.test.*"
+  ]
+}
