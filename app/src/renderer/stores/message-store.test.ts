@@ -173,6 +173,20 @@ describe('message-store', () => {
     expect(messages[1].isStreamDelta).toBe(true)
   })
 
+  it('clearMessages removes all messages for a session', () => {
+    const { addMessage, clearMessages } = useMessageStore.getState()
+
+    addMessage(SESSION_ID, makeMessage({ id: 'msg-1', content: 'hello' }))
+    addMessage(SESSION_ID, makeMessage({ id: 'msg-2', content: 'world' }))
+    addMessage('other-session', makeMessage({ id: 'msg-3', sessionId: 'other-session', content: 'other' }))
+
+    clearMessages(SESSION_ID)
+
+    const state = useMessageStore.getState().messages
+    expect(state[SESSION_ID]).toBeUndefined()
+    expect(state['other-session']).toHaveLength(1)
+  })
+
   it('replaces existing messages with history when no stream is active', () => {
     const { addMessage, setMessages } = useMessageStore.getState()
 

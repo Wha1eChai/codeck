@@ -101,7 +101,6 @@ export function createMockElectron() {
     onPermissionRequest: vi.fn().mockReturnValue(vi.fn()),
     onAskUserQuestion: vi.fn().mockReturnValue(vi.fn()),
     onExitPlanMode: vi.fn().mockReturnValue(vi.fn()),
-    onSessionStateChanged: vi.fn().mockReturnValue(vi.fn()),
     onMultiSessionStateChanged: vi.fn().mockReturnValue(vi.fn()),
     onUsageStatsUpdated: vi.fn().mockReturnValue(vi.fn()),
     onSyncCompleted: vi.fn().mockReturnValue(vi.fn()),

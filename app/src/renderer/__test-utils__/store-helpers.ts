@@ -13,7 +13,7 @@ import { DEFAULT_APP_PREFERENCES, DEFAULT_EXECUTION_OPTIONS, DEFAULT_HOOK_SETTIN
  * Call this in beforeEach() to ensure test isolation.
  */
 export function resetAllStores(): void {
-  useMessageStore.setState({ messages: {} }, true)
+  useMessageStore.setState({ messages: {} })
 
   useSessionStore.setState({
     sessions: [],
@@ -24,7 +24,7 @@ export function resetAllStores(): void {
     sessionStates: {},
     openTabs: [],
     scrollPositions: {},
-  }, true)
+  })
 
   useSettingsStore.setState({
     settings: DEFAULT_APP_PREFERENCES,
@@ -32,7 +32,7 @@ export function resetAllStores(): void {
     lastSaved: 0,
     executionOptions: DEFAULT_EXECUTION_OPTIONS,
     hookSettings: DEFAULT_HOOK_SETTINGS,
-  }, true)
+  })
 
   useUIStore.setState({
     activeSidebarPanel: 'sessions',
@@ -46,5 +46,5 @@ export function resetAllStores(): void {
     isProjectSelectorOpen: false,
     draftInput: '',
     chatScrollContainer: null,
-  }, true)
+  })
 }
