@@ -29,7 +29,18 @@ export const TokenUsageBadge: React.FC = () => {
         return { input, output, cacheRead, cacheWrite, total: input + output }
     }, [messages])
 
-    if (totals.total === 0) return null
+    if (totals.total === 0) {
+        return (
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground opacity-0 pointer-events-none" aria-hidden>
+                <Zap className="h-3 w-3" />
+                <span className="tabular-nums">
+                    <span>↓0</span>
+                    <span className="mx-0.5 opacity-40">/</span>
+                    <span>↑0</span>
+                </span>
+            </div>
+        )
+    }
 
     return (
         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">

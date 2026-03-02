@@ -15,6 +15,8 @@ export interface DiffViewProps {
   readonly maxLines?: number
 }
 
+const DIFF_COMPLEXITY_THRESHOLD = 500_000
+
 export function computeLineDiff(oldStr: string, newStr: string): DiffLine[] {
   const oldLines = oldStr.split('\n')
   const newLines = newStr.split('\n')
@@ -22,6 +24,20 @@ export function computeLineDiff(oldStr: string, newStr: string): DiffLine[] {
 
   const m = oldLines.length
   const n = newLines.length
+
+  // Large file protection: if O(m*n) would be too expensive, degrade to full delete + full add
+  if (m * n > DIFF_COMPLEXITY_THRESHOLD) {
+    let oldLine = 1
+    for (const line of oldLines) {
+      result.push({ type: '-', content: line, oldLineNum: oldLine++, newLineNum: undefined })
+    }
+    result.push({ type: ' ', content: `⚠ Diff too large (${m}×${n} lines) — showing full replacement`, oldLineNum: undefined, newLineNum: undefined })
+    let newLine = 1
+    for (const line of newLines) {
+      result.push({ type: '+', content: line, oldLineNum: undefined, newLineNum: newLine++ })
+    }
+    return result
+  }
 
   const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0))
   for (let i = 1; i <= m; i++) {
@@ -216,6 +232,15 @@ export const DiffView: React.FC<DiffViewProps> = ({
           onClick={() => setIsFullyExpanded(true)}
         >
           Show all {lines.length} lines
+        </button>
+      )}
+
+      {isFullyExpanded && lines.length > maxLines && (
+        <button
+          className="w-full py-1.5 text-[11px] text-center text-blue-600 dark:text-blue-400 hover:bg-muted/50 border-t transition-colors"
+          onClick={() => setIsFullyExpanded(false)}
+        >
+          Collapse to first {maxLines} lines
         </button>
       )}
     </div>

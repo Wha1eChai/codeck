@@ -3,6 +3,7 @@ import { MessageSquare, FolderTree, Clock, Settings } from 'lucide-react'
 import { useUIStore } from '../../stores/ui-store'
 import { useSessionStore } from '../../stores/session-store'
 import { Button } from '../ui/Button'
+import { Tooltip, TooltipTrigger, TooltipContent } from '../ui/Tooltip'
 import { cn } from '../../lib/utils'
 import type { SidebarPanel } from '@common/multi-session-types'
 
@@ -61,23 +62,27 @@ interface ActivityIconProps {
 }
 
 const ActivityIcon: React.FC<ActivityIconProps> = ({ icon, tooltip, onClick, active, badge }) => (
-  <div className="relative">
-    <Button
-      variant="ghost"
-      size="icon"
-      className={cn(
-        "h-9 w-9 rounded-lg",
-        active && "bg-muted text-foreground"
-      )}
-      onClick={onClick}
-      title={tooltip}
-    >
-      {icon}
-    </Button>
-    {badge !== undefined && badge > 0 && (
-      <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 flex items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-medium px-1 pointer-events-none">
-        {badge}
-      </span>
-    )}
-  </div>
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <div className="relative">
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn(
+            "h-9 w-9 rounded-lg",
+            active && "bg-muted text-foreground"
+          )}
+          onClick={onClick}
+        >
+          {icon}
+        </Button>
+        {badge !== undefined && badge > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 flex items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-medium px-1 pointer-events-none">
+            {badge}
+          </span>
+        )}
+      </div>
+    </TooltipTrigger>
+    <TooltipContent side="right">{tooltip}</TooltipContent>
+  </Tooltip>
 )

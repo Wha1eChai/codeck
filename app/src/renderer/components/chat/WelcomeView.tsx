@@ -3,11 +3,13 @@ import { FolderOpen, History } from 'lucide-react'
 import { useUIStore } from '../../stores/ui-store'
 import { useSessionStore } from '../../stores/session-store'
 import { useHistory } from '../../hooks/useHistory'
+import { useToastStore } from '../../stores/toast-store'
 
 export const WelcomeView: React.FC = () => {
   const setActiveSidebarPanel = useUIStore(s => s.setActiveSidebarPanel)
   const setProjectPath = useSessionStore(s => s.setProjectPath)
   const setSessions = useSessionStore(s => s.setSessions)
+  const addToast = useToastStore(s => s.addToast)
   const { syncAndLoad } = useHistory()
 
   const handleOpenFolder = async () => {
@@ -20,8 +22,8 @@ export const WelcomeView: React.FC = () => {
         setSessions([...sessions])
         setActiveSidebarPanel('sessions')
       }
-    } catch (err) {
-      console.error('Failed to open folder:', err)
+    } catch {
+      addToast('Failed to open folder', 'error')
     }
   }
 

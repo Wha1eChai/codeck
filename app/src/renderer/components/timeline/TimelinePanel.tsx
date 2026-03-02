@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react'
-import { RotateCcw, MessageSquare, Terminal, Zap, AlertCircle, Archive, ChevronDown, ChevronRight, X } from 'lucide-react'
+import { RotateCcw, MessageSquare, Terminal, Zap, AlertCircle, Archive, ChevronDown, ChevronRight, X, Loader2 } from 'lucide-react'
 import { useMessageStore } from '../../stores/message-store'
 import { useUIStore } from '../../stores/ui-store'
 import type { Message, RewindFilesResult } from '@common/types'
@@ -7,6 +7,8 @@ import { reduceConversation } from '@renderer/lib/conversation-reducer'
 import type { ConversationGroupView } from '@renderer/lib/conversation-reducer'
 import { useVisibleGroupId } from '../../hooks/useTimelineSync'
 import { cn } from '../../lib/utils'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/Dialog'
+import { Button } from '../ui/Button'
 
 /** Stable empty array to avoid new references in Zustand selectors. */
 const EMPTY_MESSAGES: Message[] = []
@@ -79,65 +81,6 @@ function getTurnStyle(group: ConversationGroupView): { color: string; Icon: Reac
     return { color: 'text-muted-foreground', Icon: MessageSquare }
 }
 
-// ── RewindPreview ──────────────────────────────────────────
-
-interface RewindPreviewProps {
-    result: RewindFilesResult
-    onConfirm: () => void
-    onCancel: () => void
-    isRewinding: boolean
-}
-
-const RewindPreview: React.FC<RewindPreviewProps> = ({ result, onConfirm, onCancel, isRewinding }) => {
-    if (!result.canRewind) {
-        return (
-            <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-sm">
-                <p className="text-destructive font-medium">Cannot rewind</p>
-                <p className="text-muted-foreground mt-1">{result.error || 'Unknown error'}</p>
-                <button onClick={onCancel} className="mt-2 text-xs text-muted-foreground hover:text-foreground">
-                    Dismiss
-                </button>
-            </div>
-        )
-    }
-
-    return (
-        <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-sm">
-            <p className="font-medium text-amber-400">Rewind Preview</p>
-            <div className="mt-2 space-y-1 text-xs text-muted-foreground">
-                {result.filesChanged && result.filesChanged.length > 0 && (
-                    <p>{result.filesChanged.length} file(s) will be changed</p>
-                )}
-                {(result.insertions !== undefined || result.deletions !== undefined) && (
-                    <p>
-                        <span className="text-green-400">+{result.insertions ?? 0}</span>{' '}
-                        <span className="text-red-400">-{result.deletions ?? 0}</span>
-                    </p>
-                )}
-                {result.filesChanged && result.filesChanged.length > 0 && (
-                    <ul className="mt-1 max-h-24 overflow-y-auto">
-                        {result.filesChanged.map((f) => (
-                            <li key={f} className="truncate font-mono text-[10px]">{f}</li>
-                        ))}
-                    </ul>
-                )}
-            </div>
-            <div className="mt-3 flex gap-2">
-                <button
-                    onClick={onConfirm}
-                    disabled={isRewinding}
-                    className="px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 rounded text-xs font-medium disabled:opacity-50"
-                >
-                    {isRewinding ? 'Rewinding…' : 'Confirm Rewind'}
-                </button>
-                <button onClick={onCancel} className="px-3 py-1 text-xs text-muted-foreground hover:text-foreground">
-                    Cancel
-                </button>
-            </div>
-        </div>
-    )
-}
-
 // ── TimelinePanel ──────────────────────────────────────────
 
 interface TimelinePanelProps {
@@ -153,6 +96,7 @@ export const TimelinePanel: React.FC<TimelinePanelProps> = ({ sessionId }) => {
     const [rewindTarget, setRewindTarget] = useState<string | null>(null)
     const [preview, setPreview] = useState<RewindFilesResult | null>(null)
     const [isRewinding, setIsRewinding] = useState(false)
+    const [rewindDialogOpen, setRewindDialogOpen] = useState(false)
     const [expandedTurns, setExpandedTurns] = useState<ReadonlySet<string>>(new Set())
 
     const groups = useMemo(() => reduceConversation(messages), [messages])
@@ -168,12 +112,18 @@ export const TimelinePanel: React.FC<TimelinePanelProps> = ({ sessionId }) => {
     }
 
     const scrollToGroup = (key: string) => {
-        document.querySelector(`[data-group-id="${key}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        const el = document.querySelector(`[data-group-id="${key}"]`)
+        if (!el) return
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        el.classList.add('flash-highlight')
+        const onEnd = () => { el.classList.remove('flash-highlight'); el.removeEventListener('animationend', onEnd) }
+        el.addEventListener('animationend', onEnd)
     }
 
     const handleRewindPreview = async (userMessageId: string) => {
         setRewindTarget(userMessageId)
         setPreview(null)
+        setRewindDialogOpen(true)
         try {
             const result = await window.electron.rewindFiles(sessionId, userMessageId, true)
             setPreview(result)
@@ -191,12 +141,14 @@ export const TimelinePanel: React.FC<TimelinePanelProps> = ({ sessionId }) => {
             setIsRewinding(false)
             setRewindTarget(null)
             setPreview(null)
+            setRewindDialogOpen(false)
         }
     }
 
     const handleRewindCancel = () => {
         setRewindTarget(null)
         setPreview(null)
+        setRewindDialogOpen(false)
     }
 
     const header = (
@@ -324,22 +276,81 @@ export const TimelinePanel: React.FC<TimelinePanelProps> = ({ sessionId }) => {
                                     </div>
                                 )}
 
-                                {/* Rewind preview */}
-                                {isRewindTarget && preview && (
-                                    <div className="px-3 pb-2">
-                                        <RewindPreview
-                                            result={preview}
-                                            onConfirm={handleRewindConfirm}
-                                            onCancel={handleRewindCancel}
-                                            isRewinding={isRewinding}
-                                        />
-                                    </div>
-                                )}
                             </div>
                         )
                     })}
                 </div>
             </div>
+
+            {/* Rewind Confirmation Dialog */}
+            <Dialog open={rewindDialogOpen} onOpenChange={(open) => { if (!open) handleRewindCancel() }}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <RotateCcw className="h-4 w-4 text-amber-400" />
+                            Rewind Files
+                        </DialogTitle>
+                        <DialogDescription>
+                            Review the changes before rewinding files to this checkpoint.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {!preview && (
+                        <div className="flex items-center justify-center py-6">
+                            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                            <span className="ml-2 text-sm text-muted-foreground">Loading preview…</span>
+                        </div>
+                    )}
+
+                    {preview && !preview.canRewind && (
+                        <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-sm">
+                            <p className="text-destructive font-medium">Cannot rewind</p>
+                            <p className="text-muted-foreground mt-1">{preview.error || 'Unknown error'}</p>
+                        </div>
+                    )}
+
+                    {preview && preview.canRewind && (
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-3 text-sm">
+                                {preview.filesChanged && preview.filesChanged.length > 0 && (
+                                    <span className="text-muted-foreground">{preview.filesChanged.length} file(s) will be changed</span>
+                                )}
+                                {(preview.insertions !== undefined || preview.deletions !== undefined) && (
+                                    <span>
+                                        <span className="text-green-400 font-mono">+{preview.insertions ?? 0}</span>{' '}
+                                        <span className="text-red-400 font-mono">-{preview.deletions ?? 0}</span>
+                                    </span>
+                                )}
+                            </div>
+                            {preview.filesChanged && preview.filesChanged.length > 0 && (
+                                <ul className="max-h-40 overflow-y-auto rounded-md border p-2 space-y-0.5">
+                                    {preview.filesChanged.map((f) => (
+                                        <li key={f} className="truncate font-mono text-xs text-muted-foreground">{f}</li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                    )}
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={handleRewindCancel} disabled={isRewinding}>
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleRewindConfirm}
+                            disabled={isRewinding || !preview?.canRewind}
+                            className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/30"
+                        >
+                            {isRewinding ? (
+                                <>
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                                    Rewinding…
+                                </>
+                            ) : 'Confirm Rewind'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

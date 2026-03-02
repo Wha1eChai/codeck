@@ -23,16 +23,19 @@ export const ThinkingTimeline: React.FC<ThinkingTimelineProps> = ({ steps, isStr
       className="border-b border-border/40 rounded-b-none"
     >
       <FlowTimeline className="bg-muted/10">
-        {steps.map((step, index) => (
+        {steps.map((step, index) => {
+          const stepTitle = truncate(extractKeyLine(step.content.trim()), 40) || `Step ${index + 1}`
+          return (
           <FlowStepItem
             key={step.id}
-            title={`Step ${index + 1}`}
+            title={stepTitle}
             tone={step.isStreaming && isStreaming ? 'running' : 'neutral'}
             isLast={index === steps.length - 1}
           >
             <ThinkingStepContent step={step} />
           </FlowStepItem>
-        ))}
+          )
+        })}
       </FlowTimeline>
     </FlowSection>
   )

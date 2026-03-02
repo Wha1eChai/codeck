@@ -35,7 +35,6 @@ export const InputFooter: React.FC<InputFooterProps> = ({ isStreaming, statusTex
   const currentSessionId = useSessionStore(s => s.currentSessionId)
   const projectPath = useSessionStore(s => s.projectPath)
   const updateSession = useSessionStore(s => s.updateSession)
-  const updateSettings = useSettingsStore(s => s.updateSettings)
   const model = useSettingsStore(s => s.executionOptions.model)
   const effort = useSettingsStore(s => s.executionOptions.effort)
   const updateExecOptions = useSettingsStore(s => s.updateExecutionOptions)
@@ -48,7 +47,6 @@ export const InputFooter: React.FC<InputFooterProps> = ({ isStreaming, statusTex
   const handleModeChange = (mode: PermissionMode) => {
     if (currentSessionId) {
       updateSession(currentSessionId, { permissionMode: mode })
-      updateSettings({ defaultPermissionMode: mode })
     }
   }
 

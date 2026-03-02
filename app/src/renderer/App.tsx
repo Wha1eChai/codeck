@@ -4,6 +4,8 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { useAppInit } from './hooks/useAppInit'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { useClaudeEvents } from './hooks/useClaude'
+import { TooltipProvider } from './components/ui/Tooltip'
+import { ToastContainer } from './components/ui/Toast'
 
 export function App() {
   useAppInit()
@@ -12,12 +14,15 @@ export function App() {
 
   return (
     <ErrorBoundary>
-      <div className="font-sans antialiased h-screen w-screen bg-background text-foreground overflow-hidden">
-        <MainLayout />
+      <TooltipProvider delayDuration={500} skipDelayDuration={100}>
+        <div className="font-sans antialiased h-screen w-screen bg-background text-foreground overflow-hidden">
+          <MainLayout />
 
-        {/* Global Dialogs */}
-        <ProjectSelector />
-      </div>
+          {/* Global Dialogs */}
+          <ProjectSelector />
+          <ToastContainer />
+        </div>
+      </TooltipProvider>
     </ErrorBoundary>
   )
 }

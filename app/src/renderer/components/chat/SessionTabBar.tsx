@@ -1,5 +1,5 @@
-import React, { useCallback } from 'react'
-import { Plus, X, GitBranch } from 'lucide-react'
+import React, { useCallback, useRef, useState, useEffect } from 'react'
+import { Plus, X, GitBranch, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useSessionStore } from '../../stores/session-store'
 import { useUIStore } from '../../stores/ui-store'
 import { useSessionActions } from '../../hooks/useSessionActions'
@@ -45,13 +45,50 @@ export const SessionTabBar: React.FC = () => {
     }
   }, [removeTab])
 
+  const tabsContainerRef = useRef<HTMLDivElement>(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
+
+  const updateScrollState = useCallback(() => {
+    const el = tabsContainerRef.current
+    if (!el) return
+    setCanScrollLeft(el.scrollLeft > 1)
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1)
+  }, [])
+
+  useEffect(() => {
+    const el = tabsContainerRef.current
+    if (!el) return
+    updateScrollState()
+    el.addEventListener('scroll', updateScrollState, { passive: true })
+    const observer = new ResizeObserver(updateScrollState)
+    observer.observe(el)
+    return () => {
+      el.removeEventListener('scroll', updateScrollState)
+      observer.disconnect()
+    }
+  }, [updateScrollState, openTabs.length])
+
+  const scrollTabs = useCallback((direction: 'left' | 'right') => {
+    tabsContainerRef.current?.scrollBy({ left: direction === 'left' ? -120 : 120, behavior: 'smooth' })
+  }, [])
+
   if (openTabs.length === 0) {
     return null
   }
 
   return (
-    <div className="flex items-center h-9 border-b border-border/40 bg-muted/5 overflow-x-auto shrink-0">
-      <div className="flex items-center h-full min-w-0">
+    <div className="flex items-center h-9 border-b border-border/40 bg-muted/5 shrink-0" role="tablist" aria-label="Session tabs">
+      {canScrollLeft && (
+        <button
+          onClick={() => scrollTabs('left')}
+          className="flex items-center justify-center h-full px-1 text-muted-foreground hover:text-foreground hover:bg-muted/20 transition-colors shrink-0 border-r border-border/30"
+          aria-label="Scroll tabs left"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+        </button>
+      )}
+      <div ref={tabsContainerRef} className="flex items-center h-full min-w-0 flex-1 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
         {openTabs.map(tab => {
           const isActive = tab.sessionId === currentSessionId
           const hasPendingInteraction = !!pendingInteractions[tab.sessionId]
@@ -59,12 +96,21 @@ export const SessionTabBar: React.FC = () => {
           const isWorktree = !!session?.worktree
 
           return (
-            <button
+            <div
               key={tab.sessionId}
+              role="tab"
+              tabIndex={0}
+              aria-selected={isActive}
               onClick={() => handleTabClick(tab.sessionId)}
               onMouseDown={e => handleMiddleClick(e, tab.sessionId)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  handleTabClick(tab.sessionId)
+                }
+              }}
               className={cn(
-                'group relative flex items-center gap-1.5 h-full px-3 text-xs border-r border-border/30 min-w-0 max-w-[180px] transition-colors',
+                'group relative flex items-center gap-1.5 h-full px-3 text-xs border-r border-border/30 min-w-0 max-w-[180px] transition-colors cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring',
                 isActive
                   ? 'bg-background text-foreground'
                   : 'bg-muted/10 text-muted-foreground hover:bg-muted/20 hover:text-foreground',
@@ -102,6 +148,7 @@ export const SessionTabBar: React.FC = () => {
               {/* Close button */}
               <button
                 onClick={e => handleTabClose(e, tab.sessionId)}
+                aria-label={`Close ${tab.name}`}
                 className={cn(
                   'ml-auto shrink-0 rounded-sm p-0.5 transition-opacity',
                   isActive
@@ -111,10 +158,19 @@ export const SessionTabBar: React.FC = () => {
               >
                 <X className="h-3 w-3" />
               </button>
-            </button>
+            </div>
           )
         })}
       </div>
+      {canScrollRight && (
+        <button
+          onClick={() => scrollTabs('right')}
+          className="flex items-center justify-center h-full px-1 text-muted-foreground hover:text-foreground hover:bg-muted/20 transition-colors shrink-0 border-l border-border/30"
+          aria-label="Scroll tabs right"
+        >
+          <ChevronRight className="h-3.5 w-3.5" />
+        </button>
+      )}
 
       {/* New tab button */}
       <button

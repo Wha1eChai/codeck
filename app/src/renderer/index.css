@@ -95,10 +95,10 @@
   --background: hsl(222.2 84% 4.9%);
   --foreground: hsl(210 40% 98%);
 
-  --card: hsl(222.2 84% 4.9%);
+  --card: hsl(222 50% 8%);
   --card-foreground: hsl(210 40% 98%);
 
-  --popover: hsl(222.2 84% 4.9%);
+  --popover: hsl(222 50% 8%);
   --popover-foreground: hsl(210 40% 98%);
 
   /* User bubble: cool blue instead of blinding white */
@@ -108,8 +108,8 @@
   --secondary: hsl(217.2 32.6% 17.5%);
   --secondary-foreground: hsl(210 40% 98%);
 
-  /* Cooler muted tone */
-  --muted: hsl(220 15% 14%);
+  /* Cooler muted tone — darker than card for visual hierarchy */
+  --muted: hsl(220 15% 12%);
   --muted-foreground: hsl(215 20.2% 65.1%);
 
   /* Neutral accent for hover/highlight (consistent with light mode semantics) */
@@ -255,6 +255,20 @@
   }
 }
 
+@keyframes flash-highlight {
+  0% {
+    background-color: hsl(var(--primary) / 0.08);
+  }
+
+  100% {
+    background-color: transparent;
+  }
+}
+
+.flash-highlight {
+  animation: flash-highlight 1.2s ease-out forwards;
+}
+
 /* Markdown Styles */
 .markdown-body {
   font-size: 14px;
@@ -305,4 +319,16 @@
   background-color: transparent;
   padding: 0;
   border-radius: 0;
+}
+
+/* ── Accessibility: respect reduced motion preference ── */
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

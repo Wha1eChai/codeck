@@ -95,7 +95,6 @@ describe('AiMessageGroup', () => {
     )
 
     expect(html).toContain('Thinking (1)')
-    expect(html).toContain('Step 1')
     expect(html).toContain('plan first')
     expect(html).toContain('<strong>answer</strong>')
     expect(html).toContain('Read demo.ts (1) - 1 done')
@@ -128,8 +127,9 @@ describe('AiMessageGroup', () => {
     expect(html).toContain('first thought')
     expect(html).toContain('second thought')
     expect((html.match(/Thinking \(/g) || []).length).toBe(1)
-    expect(html).toContain('Step 1')
-    expect(html).toContain('Step 2')
+    // Step titles now use key line from content instead of "Step N"
+    expect(html).toContain('first thought')
+    expect(html).toContain('second thought')
   })
 
   it('renders tool-only assistant group without a message card', () => {

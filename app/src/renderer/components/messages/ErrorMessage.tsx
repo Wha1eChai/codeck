@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { AlertTriangle, Copy, Check } from 'lucide-react'
 import { Message } from '@common/types'
 import { cn } from '@renderer/lib/utils'
+import { useToastStore } from '../../stores/toast-store'
 
 interface ErrorMessageProps {
   message: Message
@@ -9,13 +10,18 @@ interface ErrorMessageProps {
 
 export const ErrorMessage: React.FC<ErrorMessageProps> = ({ message }) => {
   const [copied, setCopied] = useState(false)
+  const addToast = useToastStore(s => s.addToast)
   const content = message.content || 'Unknown error'
   const isLong = content.length > 120
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(content)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(content)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      addToast('Could not copy to clipboard', 'error')
+    }
   }
 
   // Short errors: compact inline badge

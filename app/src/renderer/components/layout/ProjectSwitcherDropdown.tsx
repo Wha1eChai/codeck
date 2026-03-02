@@ -71,20 +71,30 @@ export const ProjectSwitcherDropdown: React.FC = () => {
   }, [handleSelect])
 
   const hasRecentProjects = useMemo(
-    () => projects.some(p => Date.now() - p.lastAccessed < HOUR),
-    [projects],
+    () => uniqueProjects.some(p => Date.now() - p.lastAccessed < HOUR),
+    [uniqueProjects],
   )
   const now = useRelativeTime(hasRecentProjects)
 
+  // Deduplicate projects by path (data source may contain duplicates)
+  const uniqueProjects = useMemo(() => {
+    const seen = new Set<string>()
+    return projects.filter(p => {
+      if (seen.has(p.path)) return false
+      seen.add(p.path)
+      return true
+    })
+  }, [projects])
+
   // Filter projects by search query (name or full path)
   const filteredProjects = useMemo(() => {
-    if (!searchQuery) return projects
+    if (!searchQuery) return uniqueProjects
     const q = searchQuery.toLowerCase()
-    return projects.filter(p => {
+    return uniqueProjects.filter(p => {
       const name = projectDisplayName(p.path).toLowerCase()
       return name.includes(q) || p.path.toLowerCase().includes(q)
     })
-  }, [projects, searchQuery])
+  }, [uniqueProjects, searchQuery])
 
   const currentProject = useMemo(
     () => projects.find(p => p.path === projectPath),

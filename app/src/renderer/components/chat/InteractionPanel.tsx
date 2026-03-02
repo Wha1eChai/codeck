@@ -210,6 +210,8 @@ export const InteractionPanel: React.FC = () => {
     if (!pendingInteraction) return
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return
+
       const num = parseInt(e.key)
       if (!isNaN(num) && num >= 1 && num <= pendingInteraction.options.length) {
         e.preventDefault()

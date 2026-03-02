@@ -145,6 +145,7 @@ export const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(v => !v)}
+        aria-expanded={isOpen}
         className={cn(
           'flex items-center gap-2 w-full px-4 py-2.5 text-xs font-medium text-muted-foreground',
           'hover:bg-muted/40 transition-colors',

@@ -37,8 +37,9 @@ describe('ThinkingTimeline', () => {
     )
 
     expect(html).toContain('Thinking (2) - latest: second key line.')
-    expect(html).toContain('Step 1')
-    expect(html).toContain('Step 2')
+    // Step titles now use key line from content instead of "Step N"
+    expect(html).toContain('first line.')
+    expect(html).toContain('second key line.')
   })
 
   it('shows only key line by default for long step content', () => {
