@@ -44,12 +44,7 @@ vi.mock('../runtime', () => ({
   runtimeRegistry: {
     listRuntimes: vi.fn(),
     setActiveRuntime: vi.fn(),
-    setResumeSessionId: vi.fn(),
     getCapabilities: vi.fn(),
-    startSession: vi.fn(),
-    resetSession: vi.fn(),
-    abort: vi.fn(),
-    resolvePermission: vi.fn(),
   },
 }));
 
@@ -67,15 +62,12 @@ vi.mock('../capability-gate', () => ({
 
 vi.mock('../claude', () => ({
   claudeService: {
-    startSessionWithContext: vi.fn(),
-    abortContext: vi.fn(),
-    resolvePermissionForContext: vi.fn(),
-    resolveAskUserQuestionForContext: vi.fn(),
-    resolveExitPlanModeForContext: vi.fn(),
+    startSession: vi.fn(),
+    abort: vi.fn(),
+    resolvePermission: vi.fn(),
     resolveAskUserQuestion: vi.fn(),
     resolveExitPlanMode: vi.fn(),
     rewindFiles: vi.fn(),
-    rewindFilesForContext: vi.fn(),
   },
 }));
 
@@ -138,7 +130,7 @@ describe('SessionOrchestrator', () => {
       createdAt: 1,
       updatedAt: 1,
     });
-    vi.mocked(claudeService.startSessionWithContext).mockResolvedValue(undefined);
+    vi.mocked(claudeService.startSession).mockResolvedValue(undefined);
     vi.mocked(sessionContextStore.getOrCreate).mockReturnValue({
       sessionId: 'session-1',
       projectPath: '/project',
@@ -168,14 +160,14 @@ describe('SessionOrchestrator', () => {
     });
   });
 
-  it('sends message via startSessionWithContext with a SessionContext', async () => {
+  it('sends message via startSession with a SessionContext', async () => {
     await orchestrator.sendMessage({} as any, {
       sessionId: 'session-1',
       content: 'hello',
     });
 
     expect(sessionContextStore.getOrCreate).toHaveBeenCalledWith('session-1', '/project');
-    expect(claudeService.startSessionWithContext).toHaveBeenCalledWith(
+    expect(claudeService.startSession).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
         sessionId: 'session-1',
@@ -200,7 +192,7 @@ describe('SessionOrchestrator', () => {
       }),
     ).rejects.toThrow('Runtime "claude" does not support permission mode "plan"');
 
-    expect(claudeService.startSessionWithContext).not.toHaveBeenCalled();
+    expect(claudeService.startSession).not.toHaveBeenCalled();
   });
 
   it('creates a new session when no active session exists', async () => {
@@ -229,7 +221,7 @@ describe('SessionOrchestrator', () => {
         permissionMode: 'default',
       }),
     );
-    expect(claudeService.startSessionWithContext).toHaveBeenCalledWith(
+    expect(claudeService.startSession).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
         sessionId: 'session-new',
@@ -340,7 +332,7 @@ describe('SessionOrchestrator', () => {
     orchestrator.abortSession('session-1');
 
     expect(sessionContextStore.get).toHaveBeenCalledWith('session-1');
-    expect(claudeService.abortContext).toHaveBeenCalledWith(ctx);
+    expect(claudeService.abort).toHaveBeenCalledWith(ctx);
   });
 
   it('closeSessionTab cleans up context and unregisters session', async () => {

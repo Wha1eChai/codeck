@@ -1,11 +1,8 @@
-import type { BrowserWindow } from 'electron';
-import type { PermissionResponse } from '@common/types';
 import { ClaudeRuntimeAdapter } from './claude-runtime-adapter';
 import type {
   RuntimeAdapter,
   RuntimeCapabilityReport,
   RuntimeId,
-  RuntimeSessionParams,
 } from './types';
 
 export class RuntimeRegistry {
@@ -42,35 +39,6 @@ export class RuntimeRegistry {
       throw new Error(`Runtime adapter not registered: ${runtimeId}`);
     }
     return adapter.getCapabilities();
-  }
-
-  async startSession(window: BrowserWindow, params: RuntimeSessionParams): Promise<void> {
-    await this.getActiveAdapter().startSession(window, params);
-  }
-
-  abort(): void {
-    this.getActiveAdapter().abort();
-  }
-
-  resetSession(): void {
-    this.getActiveAdapter().resetSession();
-  }
-
-  setResumeSessionId(sessionId: string | null): void {
-    const adapter = this.getActiveAdapter();
-    adapter.setResumeSessionId?.(sessionId);
-  }
-
-  resolvePermission(response: PermissionResponse): void {
-    this.getActiveAdapter().resolvePermission(response);
-  }
-
-  private getActiveAdapter(): RuntimeAdapter {
-    const adapter = this.adapters.get(this.activeRuntime);
-    if (!adapter) {
-      throw new Error(`Runtime adapter not registered: ${this.activeRuntime}`);
-    }
-    return adapter;
   }
 }
 

@@ -4,5 +4,4 @@ export type {
   RuntimeAdapter,
   RuntimeCapabilityReport,
   RuntimeId,
-  RuntimeSessionParams,
 } from './types';

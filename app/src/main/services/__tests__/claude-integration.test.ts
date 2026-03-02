@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ClaudeService } from '../claude';
 import { MAIN_TO_RENDERER } from '../../../common/ipc-channels';
+import type { SessionContext } from '../session-context';
 
 // Mock dependencies
 const mockQuery = vi.fn();
@@ -21,6 +22,22 @@ const mockWindow = {
   isDestroyed: vi.fn().mockReturnValue(false),
   webContents: mockWebContents,
 } as any;
+
+function createMockContext(overrides?: Partial<SessionContext>): SessionContext {
+  return {
+    sessionId: 'test-session',
+    projectPath: '/tmp',
+    abortController: null,
+    permissionResolver: null,
+    askUserQuestionResolver: null,
+    exitPlanModeResolver: null,
+    queryRef: null,
+    sdkSessionId: null,
+    sessionMetadata: null,
+    permissionStore: null,
+    ...overrides,
+  };
+}
 
 describe('ClaudeService Integration Flow', () => {
   let service: ClaudeService;
@@ -117,12 +134,13 @@ describe('ClaudeService Integration Flow', () => {
     }
 
     mockQuery.mockReturnValue(generateMessages());
+    const ctx = createMockContext({ projectPath: '/test/project' });
 
     await service.startSession(mockWindow, {
       prompt: 'List files in src',
       cwd: '/test/project',
       permissionMode: 'default',
-    });
+    }, ctx);
 
     // Verify query parameters
     expect(mockQuery).toHaveBeenCalledWith(expect.objectContaining({
@@ -208,9 +226,8 @@ describe('ClaudeService Integration Flow', () => {
       expect.objectContaining({ status: 'idle' })
     );
 
-    // Verify metadata was extracted
-    const metadata = service.getSessionMetadata();
-    expect(metadata).toEqual({
+    // Verify metadata was extracted via context
+    expect(ctx.sessionMetadata).toEqual({
       sessionId: 'session_test',
       model: 'claude-sonnet-4-20250514',
       tools: ['Read', 'Bash'],
@@ -218,8 +235,8 @@ describe('ClaudeService Integration Flow', () => {
       permissionMode: 'default',
     });
 
-    // Verify SDK session ID was captured for multi-turn
-    expect(service.getSDKSessionId()).toBe('session_test');
+    // Verify SDK session ID was captured in context
+    expect(ctx.sdkSessionId).toBe('session_test');
   });
 
   it('should pass env and resume SDK session ID on second message', async () => {
@@ -247,17 +264,18 @@ describe('ClaudeService Integration Flow', () => {
     }
 
     mockQuery.mockReturnValue(firstTurn());
+    const ctx = createMockContext({ projectPath: '/project' });
 
     await service.startSession(mockWindow, {
       prompt: 'Hello',
       cwd: '/project',
       permissionMode: 'default',
       sessionId: 'ui-session-1',
-    });
+    }, ctx);
 
-    expect(service.getSDKSessionId()).toBe('sdk_session_abc');
+    expect(ctx.sdkSessionId).toBe('sdk_session_abc');
 
-    // Second message — should resume with SDK session ID
+    // Second message — should resume with SDK session ID from context
     vi.clearAllMocks();
 
     async function* secondTurn() {
@@ -289,7 +307,7 @@ describe('ClaudeService Integration Flow', () => {
       cwd: '/project',
       permissionMode: 'default',
       sessionId: 'ui-session-1',
-    });
+    }, ctx);
 
     // Verify query was called with resume session ID and env
     expect(mockQuery).toHaveBeenCalledWith(expect.objectContaining({
@@ -302,7 +320,7 @@ describe('ClaudeService Integration Flow', () => {
     }));
   });
 
-  it('should reset SDK session ID when resetSession is called', async () => {
+  it('should clear session state when context is reset', async () => {
     async function* turn() {
       yield {
         type: 'system',
@@ -325,18 +343,22 @@ describe('ClaudeService Integration Flow', () => {
     }
 
     mockQuery.mockReturnValue(turn());
+    const ctx = createMockContext();
 
     await service.startSession(mockWindow, {
       prompt: 'Test',
       cwd: '/tmp',
       permissionMode: 'default',
-    });
+    }, ctx);
 
-    expect(service.getSDKSessionId()).toBe('sdk_session_xyz');
+    expect(ctx.sdkSessionId).toBe('sdk_session_xyz');
+    expect(ctx.sessionMetadata).not.toBeNull();
 
-    service.resetSession();
+    // Resetting the context is the caller's responsibility now
+    ctx.sdkSessionId = null;
+    ctx.sessionMetadata = null;
 
-    expect(service.getSDKSessionId()).toBeNull();
-    expect(service.getSessionMetadata()).toBeNull();
+    expect(ctx.sdkSessionId).toBeNull();
+    expect(ctx.sessionMetadata).toBeNull();
   });
 });

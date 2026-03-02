@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ClaudeService } from '../claude';
 import { MAIN_TO_RENDERER } from '../../../common/ipc-channels';
-import crypto from 'node:crypto';
+import type { SessionContext } from '../session-context';
 
 // Mock dependencies
 const mockQuery = vi.fn();
@@ -48,6 +48,22 @@ const mockWindow = {
   webContents: mockWebContents,
 } as any;
 
+function createMockContext(overrides?: Partial<SessionContext>): SessionContext {
+  return {
+    sessionId: 'test-session',
+    projectPath: '/tmp',
+    abortController: null,
+    permissionResolver: null,
+    askUserQuestionResolver: null,
+    exitPlanModeResolver: null,
+    queryRef: null,
+    sdkSessionId: null,
+    sessionMetadata: null,
+    permissionStore: null,
+    ...overrides,
+  };
+}
+
 describe('ClaudeService', () => {
   let service: ClaudeService;
 
@@ -87,12 +103,13 @@ describe('ClaudeService', () => {
     }
 
     mockQuery.mockReturnValue(generateMessages());
+    const ctx = createMockContext();
 
     await service.startSession(mockWindow, {
       prompt: 'Test prompt',
       cwd: '/tmp',
       permissionMode: 'default',
-    });
+    }, ctx);
 
     // Check if query was called with correct params
     expect(mockQuery).toHaveBeenCalledWith(expect.objectContaining({
@@ -134,12 +151,13 @@ describe('ClaudeService', () => {
     mockQuery.mockImplementation(async function* () {
       throw error;
     });
+    const ctx = createMockContext();
 
     await service.startSession(mockWindow, {
       prompt: 'Crash me',
       cwd: '/tmp',
       permissionMode: 'default',
-    });
+    }, ctx);
 
     expect(mockWebContents.send).toHaveBeenCalledWith(
       MAIN_TO_RENDERER.CLAUDE_MESSAGE,
@@ -176,18 +194,19 @@ describe('ClaudeService', () => {
       await new Promise(resolve => setTimeout(resolve, 100));
     });
 
+    const ctx = createMockContext();
     const promise = service.startSession(mockWindow, {
       prompt: 'Long run',
       cwd: '/tmp',
       permissionMode: 'default',
-    });
+    }, ctx);
 
     // Wait until the query is actually reached (async setup may take microtasks)
     while (!queryReached) {
       await new Promise(resolve => setTimeout(resolve, 5));
     }
 
-    service.abort();
+    service.abort(ctx);
 
     await promise;
 
@@ -219,15 +238,15 @@ describe('ClaudeService', () => {
     }
 
     mockQuery.mockReturnValue(generateMessages());
+    const ctx = createMockContext({ projectPath: '/project' });
 
     await service.startSession(mockWindow, {
       prompt: 'Hello',
       cwd: '/project',
       permissionMode: 'default',
-    });
+    }, ctx);
 
-    const metadata = service.getSessionMetadata();
-    expect(metadata).toEqual({
+    expect(ctx.sessionMetadata).toEqual({
       sessionId: 'session_abc',
       model: 'claude-sonnet-4-20250514',
       tools: ['Read', 'Write'],
@@ -254,12 +273,13 @@ describe('ClaudeService', () => {
     }
 
     mockQuery.mockReturnValue(generateMessages());
+    const ctx = createMockContext();
 
     await service.startSession(mockWindow, {
       prompt: 'Test',
       cwd: '/tmp',
       permissionMode: 'default',
-    });
+    }, ctx);
 
     // streaming + 2 fan-out messages + idle = 4
     expect(mockWebContents.send).toHaveBeenCalledTimes(4);
@@ -299,13 +319,14 @@ describe('ClaudeService', () => {
 
     mockQuery.mockReturnValue(generateMessages());
     const onMessage = vi.fn();
+    const ctx = createMockContext();
 
     await service.startSession(mockWindow, {
       prompt: 'Test persistence callback',
       cwd: '/tmp',
       permissionMode: 'default',
       onMessage,
-    });
+    }, ctx);
 
     expect(onMessage).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -380,13 +401,14 @@ describe('ClaudeService', () => {
     }
 
     mockQuery.mockReturnValue(generateMessages());
+    const ctx = createMockContext();
 
     await service.startSession(mockWindow, {
       prompt: 'stream',
       cwd: '/tmp',
       permissionMode: 'default',
       sessionId: 'ui-session-stream',
-    });
+    }, ctx);
 
     const messageCalls = mockWebContents.send.mock.calls.filter(
       ([channel]) => channel === MAIN_TO_RENDERER.CLAUDE_MESSAGE,
@@ -454,12 +476,13 @@ describe('ClaudeService', () => {
     }
 
     mockQuery.mockReturnValueOnce(firstRun());
+    const ctx1 = createMockContext({ sessionId: 'session-a' });
     await service.startSession(mockWindow, {
       prompt: 'first',
       cwd: '/tmp',
       permissionMode: 'default',
       sessionId: 'session-a',
-    });
+    }, ctx1);
 
     vi.clearAllMocks();
 
@@ -477,12 +500,13 @@ describe('ClaudeService', () => {
     }
 
     mockQuery.mockReturnValueOnce(secondRun());
+    const ctx2 = createMockContext({ sessionId: 'session-b' });
     await service.startSession(mockWindow, {
       prompt: 'second',
       cwd: '/tmp',
       permissionMode: 'default',
       sessionId: 'session-b',
-    });
+    }, ctx2);
 
     const secondMessageCalls = mockWebContents.send.mock.calls.filter(
       ([channel]) => channel === MAIN_TO_RENDERER.CLAUDE_MESSAGE,
@@ -519,19 +543,21 @@ describe('ClaudeService', () => {
       };
     });
 
+    const ctx = createMockContext({ sessionId: 'session-remember' });
+
     queryReached = false;
     const firstRun = service.startSession(mockWindow, {
       prompt: 'first',
       cwd: '/tmp',
       sessionId: 'session-remember',
       permissionMode: 'default',
-    });
+    }, ctx);
 
     while (!queryReached) {
       await new Promise(resolve => setTimeout(resolve, 5));
     }
 
-    service.resolvePermission({
+    service.resolvePermission(ctx, {
       requestId: 'r1',
       allowed: true,
       rememberForSession: true,
@@ -549,7 +575,7 @@ describe('ClaudeService', () => {
       cwd: '/tmp',
       sessionId: 'session-remember',
       permissionMode: 'default',
-    });
+    }, ctx);
 
     const permissionRequestsAfterSecondRun = mockWebContents.send.mock.calls.filter(
       ([channel]) => channel === MAIN_TO_RENDERER.PERMISSION_REQUEST,
@@ -579,18 +605,19 @@ describe('ClaudeService', () => {
     });
 
     // First project
+    const ctxA = createMockContext({ sessionId: 'session-a', projectPath: '/project-a' });
     queryReached = false;
     const firstRun = service.startSession(mockWindow, {
       prompt: 'first',
       cwd: '/project-a',
       sessionId: 'session-a',
       permissionMode: 'default',
-    });
+    }, ctxA);
 
     while (!queryReached) {
       await new Promise(resolve => setTimeout(resolve, 5));
     }
-    service.resolvePermission({
+    service.resolvePermission(ctxA, {
       requestId: 'r1',
       allowed: true,
       rememberForSession: true,
@@ -598,18 +625,19 @@ describe('ClaudeService', () => {
     await firstRun;
 
     // Different project → new permission store, should prompt again
+    const ctxB = createMockContext({ sessionId: 'session-b', projectPath: '/project-b' });
     queryReached = false;
     const secondRun = service.startSession(mockWindow, {
       prompt: 'second',
       cwd: '/project-b',
       sessionId: 'session-b',
       permissionMode: 'default',
-    });
+    }, ctxB);
 
     while (!queryReached) {
       await new Promise(resolve => setTimeout(resolve, 5));
     }
-    service.resolvePermission({
+    service.resolvePermission(ctxB, {
       requestId: 'r2',
       allowed: true,
       rememberForSession: true,
@@ -643,33 +671,33 @@ describe('ClaudeService', () => {
       };
     });
 
+    // Use the same context across two runs (same project, permission store shared)
+    const ctx = createMockContext({ sessionId: 'session-reset' });
+
     queryReached = false;
     const firstRun = service.startSession(mockWindow, {
       prompt: 'first',
       cwd: '/tmp',
       sessionId: 'session-reset',
       permissionMode: 'default',
-    });
+    }, ctx);
     while (!queryReached) {
       await new Promise(resolve => setTimeout(resolve, 5));
     }
-    service.resolvePermission({
+    service.resolvePermission(ctx, {
       requestId: 'r1',
       allowed: true,
       rememberForSession: true,
     });
     await firstRun;
 
-    // resetSession does NOT clear project-level permissions
-    service.resetSession();
-
-    // Same project → permissions still remembered
+    // Same project, same context → permissions still remembered
     await service.startSession(mockWindow, {
       prompt: 'second',
       cwd: '/tmp',
       sessionId: 'session-reset',
       permissionMode: 'default',
-    });
+    }, ctx);
 
     const permissionRequests = mockWebContents.send.mock.calls.filter(
       ([channel]) => channel === MAIN_TO_RENDERER.PERMISSION_REQUEST,

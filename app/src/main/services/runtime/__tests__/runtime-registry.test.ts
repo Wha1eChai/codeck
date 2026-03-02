@@ -1,6 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
-import type { BrowserWindow } from 'electron';
-import type { PermissionResponse } from '@common/types';
+import { describe, it, expect } from 'vitest';
 import { RuntimeRegistry } from '../runtime-registry';
 import type { RuntimeAdapter } from '../types';
 
@@ -14,15 +12,14 @@ function createCodexAdapterMock(): RuntimeAdapter {
         permissionPrompt: false,
         streamDelta: true,
         nativeFileHistory: false,
+        checkpointing: false,
+        hooks: false,
+        modelSelection: false,
+        embeddedTerminal: false,
       },
       supportedPermissionModes: ['default', 'plan'],
       notes: ['test adapter'],
     }),
-    startSession: vi.fn(async () => undefined),
-    abort: vi.fn(),
-    resetSession: vi.fn(),
-    setResumeSessionId: vi.fn(),
-    resolvePermission: vi.fn(),
   };
 }
 
@@ -50,28 +47,13 @@ describe('RuntimeRegistry', () => {
     expect(() => registry.setActiveRuntime('opencode')).toThrow('Runtime adapter not registered');
   });
 
-  it('should delegate lifecycle calls to active adapter', async () => {
+  it('should list all registered runtimes', () => {
     const registry = new RuntimeRegistry();
     const codex = createCodexAdapterMock();
     registry.register(codex);
-    registry.setActiveRuntime('codex');
 
-    const window = {} as BrowserWindow;
-    await registry.startSession(window, {
-      prompt: 'hello',
-      cwd: '/tmp/project',
-      sessionId: 's1',
-      permissionMode: 'default',
-    });
-    registry.abort();
-    registry.resetSession();
-    registry.setResumeSessionId('sdk-session-1');
-    registry.resolvePermission({ requestId: 'r1', allowed: true } satisfies PermissionResponse);
-
-    expect(codex.startSession).toHaveBeenCalledOnce();
-    expect(codex.abort).toHaveBeenCalledOnce();
-    expect(codex.resetSession).toHaveBeenCalledOnce();
-    expect(codex.setResumeSessionId).toHaveBeenCalledWith('sdk-session-1');
-    expect(codex.resolvePermission).toHaveBeenCalledOnce();
+    const runtimes = registry.listRuntimes();
+    expect(runtimes).toContain('claude');
+    expect(runtimes).toContain('codex');
   });
 });

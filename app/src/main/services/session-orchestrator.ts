@@ -110,8 +110,6 @@ export class SessionOrchestrator {
     this.assertRuntimeRegistered(runtime);
 
     runtimeRegistry.setActiveRuntime(runtime);
-    runtimeRegistry.resetSession();
-    runtimeRegistry.setResumeSessionId(sessionManager.getSdkSessionId());
 
     return resumed;
   }
@@ -206,7 +204,7 @@ export class SessionOrchestrator {
     const effectiveCwd = resolvedSession?.worktree?.worktreePath ?? projectPath;
 
     // Use context-aware startSession for multi-session support
-    await claudeService.startSessionWithContext(window, {
+    await claudeService.startSession(window, {
       prompt: input.content,
       cwd: effectiveCwd,
       sessionId: resolvedSessionId,
@@ -254,14 +252,6 @@ export class SessionOrchestrator {
     this.assertRuntimeRegistered(runtime);
     runtimeRegistry.setActiveRuntime(runtime);
 
-    // Set resume ID from context if available, else from session manager
-    const ctx = sessionContextStore.get(sessionId);
-    if (ctx?.sdkSessionId) {
-      runtimeRegistry.setResumeSessionId(ctx.sdkSessionId);
-    } else {
-      runtimeRegistry.setResumeSessionId(sessionManager.getSdkSessionId());
-    }
-
     appPreferencesService.update({ lastSessionId: sessionId, lastProjectPath: projectPath }).catch(() => { });
 
     return { session, messages: result.messages };
@@ -294,17 +284,15 @@ export class SessionOrchestrator {
   abortSession(sessionId: string): void {
     const ctx = sessionContextStore.get(sessionId);
     if (ctx) {
-      claudeService.abortContext(ctx);
+      claudeService.abort(ctx);
     }
   }
 
-  /** Abort the focused/current session (legacy single-session compat). */
+  /** Abort the focused/current session. */
   abort(): void {
     const focusedId = sessionManager.getFocusedSessionId();
     if (focusedId) {
       this.abortSession(focusedId);
-    } else {
-      runtimeRegistry.abort();
     }
   }
 
@@ -312,29 +300,22 @@ export class SessionOrchestrator {
   resolvePermissionForSession(sessionId: string, response: PermissionResponse): void {
     const ctx = sessionContextStore.get(sessionId);
     if (ctx) {
-      claudeService.resolvePermissionForContext(ctx, response);
-    } else {
-      // Fallback to legacy single-session
-      runtimeRegistry.resolvePermission(response);
+      claudeService.resolvePermission(ctx, response);
     }
   }
 
-  /** Resolve permission (legacy — routes to focused session or fallback). */
+  /** Resolve permission — routes to focused session. */
   resolvePermission(response: PermissionResponse): void {
     const focusedId = sessionManager.getFocusedSessionId();
     if (focusedId) {
       this.resolvePermissionForSession(focusedId, response);
-    } else {
-      runtimeRegistry.resolvePermission(response);
     }
   }
 
   resolveAskUserQuestionForSession(sessionId: string, response: AskUserQuestionResponse): void {
     const ctx = sessionContextStore.get(sessionId);
     if (ctx) {
-      claudeService.resolveAskUserQuestionForContext(ctx, response);
-    } else {
-      claudeService.resolveAskUserQuestion(response);
+      claudeService.resolveAskUserQuestion(ctx, response);
     }
   }
 
@@ -342,17 +323,13 @@ export class SessionOrchestrator {
     const focusedId = sessionManager.getFocusedSessionId();
     if (focusedId) {
       this.resolveAskUserQuestionForSession(focusedId, response);
-    } else {
-      claudeService.resolveAskUserQuestion(response);
     }
   }
 
   resolveExitPlanModeForSession(sessionId: string, response: ExitPlanModeResponse): void {
     const ctx = sessionContextStore.get(sessionId);
     if (ctx) {
-      claudeService.resolveExitPlanModeForContext(ctx, response);
-    } else {
-      claudeService.resolveExitPlanMode(response);
+      claudeService.resolveExitPlanMode(ctx, response);
     }
   }
 
@@ -360,15 +337,13 @@ export class SessionOrchestrator {
     const focusedId = sessionManager.getFocusedSessionId();
     if (focusedId) {
       this.resolveExitPlanModeForSession(focusedId, response);
-    } else {
-      claudeService.resolveExitPlanMode(response);
     }
   }
 
   async rewindFiles(sessionId: string, userMessageId: string, dryRun?: boolean): Promise<RewindFilesResult> {
     const ctx = sessionContextStore.get(sessionId);
     if (ctx) {
-      return claudeService.rewindFilesForContext(ctx, userMessageId, dryRun);
+      return claudeService.rewindFiles(ctx, userMessageId, dryRun);
     }
     return { canRewind: false, error: 'No active query for this session — cannot rewind.' };
   }
