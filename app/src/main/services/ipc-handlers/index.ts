@@ -15,19 +15,23 @@ export function registerIpcHandlers(windowGetter: () => BrowserWindow | null) {
   const getMainWindow = windowGetter;
 
   // Subscribe to multi-session state changes (single source of truth)
-  let lastFocusedStatus: string | null = null;
+  let lastSessionStatuses: Record<string, string> = {};
   sessionManager.subscribeMulti((multiState) => {
     const win = getMainWindow();
     if (win) {
       win.webContents.send(MAIN_TO_RENDERER.MULTI_SESSION_STATE_CHANGED, multiState);
     }
 
-    // Usage cache refresh: detect focused session streaming->idle
-    const focusedId = multiState.focusedSessionId;
-    const focusedStatus = focusedId
-      ? multiState.activeSessions[focusedId]?.status ?? null
-      : null;
-    if (lastFocusedStatus === 'streaming' && focusedStatus === 'idle') {
+    // Usage cache refresh: detect ANY session streaming->idle (not just focused)
+    let anySessionEnded = false;
+    for (const [sessionId, state] of Object.entries(multiState.activeSessions)) {
+      const prevStatus = lastSessionStatuses[sessionId];
+      if (prevStatus === 'streaming' && state.status === 'idle') {
+        anySessionEnded = true;
+      }
+    }
+
+    if (anySessionEnded) {
       invalidateUsageCache();
       warmUsageCache()
         .then(() => {
@@ -39,7 +43,12 @@ export function registerIpcHandlers(windowGetter: () => BrowserWindow | null) {
       // Refresh sessions-server DB after session ends
       debouncedSync();
     }
-    lastFocusedStatus = focusedStatus;
+
+    // Snapshot current statuses for next comparison
+    lastSessionStatuses = {};
+    for (const [sessionId, state] of Object.entries(multiState.activeSessions)) {
+      lastSessionStatuses[sessionId] = state.status;
+    }
   });
 
   // Background usage cache warmup (non-blocking)

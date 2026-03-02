@@ -67,6 +67,13 @@ export const permissionResponseSchema = z.object({
     rememberScope: z.enum(['input', 'tool']).optional(),
 });
 
+export const structuredOutputConfigSchema = z.object({
+    enabled: z.boolean(),
+    name: z.string(),
+    description: z.string().optional(),
+    schema: z.string(),
+});
+
 export const updatePreferencesSchema = z.object({
     theme: z.enum(['light', 'dark', 'warm', 'system']).optional(),
     defaultPermissionMode: permissionModeSchema.optional(),
@@ -74,6 +81,7 @@ export const updatePreferencesSchema = z.object({
     defaultRuntime: runtimeProviderSchema.optional(),
     checkpointEnabled: z.boolean().optional(),
     modelAliases: z.record(z.string().min(1), z.string().min(1)).optional(),
+    structuredOutput: structuredOutputConfigSchema.optional(),
 });
 
 export const sessionIdSchema = z.string().min(1, 'Session ID is required');
