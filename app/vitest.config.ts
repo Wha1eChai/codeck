@@ -12,6 +12,11 @@ export default defineConfig({
     alias: {
       '@common': resolve(__dirname, 'src/common'),
       '@renderer': resolve(__dirname, 'src/renderer'),
+      // Resolve workspace package from TypeScript source so tests work
+      // without a prior build step (both locally and in CI).
+      '@codeck/config': resolve(__dirname, '../packages/config/src/index.ts'),
+      // Global Electron mock — prevents binary-path resolution failures in CI.
+      'electron': resolve(__dirname, 'src/__mocks__/electron.ts'),
     },
   },
 })

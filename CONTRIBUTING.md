@@ -70,13 +70,23 @@ codeck/
 │   └── sessions/     # @codeck/sessions — session history (Hono + SQLite)
 ```
 
+## Pre-push Checklist (mirrors CI)
+
+Run these locally before pushing to catch failures before CI does:
+
+```bash
+pnpm --filter @codeck/config run test
+pnpm --filter @codeck/config run typecheck
+pnpm --filter @codeck/sessions run test
+pnpm --filter codeck run test
+```
+
 ## Pull Request Guidelines
 
 1. Fork the repository and create a branch from `main`
 2. Make your changes with clear, focused commits (conventional commits format)
-3. Ensure all tests pass: `pnpm test`
-4. Ensure no TypeScript errors: `pnpm --filter codeck typecheck`
-5. Open a PR against `main` with a description of what changed and why
+3. Pass the pre-push checklist above
+4. Open a PR against `main` with a description of what changed and why
 
 ## Code Style
 

@@ -1,15 +1,22 @@
 import { describe, it, expect } from 'vitest'
 import { encodeProjectPath, decodeProjectDirName } from './path-encoding.js'
 
+const isWindows = process.platform === 'win32'
+
 describe('encodeProjectPath', () => {
-  it('encodes Windows drive paths', () => {
+  it.skipIf(!isWindows)('encodes Windows drive paths', () => {
     const result = encodeProjectPath('C:\\projects\\my-app')
     expect(result).toBe('C--projects-my-app')
   })
 
-  it('encodes Windows paths with forward slashes', () => {
+  it.skipIf(!isWindows)('encodes Windows paths with forward slashes', () => {
     const result = encodeProjectPath('C:/projects/my-app')
     expect(result).toBe('C--projects-my-app')
+  })
+
+  it.skipIf(isWindows)('encodes Unix absolute paths as URL-encoded', () => {
+    const result = encodeProjectPath('/home/user/project')
+    expect(result).toBe('%2Fhome%2Fuser%2Fproject')
   })
 })
 
@@ -20,8 +27,15 @@ describe('decodeProjectDirName', () => {
     expect(result).toBe('C:\\projects\\myproject')
   })
 
-  it('roundtrips a path without hyphens', () => {
+  it.skipIf(!isWindows)('roundtrips a Windows path without hyphens', () => {
     const original = 'C:\\projects\\myproject'
+    const encoded = encodeProjectPath(original)
+    const decoded = decodeProjectDirName(encoded)
+    expect(decoded).toBe(original)
+  })
+
+  it.skipIf(isWindows)('roundtrips a Unix path', () => {
+    const original = '/home/user/myproject'
     const encoded = encodeProjectPath(original)
     const decoded = decodeProjectDirName(encoded)
     expect(decoded).toBe(original)

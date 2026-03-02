@@ -44,6 +44,7 @@ describe('toAgentInfo', () => {
       filename: 'planner.md',
       filePath: '/agents/planner.md',
       scope: 'global',
+      pluginId: undefined,
       name: 'Planner',
       frontmatter: { description: 'Plans things' },
       body: '# content',
@@ -59,6 +60,7 @@ describe('toAgentInfo', () => {
       filename: 'reviewer.md',
       filePath: '/project/.claude/agents/reviewer.md',
       scope: 'project',
+      pluginId: undefined,
       name: 'Reviewer',
       frontmatter: {},
       body: '',
@@ -75,6 +77,7 @@ describe('toSkillInfo', () => {
       name: 'commit',
       dirPath: '/skills/commit',
       scope: 'global',
+      pluginId: undefined,
       frontmatter: {},
       body: '',
     }
@@ -142,6 +145,8 @@ describe('toMemoryFileInfo', () => {
     const file: ClaudeMdFile = {
       filePath: '/home/.claude/CLAUDE.md',
       scope: 'user-global',
+      projectPath: undefined,
+      name: undefined,
       content: '# Global',
     }
     const info = toMemoryFileInfo(file)
@@ -154,6 +159,7 @@ describe('toMemoryFileInfo', () => {
       filePath: '/project/CLAUDE.md',
       scope: 'project-root',
       projectPath: '/project',
+      name: undefined,
       content: '',
     }
     expect(toMemoryFileInfo(root).scope).toBe('project')
@@ -162,6 +168,7 @@ describe('toMemoryFileInfo', () => {
       filePath: '/project/.claude/CLAUDE.md',
       scope: 'project-claude-dir',
       projectPath: '/project',
+      name: undefined,
       content: '',
     }
     expect(toMemoryFileInfo(claudeDir).scope).toBe('project')
