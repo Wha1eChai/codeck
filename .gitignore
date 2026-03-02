@@ -40,3 +40,6 @@ test-results/
 
 # Archives (large, not version controlled)
 archives/
+
+# Git worktrees
+.worktrees/
