@@ -13,6 +13,7 @@ import { McpServersSection } from './sections/McpServersSection'
 import { HooksSection } from './sections/HooksSection'
 import { MemorySection } from './sections/MemorySection'
 import { UsageSection } from './sections/UsageSection'
+import { StructuredOutputSection } from './sections/StructuredOutputSection'
 import type { SettingsSection } from './types'
 
 const SECTION_COMPONENTS: Record<SettingsSection, React.FC> = {
@@ -20,6 +21,7 @@ const SECTION_COMPONENTS: Record<SettingsSection, React.FC> = {
   session: SessionSection,
   environment: EnvironmentSection,
   models: ModelsSection,
+  'structured-output': StructuredOutputSection,
   plugins: PluginsSection,
   agents: AgentsSection,
   'mcp-servers': McpServersSection,

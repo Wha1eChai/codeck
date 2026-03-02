@@ -407,7 +407,18 @@ export interface SessionMetadata {
   readonly fastModeState?: string
 }
 
-//  Query 控制接口（SDK query() 返回值） 
+// ── Structured Output ──
+
+export interface SDKOutputFormat {
+  readonly type: 'json_schema'
+  readonly schema: {
+    readonly name: string
+    readonly description?: string
+    readonly schema: Record<string, unknown>
+  }
+}
+
+//  Query 控制接口（SDK query() 返回值）
 
 /** Mirror of SDK's Query interface  only the control methods we need. */
 export interface SDKQuery extends AsyncGenerator<SDKMessage, void> {

@@ -11,7 +11,9 @@ import type {
   ExitPlanModeResponse,
   RewindFilesResult,
   SessionState,
+  StructuredOutputConfig,
 } from '@common/types';
+import type { SDKOutputFormat } from './sdk-adapter/sdk-types';
 import crypto from 'crypto';
 import {
   createSDKMessageParser,
@@ -43,6 +45,22 @@ export interface StartSessionParams {
   onMessage?: (message: Message) => Promise<void> | void;
   onMetadata?: (metadata: SessionMetadata) => Promise<void> | void;
   onStatus?: (state: SessionState) => Promise<void> | void;
+}
+
+function buildOutputFormat(config: StructuredOutputConfig): SDKOutputFormat | undefined {
+  try {
+    const schema = JSON.parse(config.schema) as Record<string, unknown>
+    return {
+      type: 'json_schema',
+      schema: {
+        name: config.name,
+        ...(config.description ? { description: config.description } : {}),
+        schema,
+      },
+    }
+  } catch {
+    return undefined
+  }
 }
 
 export class ClaudeService {
@@ -175,6 +193,10 @@ export class ClaudeService {
       const mcpServers = mapMcpServersToSDKConfig(mcpEntries);
       const agents = mapAgentsToSDKDefinitions(agentEntries);
 
+      const outputFormat = prefs.structuredOutput?.enabled && prefs.structuredOutput?.schema
+        ? buildOutputFormat(prefs.structuredOutput)
+        : undefined;
+
       const queryArgs = buildQueryArgs(
         {
           ...params,
@@ -186,6 +208,7 @@ export class ClaudeService {
           mcpServers,
           agents,
           modelAliases: prefs.modelAliases,
+          outputFormat,
         },
         canUseTool,
         ctx.abortController,

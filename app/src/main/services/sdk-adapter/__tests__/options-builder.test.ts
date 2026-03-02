@@ -401,6 +401,27 @@ describe('buildQueryArgs — Agents (Phase 4)', () => {
   })
 })
 
+describe('buildQueryArgs — Structured Output', () => {
+  it('should include outputFormat when provided', () => {
+    const outputFormat = { type: 'json_schema' as const, schema: { name: 'test', schema: { type: 'object' } } }
+    const result = buildQueryArgs(
+      { prompt: 'Hello', cwd: '/project', permissionMode: 'default', outputFormat },
+      mockCanUseTool,
+      new AbortController(),
+    )
+    expect(result.options.outputFormat).toEqual(outputFormat)
+  })
+
+  it('should not include outputFormat when undefined', () => {
+    const result = buildQueryArgs(
+      { prompt: 'Hello', cwd: '/project', permissionMode: 'default' },
+      mockCanUseTool,
+      new AbortController(),
+    )
+    expect('outputFormat' in result.options).toBe(false)
+  })
+})
+
 describe('buildQueryArgs — Stop Hooks (Phase 3)', () => {
   it('should include Stop hooks when onStopLog provided', () => {
     const result = buildQueryArgs(

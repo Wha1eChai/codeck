@@ -9,7 +9,7 @@ import { app } from 'electron';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import type { AppPreferences } from '@common/types';
+import type { AppPreferences, StructuredOutputConfig } from '@common/types';
 import { DEFAULT_APP_PREFERENCES } from '@common/defaults';
 
 export class AppPreferencesService {
@@ -91,8 +91,18 @@ export class AppPreferencesService {
                 ? { lastProjectPath: raw.lastProjectPath } : {}),
             ...(isValidModelAliases(raw.modelAliases)
                 ? { modelAliases: raw.modelAliases } : {}),
+            ...(isValidStructuredOutput(raw.structuredOutput)
+                ? { structuredOutput: raw.structuredOutput } : {}),
         };
     }
+}
+
+function isValidStructuredOutput(v: unknown): v is StructuredOutputConfig {
+    if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+    const obj = v as Record<string, unknown>;
+    return typeof obj.enabled === 'boolean'
+        && typeof obj.name === 'string'
+        && typeof obj.schema === 'string';
 }
 
 function isValidModelAliases(v: unknown): v is Readonly<Record<string, string>> {

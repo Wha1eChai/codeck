@@ -4,6 +4,7 @@ import {
   Terminal,
   Key,
   Cpu,
+  Braces,
   Puzzle,
   Bot,
   Server,
@@ -22,6 +23,7 @@ const NAV_GROUPS: readonly NavGroup[] = [
       { id: 'session', label: 'Session', icon: Terminal, hint: 'Execution context' },
       { id: 'environment', label: 'Environment', icon: Key, hint: 'Environment variables' },
       { id: 'models', label: 'Models', icon: Cpu, hint: 'Model alias mappings' },
+      { id: 'structured-output', label: 'Structured Output', icon: Braces, hint: 'JSON Schema output' },
     ],
   },
   {

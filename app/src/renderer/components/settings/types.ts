@@ -5,6 +5,7 @@ export type SettingsSection =
   | 'session'
   | 'environment'
   | 'models'
+  | 'structured-output'
   | 'plugins'
   | 'agents'
   | 'mcp-servers'

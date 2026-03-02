@@ -3,7 +3,7 @@
 // ============================================================
 
 import type { ExecutionOptions, HookSettings, PermissionMode } from '@common/types'
-import type { SDKCanUseToolCallback, SDKMcpServerConfig, SDKAgentDefinition } from './sdk-types'
+import type { SDKCanUseToolCallback, SDKMcpServerConfig, SDKAgentDefinition, SDKOutputFormat } from './sdk-types'
 import { buildPreToolUseHooks, buildPostToolUseHooks, buildStopHooks } from './hooks-builder'
 import type { HookCallbackMatcher, ToolLogEntry, StopLogEntry } from './hooks-builder'
 import { resolveModelAlias } from './model-alias-resolver'
@@ -31,6 +31,8 @@ export interface SessionParams {
   readonly modelAliases?: Readonly<Record<string, string>>
   /** Phase 4: Agent definitions loaded from config */
   readonly agents?: Record<string, SDKAgentDefinition>
+  /** Structured output format (JSON Schema) */
+  readonly outputFormat?: SDKOutputFormat
 }
 
 export interface QueryArgs {
@@ -61,6 +63,8 @@ export interface QueryArgs {
     readonly mcpServers?: Record<string, SDKMcpServerConfig>
     // Phase 4: Agent definitions
     readonly agents?: Record<string, SDKAgentDefinition>
+    // Structured output format (JSON Schema)
+    readonly outputFormat?: SDKOutputFormat
   }
 }
 
@@ -129,6 +133,8 @@ export function buildQueryArgs(
       ...(params.mcpServers && Object.keys(params.mcpServers).length > 0 ? { mcpServers: params.mcpServers } : {}),
       // Phase 4: Agent definitions (only include if non-empty)
       ...(params.agents && Object.keys(params.agents).length > 0 ? { agents: params.agents } : {}),
+      // Structured output format (only include if provided)
+      ...(params.outputFormat ? { outputFormat: params.outputFormat } : {}),
     },
   }
 }

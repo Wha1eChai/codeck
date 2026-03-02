@@ -284,6 +284,16 @@ export interface FileEntry {
   readonly size?: number
 }
 
+// ── 结构化输出（Structured Output） ──
+
+export interface StructuredOutputConfig {
+  readonly enabled: boolean
+  readonly name: string
+  readonly description?: string
+  /** JSON Schema string (serialized for storage, parsed on use) */
+  readonly schema: string
+}
+
 // ── 应用偏好（L3：GUI 独有，存储在 userData） ──
 
 export interface AppPreferences {
@@ -299,6 +309,8 @@ export interface AppPreferences {
   readonly lastProjectPath?: string
   /** Model alias → full model ID mappings. */
   readonly modelAliases?: Readonly<Record<string, string>>
+  /** Structured output configuration (JSON Schema). */
+  readonly structuredOutput?: StructuredOutputConfig
 }
 
 /** State of the backend session manager, pushed to renderer on change.
