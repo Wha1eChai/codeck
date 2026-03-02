@@ -469,6 +469,86 @@ interface RuntimeAdapter {
 - **Worktree 隔离**：创建 session 时可选 `useWorktree`，在 `.claude-worktrees/<sessionId>/` 创建独立 git worktree，`sendMessage` 自动以 worktree path 作为 cwd
 - **项目切换**：`ProjectSwitcherDropdown`（HeaderBar 左侧）— `@radix-ui/react-dropdown-menu` + 搜索；切换项目不强制跳转 Session Panel
 
+## 待办：SDK 解耦与自研 Agent 内核迁移
+
+> **背景**：项目计划摆脱对 `@anthropic-ai/claude-agent-sdk` 的硬依赖，迁移到自研 agent 内核 + 多 LLM Provider 架构。当前 SDK 耦合点已经过审计，实际硬耦合仅 1 个生产文件（`claude.ts` 的 `import { query }`），整个渲染层、preload、common/types.ts 均零 SDK 导入，迁移可行性高。
+>
+> **策略**：保留现有 SDK 实现作为参考，并行搭建自研 agent 内核，逐步替换，最后移除 SDK 依赖。不走 CLI 子进程中间方案（无法自定义 agent 编排和上下文注入）。
+
+### SDK 耦合现状（审计结论）
+
+| 层级 | SDK 依赖 | 说明 |
+|------|---------|------|
+| `claude.ts` | **直接 import** | 唯一的 `import { query }` + `query()` 调用 + `queryRef.rewindFiles()` |
+| `sdk-types.ts` | 类型镜像 | 不 import SDK 包，但结构必须与 SDK 输出一致 |
+| `sdk-adapter/*`（其余文件） | **零 SDK 导入** | 纯函数层，仅依赖 sdk-types.ts 和 common/types.ts |
+| `session-orchestrator.ts` | 间接（调 ClaudeService） | 不 import SDK，但硬编码调用 claudeService 的 6 个方法 |
+| `runtime/` | **零** | RuntimeAdapter 当前是纯能力声明存根，不承载执行逻辑 |
+| `common/types.ts` | **零** | Message / PermissionRequest / ExecutionOptions 全部本地定义 |
+| `preload/` + `renderer/*` | **零** | 仅消费 @common/types |
+
+### Phase 5A：架构层——为迁移铺路
+
+- [ ] **RuntimeAdapter 升级为执行接口**：当前只有 `id` + `getCapabilities()`，需新增 `startSession` / `abort` / `resolvePermission` / `resolveAskUserQuestion` / `resolveExitPlanMode` / `rewindFiles` 等执行方法。`ClaudeRuntimeAdapter` 实现该接口，内部调 ClaudeService
+- [ ] **SessionOrchestrator 改为通过 RuntimeRegistry 分发**：不再直接引用 `claudeService`，通过 `runtimeRegistry.getActiveAdapter().startSession(...)` 路由。做完后 SDK 耦合从 Orchestrator 层完全消除
+- [ ] **sdk-adapter 内部模块分线**：`permission-adapter.ts` / `hooks-builder.ts` / `env-loader.ts` / `model-alias-resolver.ts` 可上提为平台层（provider 无关）；`message-parser.ts` / `parsers/*` / `content-block-parser.ts` 留在 Claude provider 内部；`options-builder.ts` 为 Claude 专属
+
+### Phase 5B：自研 Agent 内核 + 多 Provider
+
+- [ ] 定义 provider 无关的消息流接口（`AgentMessageStream`），统一 Anthropic / OpenAI / 其他 provider 的流式事件
+- [ ] 第一个自研 provider：Anthropic Messages API（使用 MIT 许可的 `anthropic` SDK，非 Agent SDK）
+- [ ] 自研 agent 循环：工具调用编排、上下文管理、权限审批流程
+- [ ] 跑通端到端后，移除 `@anthropic-ai/claude-agent-sdk` 依赖
+- [ ] 后续扩展更多 provider
+
+### 工作量估算（1 人全职）
+
+| 阶段 | 预估 | 说明 |
+|------|------|------|
+| Phase 5A（架构铺路） | 1-2 周 | 对现有功能零影响，纯重构 |
+| MVP（单 provider + 基础流式 + 工具调用闭环） | 2-4 周 | 在 Phase 5A 基础上 |
+| 功能对齐（权限、中断、结构化输出等） | 6-10 周 | 累计 |
+| 多 provider 稳定架构 | 10-16 周 | 累计 |
+
+### 合规与开源注意事项
+
+- **源码开源**：可以进行，README 免责声明已到位
+- **预编译二进制（exe/dmg）分发**：SDK 移除前暂缓公开分发，避免 Anthropic 商业条款灰色地带
+- **认证**：仅支持 API Key，代码中零 OAuth 实现，这是合规的
+- **品牌**："Codeck" 独立品牌名，未使用 "Claude" 作为主名称
+- **范式借鉴**：agent 交互范式/流程属于 idea/process（17 U.S.C. §102(b)），不受版权保护；风险在于复制代码表达、品牌误导、OAuth 代理
+- **持续约束**：只要还调 Anthropic 服务就受其商业条款约束（含"竞品限制"条款解释风险），多 provider 是风险对冲策略
+
+## 待办：UI/UX 优化
+
+> **说明**：渲染层代码完全在 SDK 无关区域，以下改进不受迁移影响，随时可做。
+
+### P0：流式渲染性能
+
+- [ ] `message-store` 的 `addMessage` 路径无节流，每个 stream delta 触发一次 Zustand `set()` → React re-render。高速流式时可能每秒几十次渲染。需加 `requestAnimationFrame` 批量合并或 Zustand temporal 中间件
+
+### P1：交互反馈补全
+
+- [ ] **Timeline scrollToGroup 着陆高亮**：滚动到位后给目标 `data-group-id` 元素加 `flash-highlight` class，CSS `@keyframes` 做 1.5s 背景色渐隐。纯 CSS，约 10 行
+- [ ] **工具状态过渡动画**：`running` → `completed` 时状态点颜色瞬间跳变，需加 `transition-colors duration-300` + 完成时短暂 `scale` 弹跳
+
+### P2：Rewind 操作安全感
+
+- [ ] **主聊天区截断线**：点击 "Rewind to here" 时在对应位置渲染红色截断线，线以下消息加半透明遮罩
+- [ ] **确认 Dialog 升级**：从 260px 侧边栏内联面板升级为居中 Dialog，给足空间展示变更文件列表
+
+### P2：设计 Token 修补
+
+- [ ] `--brand` 只在 `.dark` / `.warm` 定义，`:root`（light 模式）缺失
+- [ ] 缺少 exit 动画 keyframe（消息被删除/rewind 时瞬间消失）
+- [ ] 缺少 skeleton pulse 动画 keyframe
+
+### P3：暂缓
+
+- Framer Motion 引入（纯 CSS 当前够用）
+- Timeline 可拖拽宽度
+- 消息退出动画（需 AnimatePresence，复杂度高）
+
 ## 资源索引
 
 - 官方 SDK：`@anthropic-ai/claude-agent-sdk`（npm）
