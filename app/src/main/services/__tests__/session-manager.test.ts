@@ -101,6 +101,7 @@ describe('SessionManager', () => {
     // No system/init message, so sdkSessionId should be null
     vi.mocked(readFile).mockResolvedValue('{"type": "user", "content": "hello"}');
 
+    manager.setCurrentProjectPath('/project/path');
     const resumed = await manager.resumeSession('/project/path', 'session-1', { loadHistory: true });
 
     expect(resumed.session).toEqual(session);
@@ -169,10 +170,10 @@ describe('SessionManager', () => {
       error: 'wrong session',
     });
 
-    const state = manager.getState();
-    expect(state.currentSessionId).toBe(created.id);
-    expect(state.sessionStatus).toBe('idle');
-    expect(state.currentError).toBeNull();
+    expect(manager.getCurrentSessionId()).toBe(created.id);
+    const activeSession = manager.getActiveSession(created.id);
+    expect(activeSession?.status).toBe('idle');
+    expect(activeSession?.error).toBeNull();
   });
 
   it('should apply sdk status updates for current session', async () => {
@@ -190,8 +191,8 @@ describe('SessionManager', () => {
       status: 'waiting_permission',
     });
 
-    const state = manager.getState();
-    expect(state.sessionStatus).toBe('waiting_permission');
-    expect(state.currentError).toBeNull();
+    const activeSession = manager.getActiveSession(created.id);
+    expect(activeSession?.status).toBe('waiting_permission');
+    expect(activeSession?.error).toBeNull();
   });
 });

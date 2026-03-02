@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import type { Session, CreateSessionInput, Message, SessionState, SessionManagerState, WorktreeInfo } from '@common/types';
+import type { Session, CreateSessionInput, Message, SessionState, WorktreeInfo } from '@common/types';
 import type { ActiveSessionState, MultiSessionManagerState } from '@common/multi-session-types';
 import { claudeFilesService } from './claude-files';
 import { extractSessionMetadata } from './claude-files/session-parser';
@@ -12,25 +12,15 @@ export interface ResumeSessionOptions {
 /**
  * Session lifecycle manager.
  *
- * Supports both single-session (backward compat) and multi-session modes.
- * In multi-session mode, multiple sessions can be active simultaneously,
- * each tracked in the `activeSessions` map.
+ * Uses a single multi-session model: all sessions are tracked in the
+ * `activeSessions` map with a `focusedSessionId` pointer.
  */
 export class SessionManager {
-  // Legacy single-session state (backward compat)
-  private state: SessionManagerState = {
-    currentSessionId: null,
-    currentProjectPath: null,
-    sdkSessionId: null,
-    sessionStatus: 'idle',
-    currentError: null,
-  };
-
-  // Multi-session state
+  // Multi-session state (single source of truth)
   private activeSessions = new Map<string, ActiveSessionState>();
   private focusedSessionId: string | null = null;
+  private _currentProjectPath: string | null = null;
 
-  private listeners: Set<(state: SessionManagerState) => void> = new Set();
   private multiListeners: Set<(state: MultiSessionManagerState) => void> = new Set();
   private draftSessions: Map<string, Session> = new Map();
   private worktreeInfoMap: Map<string, WorktreeInfo> = new Map();
@@ -38,26 +28,23 @@ export class SessionManager {
   // ── State Access ──
 
   getCurrentSessionId(): string | null {
-    return this.focusedSessionId ?? this.state.currentSessionId;
+    return this.focusedSessionId;
   }
 
   getCurrentProjectPath(): string | null {
-    return this.state.currentProjectPath;
+    return this._currentProjectPath;
   }
 
   setCurrentProjectPath(projectPath: string): void {
-    this.setState({ currentProjectPath: projectPath });
+    this._currentProjectPath = projectPath;
+    this.notifyMulti();
   }
 
   getSdkSessionId(): string | null {
     if (this.focusedSessionId) {
       return this.activeSessions.get(this.focusedSessionId)?.sdkSessionId ?? null;
     }
-    return this.state.sdkSessionId;
-  }
-
-  getState(): SessionManagerState {
-    return { ...this.state };
+    return null;
   }
 
   getMultiState(): MultiSessionManagerState {
@@ -68,7 +55,7 @@ export class SessionManager {
     return {
       activeSessions,
       focusedSessionId: this.focusedSessionId,
-      currentProjectPath: this.state.currentProjectPath,
+      currentProjectPath: this._currentProjectPath,
     };
   }
 
@@ -78,15 +65,6 @@ export class SessionManager {
 
   setFocusedSessionId(sessionId: string | null): void {
     this.focusedSessionId = sessionId;
-    if (sessionId) {
-      const active = this.activeSessions.get(sessionId);
-      this.setState({
-        currentSessionId: sessionId,
-        sdkSessionId: active?.sdkSessionId ?? null,
-        sessionStatus: active?.status ?? 'idle',
-        currentError: active?.error ?? null,
-      });
-    }
     this.notifyMulti();
   }
 
@@ -122,13 +100,6 @@ export class SessionManager {
         error: error ?? null,
       });
     }
-    // Also update legacy state if this is the focused session
-    if (sessionId === this.focusedSessionId || sessionId === this.state.currentSessionId) {
-      this.setState({
-        sessionStatus: status,
-        currentError: error ?? null,
-      });
-    }
     this.notifyMulti();
   }
 
@@ -139,9 +110,6 @@ export class SessionManager {
         ...existing,
         sdkSessionId,
       });
-    }
-    if (sessionId === this.focusedSessionId || sessionId === this.state.currentSessionId) {
-      this.setState({ sdkSessionId });
     }
     this.notifyMulti();
   }
@@ -156,29 +124,14 @@ export class SessionManager {
 
   // ── State Subscriptions ──
 
-  subscribe(listener: (state: SessionManagerState) => void): () => void {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
-  }
-
   subscribeMulti(listener: (state: MultiSessionManagerState) => void): () => void {
     this.multiListeners.add(listener);
     return () => this.multiListeners.delete(listener);
   }
 
-  private notify(): void {
-    const state = this.getState();
-    this.listeners.forEach((listener) => listener(state));
-  }
-
   private notifyMulti(): void {
     const state = this.getMultiState();
     this.multiListeners.forEach((listener) => listener(state));
-  }
-
-  private setState(partial: Partial<SessionManagerState>): void {
-    this.state = { ...this.state, ...partial };
-    this.notify();
   }
 
   // ── Draft Session Tracking ──
@@ -231,14 +184,6 @@ export class SessionManager {
     // Register in multi-session tracking
     this.registerActiveSession(session.id, input.projectPath);
 
-    this.setState({
-      currentSessionId: session.id,
-      currentProjectPath: input.projectPath,
-      sdkSessionId: null,
-      sessionStatus: 'idle',
-      currentError: null,
-    });
-
     this.focusedSessionId = session.id;
     this.notifyMulti();
 
@@ -280,14 +225,6 @@ export class SessionManager {
       this.updateActiveSessionSdkId(sessionId, sdkSessionId);
     }
 
-    this.setState({
-      currentSessionId: sessionId,
-      currentProjectPath: projectPath,
-      sdkSessionId,
-      sessionStatus: 'idle',
-      currentError: null,
-    });
-
     this.focusedSessionId = sessionId;
     this.notifyMulti();
 
@@ -320,16 +257,14 @@ export class SessionManager {
   }
 
   async closeCurrentSession(): Promise<void> {
-    this.setState({
-      currentSessionId: null,
-      sdkSessionId: null,
-      sessionStatus: 'idle',
-      currentError: null,
-    });
+    if (this.focusedSessionId) {
+      this.unregisterActiveSession(this.focusedSessionId);
+    }
+    this.notifyMulti();
   }
 
   async deleteSession(projectPath: string, sessionId: string): Promise<void> {
-    if (this.state.currentSessionId === sessionId) {
+    if (this.focusedSessionId === sessionId) {
       await this.closeCurrentSession();
     }
 
@@ -382,10 +317,6 @@ export class SessionManager {
     }
 
     this.updateActiveSessionSdkId(sessionId, sdkSessionId);
-
-    if (this.state.currentSessionId === sessionId) {
-      this.setState({ sdkSessionId });
-    }
   }
 
   markSessionPersisted(projectPath: string, sessionId: string): void {
@@ -393,22 +324,10 @@ export class SessionManager {
   }
 
   updateSdkState(state: SessionState): void {
-    // Update multi-session map
     this.updateActiveSessionStatus(state.sessionId, state.status, state.error);
-
-    // Legacy single-session compat
-    if (this.state.currentSessionId && state.sessionId !== this.state.currentSessionId) {
-      return;
-    }
-
-    this.setState({
-      sessionStatus: state.status,
-      currentError: state.error || null,
-    });
   }
 
   setSdkSessionId(sdkSessionId: string | null): void {
-    this.setState({ sdkSessionId });
     if (this.focusedSessionId && sdkSessionId) {
       this.updateActiveSessionSdkId(this.focusedSessionId, sdkSessionId);
     }

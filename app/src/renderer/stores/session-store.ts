@@ -23,7 +23,6 @@ interface SessionStore {
   syncStatus: (state: SessionState) => void
   removeSession: (id: string) => void
   updateSession: (id: string, partial: Partial<Session>) => void
-  syncManagerState: (state: import('@common/types').SessionManagerState) => void
 
   // Multi-session actions
   syncMultiSessionState: (state: MultiSessionManagerState) => void
@@ -105,13 +104,6 @@ export const useSessionStore = create<SessionStore>((set) => ({
       t.sessionId === id && partial.name ? { ...t, name: partial.name } : t,
     ),
   })),
-
-  syncManagerState: (state) => set({
-    currentSessionId: state.currentSessionId,
-    projectPath: state.currentProjectPath,
-    sessionStatus: state.sessionStatus,
-    currentError: state.currentError
-  }),
 
   // ── Multi-session actions ──
 

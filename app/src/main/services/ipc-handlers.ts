@@ -39,17 +39,20 @@ let getMainWindow: () => BrowserWindow | null;
 export function registerIpcHandlers(windowGetter: () => BrowserWindow | null) {
   getMainWindow = windowGetter;
 
-  // Subscribe to session state changes and push to renderer
-  let lastSessionStatus: string | null = null;
-  sessionManager.subscribe((state) => {
+  // Subscribe to multi-session state changes (single source of truth)
+  let lastFocusedStatus: string | null = null;
+  sessionManager.subscribeMulti((multiState) => {
     const win = getMainWindow();
     if (win) {
-      win.webContents.send(MAIN_TO_RENDERER.SESSION_STATE_CHANGED, state);
+      win.webContents.send(MAIN_TO_RENDERER.MULTI_SESSION_STATE_CHANGED, multiState);
     }
 
-    // 会话结束后自动刷新 usage 缓存并 push 通知
-    const curr = state.sessionStatus;
-    if (lastSessionStatus === 'streaming' && curr === 'idle') {
+    // Usage cache refresh: detect focused session streaming→idle
+    const focusedId = multiState.focusedSessionId;
+    const focusedStatus = focusedId
+      ? multiState.activeSessions[focusedId]?.status ?? null
+      : null;
+    if (lastFocusedStatus === 'streaming' && focusedStatus === 'idle') {
       invalidateUsageCache();
       warmUsageCache()
         .then(() => {
@@ -61,15 +64,7 @@ export function registerIpcHandlers(windowGetter: () => BrowserWindow | null) {
       // Refresh sessions-server DB after session ends
       debouncedSync();
     }
-    lastSessionStatus = curr;
-  });
-
-  // Subscribe to multi-session state changes
-  sessionManager.subscribeMulti((multiState) => {
-    const win = getMainWindow();
-    if (win) {
-      win.webContents.send(MAIN_TO_RENDERER.MULTI_SESSION_STATE_CHANGED, multiState);
-    }
+    lastFocusedStatus = focusedStatus;
   });
 
   // 启动时后台预热 usage 缓存（不阻塞 IPC 注册）
