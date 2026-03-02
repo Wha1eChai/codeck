@@ -81,7 +81,11 @@ app/src/
 │       ├── session-context.ts   # Per-session 运行时上下文（SessionContextStore）
 │       ├── worktree-service.ts  # Git worktree 隔离管理
 │       ├── sessions-server.ts   # @codeck/sessions HTTP 子进程管理
-│       ├── ipc-handlers.ts      # IPC 处理器（Zod 验证）
+│       ├── ipc-handlers/        # IPC 处理器（按领域拆分，Zod 验证）
+│       │   ├── index.ts         # 入口 + 状态订阅
+│       │   ├── session-handlers.ts / claude-handlers.ts / config-handlers.ts
+│       │   ├── history-handlers.ts / settings-handlers.ts
+│       │   └── file-handlers.ts / worktree-handlers.ts
 │       ├── runtime-context.ts / capability-gate.ts  # 运行时上下文与校验
 │       ├── app-preferences.ts   # L3: GUI 偏好（userData/）
 │       ├── cli-config.ts        # L1: CLI 配置（~/.claude/settings.json）
@@ -128,7 +132,7 @@ app/src/
 ### 主进程数据流
 
 ```
-Renderer IPC → ipc-handlers.ts（Zod 验证）→ SessionOrchestrator
+Renderer IPC → ipc-handlers/（按领域拆分，Zod 验证）→ SessionOrchestrator
     ├─→ RuntimeContextService.buildContext() → 优先级解析 runtime/permissionMode
     ├─→ CapabilityGate.evaluate() → 校验权限模式
     ├─→ SessionContextStore → Per-session 上下文（AbortController / resolver / queryRef）
@@ -354,6 +358,13 @@ updateSettings: async (partial) => {
 - `useEffect` 依赖禁止传数组/对象引用，用 `.length` 等原始值
 - per-session Set 状态（如 `ReadonlySet<string>`）应直接读 `useStore(s => s.mySet)` 后调 `.has()`，不要 selector 返回函数（函数引用稳定但 Set 内容变化不会触发重渲染）
 - 跨组件共享 DOM 元素（如 scroll container）可存 `HTMLElement | null` 到 ui-store，ChatContainer 用 `useEffect` 注册/注销，下游组件读取后挂 IntersectionObserver
+- 测试中 `setState({...}, true)` 会替换整个 store（含 action 函数），导致 `not a function` 错误；重置 store 状态应用 `setState({...})`（merge 模式），不传第二个参数
+
+### 渲染层测试基础设施
+
+- `app/src/renderer/__test-utils__/` 提供 `installMockElectron()` / `uninstallMockElectron()`（全量 `ElectronAPI` mock）、`resetAllStores()`、`createMockSession()` 等 fixture 工厂
+- Hooks 测试需要 `// @vitest-environment happy-dom` 指令 + `@testing-library/react` 的 `renderHook`；Store 测试直接在 `node` 环境下调用 `getState()` / `setState()`
+- `syncStatus()` 仅在 `currentSessionId === state.sessionId` 时更新顶层 `sessionStatus`，测试时须先设置 `currentSessionId`
 
 ### pnpm v10
 - Electron 首次安装后需 `pnpm approve-builds electron` 批准构建脚本
@@ -380,6 +391,9 @@ updateSettings: async (partial) => {
 ### Zod v4 z.record() 语法
 - Zod v4 要求显式传两个参数：`z.record(z.string(), z.string())`
 - 仅传一个参数 `z.record(z.string())` 会报 TS2554，且 infer 出 `Record<string, unknown>` 类型
+
+### Zod schema 与 AppPreferences 同步
+- 新增 `AppPreferences` 字段时**必须**同步更新 `schemas.ts` 的 `updatePreferencesSchema`，否则 Zod 默认 strip 行为会静默丢弃未声明字段，前端乐观更新成功但后端实际未写入，重启后配置丢失
 
 ### Plan 模式产生空 text block
 - plan 模式下模型只输出 thinking + tool_use，但 SDK 仍可能生成 `content: ''` 的 text 消息
@@ -438,12 +452,6 @@ interface RuntimeAdapter {
 - Phase 3（已完成）— 差异化：Settings 页面化、Plugin/Agent/MCP/Hook/Memory 管理 UI、主题切换
 - Phase 4（已完成）— 多 Session 并行：Activity Bar + SessionPanel 侧边栏重设计、Tab Bar 多标签、SessionContext 并发后端、Git Worktree 隔离
 - 未完成：远程 WebUI、国际化
-
-### 未解决的 SDK 集成
-
-- **子代理管理** — SDK 通过 `options.agents` 支持 `AgentDefinition`，适配层已解析 `system/init` 中的 agents 元数据，需将 `~/.claude/agents/*.md` 和 SDK `agents` 选项打通
-- **MCP 服务器 SDK 透传** — SDK 通过 `options.mcpServers` 支持注入自定义 MCP 服务器，工具名格式 `mcp__<server>__<tool>`，当前仅有配置管理 UI（McpConfigService），未透传给 SDK
-- **结构化输出** — SDK 支持 `outputFormat: { type: 'json_schema', schema: ... }` 强制 JSON Schema 输出，构建自动化工作流的基础，当前未实现
 
 ### 多 Session 架构
 
