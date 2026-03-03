@@ -126,7 +126,7 @@ export const ProjectSwitcherDropdown: React.FC = () => {
           title={projectPath ?? 'Select a project'}
         >
           <FolderKanban className="h-3.5 w-3.5 shrink-0" />
-          <span className="max-w-[160px] truncate font-medium">
+          <span className="truncate font-medium">
             {currentProjectName ?? 'Select Project'}
           </span>
           <ChevronDown className={cn('h-3 w-3 shrink-0 opacity-50 transition-transform', open && 'rotate-180')} />

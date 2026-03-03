@@ -8,7 +8,6 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '../ui/Tooltip'
 import type { AppPreferences } from '@common/types'
 import { cn } from '../../lib/utils'
 import { TokenUsageBadge } from './TokenUsageBadge'
-import { ProjectSwitcherDropdown } from './ProjectSwitcherDropdown'
 
 const THEME_CYCLE: AppPreferences['theme'][] = ['light', 'dark', 'warm', 'system']
 const THEME_ICON: Record<AppPreferences['theme'], React.ReactNode> = {
@@ -39,11 +38,7 @@ export const HeaderBar: React.FC = () => {
   }
 
   return (
-    <div className="h-11 border-b border-border/40 flex items-center justify-between px-4 bg-background/95 backdrop-blur z-10 relative">
-      <div className="flex items-center gap-2">
-        <ProjectSwitcherDropdown />
-      </div>
-
+    <div className="h-11 border-b border-border/40 flex items-center justify-end px-4 bg-background/95 backdrop-blur z-10 relative">
       <div className="flex items-center gap-2">
         <TokenUsageBadge />
         <Tooltip>

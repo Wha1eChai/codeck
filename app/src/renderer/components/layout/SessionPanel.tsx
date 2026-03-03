@@ -7,6 +7,7 @@ import { useRelativeTime } from '../../hooks/useRelativeTime'
 import { Button } from '../ui/Button'
 import { ScrollArea } from '../ui/ScrollArea'
 import { cn, formatRelativeTime } from '../../lib/utils'
+import { ProjectSwitcherDropdown } from './ProjectSwitcherDropdown'
 import {
   Dialog,
   DialogContent,
@@ -61,10 +62,6 @@ export const SessionPanel: React.FC = () => {
   const sessionStates = useSessionStore(s => s.sessionStates)
   const addTab = useSessionStore(s => s.addTab)
 
-  const projectName = projectPath
-    ? projectPath.split(/[/\\]/).filter(Boolean).pop() ?? projectPath
-    : null
-
   // Smart relative time
   const HOUR = 3_600_000
   const hasRecentSessions = useMemo(
@@ -106,14 +103,9 @@ export const SessionPanel: React.FC = () => {
     <div className="w-[220px] bg-muted/10 flex flex-col h-full border-r shrink-0">
       {/* Header */}
       <div className="p-3 border-b space-y-2">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-1">
           <div className="min-w-0">
-            <h2 className="font-semibold text-sm tracking-tight">Sessions</h2>
-            {projectName && (
-              <p className="text-[10px] text-muted-foreground truncate mt-0.5" title={projectPath ?? undefined}>
-                {projectName}
-              </p>
-            )}
+            <ProjectSwitcherDropdown />
           </div>
           <Button
             size="sm"
@@ -177,11 +169,13 @@ export const SessionPanel: React.FC = () => {
                     >
                       <StatusDot status={activeState.status} />
                       <div className="flex-1 min-w-0">
-                        <div className="truncate text-sm font-medium flex items-center gap-1" title={session.name}>
+                        <div className="flex items-center gap-1 min-w-0">
                           {session.worktree && (
                             <GitBranch className="h-3 w-3 text-blue-500 shrink-0" />
                           )}
-                          {session.name}
+                          <span className="truncate text-sm font-medium" title={session.name}>
+                            {session.name}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -241,14 +235,16 @@ export const SessionPanel: React.FC = () => {
                   )}
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="truncate text-sm font-medium flex items-center gap-1" title={session.name}>
+                    <div className="flex items-center gap-1 min-w-0">
                       {loading && currentSessionId === session.id && (
-                        <Loader2 className="h-3 w-3 animate-spin inline mr-1" />
+                        <Loader2 className="h-3 w-3 animate-spin shrink-0" />
                       )}
                       {session.worktree && (
                         <GitBranch className="h-3 w-3 text-blue-500 shrink-0" />
                       )}
-                      {session.name}
+                      <span className="truncate text-sm font-medium" title={session.name}>
+                        {session.name}
+                      </span>
                     </div>
                     <div className="flex items-center gap-1">
                       <RelativeTimestamp
