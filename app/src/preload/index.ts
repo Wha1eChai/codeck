@@ -6,6 +6,7 @@ import type {
   HookSettings,
   HistoryEntry,
   Message,
+  SessionMetadata,
   SessionState,
   PermissionRequest,
   PermissionResponse,
@@ -257,6 +258,16 @@ const api: ElectronAPI = {
     ipcRenderer.on(MAIN_TO_RENDERER.USAGE_STATS_UPDATED, handler)
     return () => {
       ipcRenderer.removeListener(MAIN_TO_RENDERER.USAGE_STATS_UPDATED, handler)
+    }
+  },
+
+  onSessionMetadata: (callback: (metadata: SessionMetadata) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, metadata: SessionMetadata): void => {
+      callback(metadata)
+    }
+    ipcRenderer.on(MAIN_TO_RENDERER.SESSION_METADATA, handler)
+    return () => {
+      ipcRenderer.removeListener(MAIN_TO_RENDERER.SESSION_METADATA, handler)
     }
   },
 
