@@ -50,13 +50,25 @@ function mergeHistoricalBeforeLive(current: Message[], historical: Message[]): M
   return [...historicalOnly, ...current]
 }
 
-// ── Microtask-batched delta flushing ──
+// ── Frame-aligned delta flushing (requestAnimationFrame) ──
+// Each IPC message is a separate macrotask. queueMicrotask fires after each one
+// (zero batching). rAF fires once per display frame (~16ms), naturally batching
+// all deltas that arrive between two frames into a single Zustand set() + render.
+
+const scheduleFrame =
+  typeof requestAnimationFrame === 'function'
+    ? requestAnimationFrame
+    : (fn: FrameRequestCallback) => setTimeout(fn, 0) as unknown as number
+const cancelFrame =
+  typeof cancelAnimationFrame === 'function'
+    ? cancelAnimationFrame
+    : (id: number) => clearTimeout(id)
 
 let pendingDeltas: { sessionId: string; msg: Message }[] = []
-let flushScheduled = false
+let rafHandle: number | null = null
 
 function flushPendingDeltas(): void {
-  flushScheduled = false
+  rafHandle = null
   const batch = pendingDeltas
   pendingDeltas = []
   if (batch.length === 0) return
@@ -72,9 +84,8 @@ function flushPendingDeltas(): void {
 }
 
 function scheduleDeltaFlush(): void {
-  if (flushScheduled) return
-  flushScheduled = true
-  queueMicrotask(flushPendingDeltas)
+  if (rafHandle !== null) return
+  rafHandle = scheduleFrame(flushPendingDeltas)
 }
 
 const EMPTY_REWIND_POINTS: Readonly<Record<string, string>> = {}
@@ -133,6 +144,10 @@ export const useMessageStore = create<MessageStore>((set) => ({
       delete messageIndexMaps[sessionId]
       // Drain any pending deltas for this session to prevent resurrection
       pendingDeltas = pendingDeltas.filter(d => d.sessionId !== sessionId)
+      if (pendingDeltas.length === 0 && rafHandle !== null) {
+        cancelFrame(rafHandle)
+        rafHandle = null
+      }
       const { [sessionId]: _, ...rest } = state.messages
       const { [sessionId]: _rp, ...restRewind } = state.rewindPoints
       return { messages: rest, rewindPoints: restRewind }

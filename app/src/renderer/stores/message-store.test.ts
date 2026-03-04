@@ -51,8 +51,8 @@ describe('message-store', () => {
       }),
     )
 
-    // Stream deltas are microtask-batched — wait for flush
-    await new Promise(resolve => queueMicrotask(resolve))
+    // Stream deltas are frame-batched (rAF) — wait for flush
+    await new Promise(resolve => setTimeout(resolve, 0))
     const messages = useMessageStore.getState().messages[SESSION_ID]
     expect(messages).toHaveLength(1)
     expect(messages[0].content).toBe('Hello world')
@@ -111,7 +111,7 @@ describe('message-store', () => {
       }),
     )
 
-    await new Promise(resolve => queueMicrotask(resolve))
+    await new Promise(resolve => setTimeout(resolve, 0))
     const messages = useMessageStore.getState().messages[SESSION_ID]
     expect(messages).toHaveLength(2)
     expect(messages[0].id).toBe('turn-1_block_0')
@@ -160,7 +160,7 @@ describe('message-store', () => {
     )
 
     // Flush the stream delta so it's visible in store before history arrives
-    await new Promise(resolve => queueMicrotask(resolve))
+    await new Promise(resolve => setTimeout(resolve, 0))
 
     setMessages(SESSION_ID, [
       makeMessage({
@@ -264,8 +264,8 @@ describe('message-store', () => {
       }))
     }
 
-    // After microtask flush, the final content should be available
-    await new Promise(resolve => queueMicrotask(resolve))
+    // After frame flush, the final content should be available
+    await new Promise(resolve => setTimeout(resolve, 0))
     const msgs = useMessageStore.getState().messages[SESSION_ID]
     expect(msgs).toBeDefined()
     expect(msgs[0]?.content).toBe('chunk 9')
