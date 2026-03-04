@@ -94,16 +94,17 @@ describe('AiMessageGroup', () => {
       React.createElement(AiMessageGroup, { group }),
     )
 
-    expect(html).toContain('Thinking (1)')
+    // Thinking node renders with title "Thinking"
+    expect(html).toContain('Thinking')
     expect(html).toContain('plan first')
     expect(html).toContain('<strong>answer</strong>')
-    expect(html).toContain('Read demo.ts (1) - 1 done')
+    // Tool node: display name "Read" and summary from file_path
     expect(html).toContain('Read')
+    expect(html).toContain('/tmp/demo.ts')
     expect(html).toContain('file body')
-    expect(html).toContain('Running...')
   })
 
-  it('merges multiple thinking messages into one section', () => {
+  it('merges multiple thinking messages into separate thinking nodes', () => {
     const group = buildAssistantGroup([
       makeMessage({
         id: 'think-1',
@@ -123,13 +124,10 @@ describe('AiMessageGroup', () => {
       React.createElement(AiMessageGroup, { group }),
     )
 
-    expect(html).toContain('Thinking (2)')
+    // Two separate "Thinking" nodes rendered
     expect(html).toContain('first thought')
     expect(html).toContain('second thought')
-    expect((html.match(/Thinking \(/g) || []).length).toBe(1)
-    // Step titles now use key line from content instead of "Step N"
-    expect(html).toContain('first thought')
-    expect(html).toContain('second thought')
+    expect((html.match(/Thinking/g) || []).length).toBeGreaterThanOrEqual(2)
   })
 
   it('renders tool-only assistant group without a message card', () => {
@@ -157,10 +155,10 @@ describe('AiMessageGroup', () => {
       React.createElement(AiMessageGroup, { group }),
     )
 
-    expect(html).not.toContain('Thinking Process')
     expect(html).not.toContain('markdown-body')
-    expect(html).toContain('Run: echo hi (1) - 1 done')
+    // FlowNode renders tool name "Bash" and summary "echo hi"
     expect(html).toContain('Bash')
+    expect(html).toContain('echo hi')
     expect(html).toContain('hi')
   })
 
@@ -220,10 +218,11 @@ describe('AiMessageGroup', () => {
       React.createElement(AiMessageGroup, { group }),
     )
 
-    const toolsIndex = html.indexOf('Read demo.ts (1)')
+    // "Read" tool node appears before "final answer" text
+    const readIndex = html.indexOf('Read')
     const textIndex = html.indexOf('final answer')
-    expect(toolsIndex).toBeGreaterThan(-1)
+    expect(readIndex).toBeGreaterThan(-1)
     expect(textIndex).toBeGreaterThan(-1)
-    expect(toolsIndex).toBeLessThan(textIndex)
+    expect(readIndex).toBeLessThan(textIndex)
   })
 })
