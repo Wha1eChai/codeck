@@ -9,15 +9,35 @@ interface MessageStore {
   clearMessages: (sessionId: string) => void
 }
 
-function upsertMessage(messages: Message[], msg: Message): Message[] {
-  const existingIndex = messages.findIndex((existing) => existing.id === msg.id)
-  if (existingIndex < 0) {
-    return [...messages, msg]
-  }
+// ── O(1) message index maps (module-level, outside store) ──
 
-  const updated = [...messages]
-  updated[existingIndex] = msg
-  return updated
+const messageIndexMaps: Record<string, Map<string, number>> = {}
+
+function upsertMessage(messages: Message[], msg: Message, sessionId: string): Message[] {
+  const indexMap = messageIndexMaps[sessionId]
+  if (indexMap) {
+    const existingIndex = indexMap.get(msg.id)
+    if (existingIndex !== undefined && existingIndex < messages.length && messages[existingIndex]?.id === msg.id) {
+      const updated = [...messages]
+      updated[existingIndex] = msg
+      return updated
+    }
+  }
+  // Append new message and register in index map
+  const newMessages = [...messages, msg]
+  if (!messageIndexMaps[sessionId]) {
+    messageIndexMaps[sessionId] = new Map()
+  }
+  messageIndexMaps[sessionId].set(msg.id, newMessages.length - 1)
+  return newMessages
+}
+
+function rebuildIndexMap(sessionId: string, messages: Message[]): void {
+  const map = new Map<string, number>()
+  for (let i = 0; i < messages.length; i++) {
+    map.set(messages[i].id, i)
+  }
+  messageIndexMaps[sessionId] = map
 }
 
 function mergeHistoricalBeforeLive(current: Message[], historical: Message[]): Message[] {
@@ -32,7 +52,7 @@ export const useMessageStore = create<MessageStore>((set) => ({
   addMessage: (sessionId, msg) =>
     set((state) => {
       const currentMessages = state.messages[sessionId] || []
-      const updatedMessages = upsertMessage(currentMessages, msg)
+      const updatedMessages = upsertMessage(currentMessages, msg, sessionId)
 
       return {
         messages: {
@@ -54,6 +74,8 @@ export const useMessageStore = create<MessageStore>((set) => ({
             ? mergeHistoricalBeforeLive(currentMessages, messages)
             : messages
 
+        rebuildIndexMap(sessionId, nextMessages)
+
         return {
           ...state.messages,
           [sessionId]: nextMessages,
@@ -63,6 +85,7 @@ export const useMessageStore = create<MessageStore>((set) => ({
 
   clearMessages: (sessionId) =>
     set((state) => {
+      delete messageIndexMaps[sessionId]
       const { [sessionId]: _, ...rest } = state.messages
       return { messages: rest }
     }),

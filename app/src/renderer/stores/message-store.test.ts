@@ -187,6 +187,36 @@ describe('message-store', () => {
     expect(state['other-session']).toHaveLength(1)
   })
 
+  it('should efficiently update existing stream messages with O(1) lookup', () => {
+    const { addMessage } = useMessageStore.getState()
+    // Add 500 messages
+    for (let i = 0; i < 500; i++) {
+      addMessage(SESSION_ID, makeMessage({ id: `msg_${i}`, content: `text ${i}`, timestamp: i }))
+    }
+    // Update the last message 100 times (simulating stream deltas)
+    const start = performance.now()
+    for (let i = 0; i < 100; i++) {
+      addMessage(SESSION_ID, makeMessage({ id: 'msg_499', content: `updated ${i}`, timestamp: 500 + i }))
+    }
+    const elapsed = performance.now() - start
+    expect(elapsed).toBeLessThan(200)
+    expect(useMessageStore.getState().messages[SESSION_ID]).toHaveLength(500)
+    expect(useMessageStore.getState().messages[SESSION_ID][499].content).toBe('updated 99')
+  })
+
+  it('rebuilds index map on setMessages', () => {
+    const { setMessages, addMessage } = useMessageStore.getState()
+    setMessages(SESSION_ID, [
+      makeMessage({ id: 'h1', content: 'history 1' }),
+      makeMessage({ id: 'h2', content: 'history 2' }),
+    ])
+    // Update an existing message by id — should find via index map
+    addMessage(SESSION_ID, makeMessage({ id: 'h1', content: 'updated history' }))
+    const msgs = useMessageStore.getState().messages[SESSION_ID]
+    expect(msgs).toHaveLength(2)
+    expect(msgs[0].content).toBe('updated history')
+  })
+
   it('replaces existing messages with history when no stream is active', () => {
     const { addMessage, setMessages } = useMessageStore.getState()
 
