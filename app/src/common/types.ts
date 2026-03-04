@@ -147,6 +147,12 @@ export interface Message {
 
   /** Parent tool_use ID indicating this message came from a sub-agent */
   readonly parentToolUseId?: string
+
+  // hook lifecycle
+  readonly hookId?: string
+  readonly hookName?: string
+  readonly hookEvent?: string
+  readonly hookStatus?: 'started' | 'progress' | 'completed' | 'failed' | 'cancelled'
 }
 
 export interface TokenUsage {

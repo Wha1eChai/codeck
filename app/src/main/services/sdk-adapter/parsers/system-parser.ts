@@ -68,53 +68,74 @@ export function parseSystem(msg: Record<string, unknown>, sessionId: string): Pa
     }
 
     case 'hook_started': {
+      const hookId = (msg.hook_id as string) ?? crypto.randomUUID()
       const hookName = (msg.hook_name as string) ?? 'unknown'
+      const hookEvent = (msg.hook_event as string) ?? ''
       return {
         messages: [
           {
-            id: crypto.randomUUID(),
+            id: `hook_${hookId}_started`,
             sessionId,
             role: 'system',
             type: 'text',
             content: `[Hook: ${hookName}] Started`,
             timestamp: Date.now(),
+            hookId,
+            hookName,
+            hookEvent,
+            hookStatus: 'started' as const,
           },
         ],
       }
     }
 
     case 'hook_progress': {
+      const hookId = (msg.hook_id as string) ?? crypto.randomUUID()
       const hookName = (msg.hook_name as string) ?? 'unknown'
+      const hookEvent = (msg.hook_event as string) ?? ''
       const output = (msg.output as string) ?? (msg.stdout as string) ?? ''
       return {
         messages: [
           {
-            id: crypto.randomUUID(),
+            id: `hook_${hookId}_progress_${Date.now()}`,
             sessionId,
             role: 'system',
             type: 'text',
             content: output ? `[Hook: ${hookName}] ${output}` : `[Hook: ${hookName}]`,
             timestamp: Date.now(),
+            hookId,
+            hookName,
+            hookEvent,
+            hookStatus: 'progress' as const,
           },
         ],
       }
     }
 
     case 'hook_response': {
+      const hookId = (msg.hook_id as string) ?? crypto.randomUUID()
       const hookName = (msg.hook_name as string) ?? 'unknown'
+      const hookEvent = (msg.hook_event as string) ?? ''
       const outcome = (msg.outcome as string) ?? ''
       const output = (msg.output as string) ?? (msg.stdout as string) ?? ''
       const label = outcome === 'error' ? 'Failed' : outcome === 'cancelled' ? 'Cancelled' : 'Completed'
       const content = output ? `[Hook: ${hookName}] ${label}: ${output}` : `[Hook: ${hookName}] ${label}`
+      const hookStatus = outcome === 'error' ? 'failed' as const
+        : outcome === 'cancelled' ? 'cancelled' as const
+        : 'completed' as const
       return {
         messages: [
           {
-            id: crypto.randomUUID(),
+            id: `hook_${hookId}_response`,
             sessionId,
             role: 'system',
             type: outcome === 'error' ? 'error' : 'text',
             content,
             timestamp: Date.now(),
+            hookId,
+            hookName,
+            hookEvent,
+            hookStatus,
           },
         ],
       }

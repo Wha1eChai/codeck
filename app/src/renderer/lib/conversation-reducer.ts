@@ -113,6 +113,18 @@ export function reduceConversation(messages: Message[]): ConversationGroupView[]
         key: msg.id,
         messages: [msg],
       })
+    } else if (msg.hookName) {
+      // Merge consecutive hook messages into one system group
+      const lastGroup = groups[groups.length - 1]
+      if (lastGroup && lastGroup.kind === 'system' && lastGroup.messages.some(m => m.hookName)) {
+        lastGroup.messages.push(msg)
+      } else {
+        groups.push({
+          kind: 'system',
+          key: msg.id,
+          messages: [msg],
+        })
+      }
     } else {
       groups.push({
         kind: 'system',

@@ -7,6 +7,7 @@ import { ErrorMessage } from '../messages/ErrorMessage'
 import { CompactedMessage } from '../messages/CompactedMessage'
 import { FallbackMessage } from '../messages/FallbackMessage'
 import { SystemBanner } from '../messages/primitives'
+import { HookNotificationGroup } from '../messages/HookNotificationGroup'
 
 interface ConversationFlowProps {
   groups: ConversationGroupView[]
@@ -28,6 +29,8 @@ export const ConversationFlow: React.FC<ConversationFlowProps> = ({ groups }) =>
             <AiMessageGroup group={group.assistant} />
           ) : group.kind === 'user' ? (
             <TextMessage message={group.messages[0]} />
+          ) : isHookGroup(group.messages) ? (
+            <HookNotificationGroup messages={group.messages} />
           ) : (
             group.messages.map(renderSystemMessage)
           )}
@@ -57,6 +60,10 @@ function renderSystemMessage(message: Message): React.ReactNode {
     default:
       return null
   }
+}
+
+function isHookGroup(messages: Message[]): boolean {
+  return messages.length > 0 && messages.some(msg => msg.hookName !== undefined)
 }
 
 export function classifySystemMessage(message: Message): SystemMessageRenderKind {

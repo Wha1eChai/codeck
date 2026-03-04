@@ -128,6 +128,11 @@ const ToolStepRow: React.FC<ToolStepRowProps> = ({ step, isLast }) => {
             ? <Loader2 className="h-3 w-3 animate-spin text-blue-500 shrink-0" />
             : <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', statusDotColor(step.status))} />}
 
+          {model?.source === 'mcp' && model.mcpServerName && (
+            <span className="text-[10px] text-purple-600 dark:text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded-full shrink-0">
+              {model.mcpServerName}
+            </span>
+          )}
           <span className="text-xs text-muted-foreground truncate">{summary}</span>
 
           {hasDetails && (
