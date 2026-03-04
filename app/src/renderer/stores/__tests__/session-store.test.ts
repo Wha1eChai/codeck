@@ -267,4 +267,31 @@ describe('session-store', () => {
     expect(state.sessionMetadataMap['s1']?.model).toBe('opus')
     expect(state.sessionMetadataMap['s2']?.model).toBe('sonnet')
   })
+
+  // ── globalMetadata cache ──
+
+  describe('globalMetadata cache', () => {
+    it('should update globalMetadata when setSessionMetadata is called', () => {
+      const { setSessionMetadata } = useSessionStore.getState()
+      setSessionMetadata('s1', { sessionId: 's1', slashCommands: ['compact', 'model'] })
+      expect(useSessionStore.getState().globalMetadata?.slashCommands).toEqual(['compact', 'model'])
+    })
+
+    it('should always reflect the latest session metadata', () => {
+      const { setSessionMetadata } = useSessionStore.getState()
+      setSessionMetadata('s1', { sessionId: 's1', slashCommands: ['compact'] })
+      setSessionMetadata('s2', { sessionId: 's2', slashCommands: ['compact', 'model', 'debug'] })
+      expect(useSessionStore.getState().globalMetadata?.sessionId).toBe('s2')
+    })
+
+    it('should persist after session removal', () => {
+      useSessionStore.setState({
+        sessions: [{ id: 's1', name: 'Test', projectPath: '/test', runtime: 'claude', permissionMode: 'default', createdAt: Date.now(), updatedAt: Date.now() }],
+      })
+      const { setSessionMetadata, removeSession } = useSessionStore.getState()
+      setSessionMetadata('s1', { sessionId: 's1', slashCommands: ['compact', 'model'] })
+      removeSession('s1')
+      expect(useSessionStore.getState().globalMetadata).not.toBeNull()
+    })
+  })
 })

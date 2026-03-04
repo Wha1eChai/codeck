@@ -21,6 +21,7 @@ interface SessionStore {
 
   // Session metadata (from SDK system/init)
   sessionMetadataMap: Readonly<Record<string, SessionMetadata>>
+  globalMetadata: SessionMetadata | null
 
   setSessions: (sessions: Session[]) => void
   setCurrentSession: (id: string | null) => void
@@ -54,6 +55,7 @@ export const useSessionStore = create<SessionStore>((set) => ({
   openTabs: EMPTY_TABS,
   scrollPositions: {},
   sessionMetadataMap: EMPTY_METADATA_MAP,
+  globalMetadata: null,
 
   setSessions: (sessions) => set({ sessions }),
 
@@ -200,5 +202,6 @@ export const useSessionStore = create<SessionStore>((set) => ({
 
   setSessionMetadata: (sessionId, metadata) => set((state) => ({
     sessionMetadataMap: { ...state.sessionMetadataMap, [sessionId]: metadata },
+    globalMetadata: metadata,
   })),
 }))
