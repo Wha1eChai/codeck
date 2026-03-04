@@ -132,11 +132,14 @@ export const TimelinePanel: React.FC<TimelinePanelProps> = ({ sessionId }) => {
         }
     }
 
+    const setRewindPoint = useMessageStore(s => s.setRewindPoint)
+
     const handleRewindConfirm = async () => {
         if (!rewindTarget) return
         setIsRewinding(true)
         try {
             await window.electron.rewindFiles(sessionId, rewindTarget, false)
+            setRewindPoint(sessionId, rewindTarget)
         } finally {
             setIsRewinding(false)
             setRewindTarget(null)

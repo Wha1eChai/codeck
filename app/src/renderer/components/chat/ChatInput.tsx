@@ -5,12 +5,18 @@ import { useSessionActions } from '../../hooks/useSessionActions'
 import { useSessionStore } from '../../stores/session-store'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useUIStore } from '../../stores/ui-store'
-import { Square, SendHorizontal } from 'lucide-react'
+import { Square, SendHorizontal, X, ImageIcon } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { InputFooter } from './InputFooter'
 import { buildPaletteItems, filterPaletteItems } from '@renderer/lib/command-palette'
 import type { PaletteItem } from '@renderer/lib/command-palette'
 import { CommandPaletteDropdown } from './CommandPaletteDropdown'
+
+interface ImageAttachment {
+  readonly id: string
+  readonly dataUrl: string
+  readonly name: string
+}
 
 // ── Streaming Status Verbs ──
 
@@ -103,6 +109,7 @@ export const ChatInput: React.FC = () => {
     const content = input
     setInput('')
     setShowSlashMenu(false)
+    setImageAttachments([])
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto'
     }
@@ -134,19 +141,53 @@ export const ChatInput: React.FC = () => {
   }
 
   const [pasteWarning, setPasteWarning] = useState(false)
+  const [imageAttachments, setImageAttachments] = useState<ImageAttachment[]>([])
+
+  const removeAttachment = useCallback((id: string) => {
+    setImageAttachments(prev => prev.filter(a => a.id !== id))
+  }, [])
 
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
     const items = e.clipboardData?.items
     if (!items) return
 
-    // Check if paste contains non-text content (images, files)
+    // Detect image files for preview
+    const imageFiles: File[] = []
+    let hasNonImageFile = false
     for (let i = 0; i < items.length; i++) {
       if (items[i].kind === 'file') {
-        e.preventDefault()
-        setPasteWarning(true)
-        setTimeout(() => setPasteWarning(false), 2000)
-        return
+        if (items[i].type.startsWith('image/')) {
+          const file = items[i].getAsFile()
+          if (file) imageFiles.push(file)
+        } else {
+          hasNonImageFile = true
+        }
       }
+    }
+
+    if (imageFiles.length > 0) {
+      e.preventDefault()
+      for (const file of imageFiles) {
+        const reader = new FileReader()
+        reader.onload = () => {
+          const dataUrl = reader.result as string
+          setImageAttachments(prev => [...prev, {
+            id: `img_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+            dataUrl,
+            name: file.name || 'pasted-image',
+          }])
+        }
+        reader.readAsDataURL(file)
+      }
+      return
+    }
+
+    // Non-image files: block with warning
+    if (hasNonImageFile) {
+      e.preventDefault()
+      setPasteWarning(true)
+      setTimeout(() => setPasteWarning(false), 2000)
+      return
     }
     // Plain text paste: let default behavior proceed; auto-resize triggers via input state
   }, [])
@@ -192,6 +233,32 @@ export const ChatInput: React.FC = () => {
         "focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/50",
         "dark:focus-within:ring-accent/30 dark:focus-within:border-accent/50 dark:focus-within:shadow-[0_0_12px_-2px_hsl(18_72%_50%/0.25)]"
       )}>
+        {/* Image attachment previews */}
+        {imageAttachments.length > 0 && (
+          <div className="flex items-center gap-2 px-3 pt-3 pb-0 overflow-x-auto">
+            <ImageIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            {imageAttachments.map(att => (
+              <div key={att.id} className="relative group shrink-0">
+                <img
+                  src={att.dataUrl}
+                  alt={att.name}
+                  className="h-16 w-16 object-cover rounded-lg border border-border/50"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeAttachment(att.id)}
+                  className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X className="h-2.5 w-2.5" />
+                </button>
+              </div>
+            ))}
+            <span className="text-[10px] text-muted-foreground/60 shrink-0">
+              Image sending coming soon
+            </span>
+          </div>
+        )}
+
         <div className="flex items-end gap-2 p-3">
           {/* Command palette dropdown */}
           {showSlashMenu && (

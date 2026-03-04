@@ -3,10 +3,14 @@ import { Message } from '@common/types'
 
 interface MessageStore {
   messages: Record<string, Message[]>
+  /** Maps sessionId → messageId marking where a rewind was performed */
+  rewindPoints: Readonly<Record<string, string>>
 
   addMessage: (sessionId: string, msg: Message) => void
   setMessages: (sessionId: string, messages: Message[]) => void
   clearMessages: (sessionId: string) => void
+  setRewindPoint: (sessionId: string, messageId: string) => void
+  clearRewindPoint: (sessionId: string) => void
 }
 
 // ── O(1) message index maps (module-level, outside store) ──
@@ -73,8 +77,11 @@ function scheduleDeltaFlush(): void {
   queueMicrotask(flushPendingDeltas)
 }
 
+const EMPTY_REWIND_POINTS: Readonly<Record<string, string>> = {}
+
 export const useMessageStore = create<MessageStore>((set) => ({
   messages: {},
+  rewindPoints: EMPTY_REWIND_POINTS,
 
   addMessage: (sessionId, msg) => {
     if (msg.isStreamDelta) {
@@ -117,6 +124,18 @@ export const useMessageStore = create<MessageStore>((set) => ({
     set((state) => {
       delete messageIndexMaps[sessionId]
       const { [sessionId]: _, ...rest } = state.messages
-      return { messages: rest }
+      const { [sessionId]: _rp, ...restRewind } = state.rewindPoints
+      return { messages: rest, rewindPoints: restRewind }
+    }),
+
+  setRewindPoint: (sessionId, messageId) =>
+    set((state) => ({
+      rewindPoints: { ...state.rewindPoints, [sessionId]: messageId },
+    })),
+
+  clearRewindPoint: (sessionId) =>
+    set((state) => {
+      const { [sessionId]: _, ...rest } = state.rewindPoints
+      return { rewindPoints: rest }
     }),
 }))
