@@ -9,6 +9,7 @@ export function parseToolProgress(msg: Record<string, unknown>, sessionId: strin
   const toolName = (msg.tool_name as string) ?? ''
   const elapsed = msg.elapsed_time_seconds as number | undefined
   const progressText = elapsed !== undefined ? `Running... ${elapsed.toFixed(1)}s` : 'Running...'
+  const parentToolUseId = typeof msg.parent_tool_use_id === 'string' ? msg.parent_tool_use_id : undefined
 
   return {
     messages: [
@@ -21,6 +22,7 @@ export function parseToolProgress(msg: Record<string, unknown>, sessionId: strin
         toolName,
         toolUseId: msg.tool_use_id as string | undefined,
         timestamp: Date.now(),
+        ...(parentToolUseId ? { parentToolUseId } : {}),
       },
     ],
   }

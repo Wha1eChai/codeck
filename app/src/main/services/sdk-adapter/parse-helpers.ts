@@ -23,6 +23,7 @@ export function buildAssistantStreamMessage(input: {
   type: 'text' | 'thinking'
   content: string
   isStreamDelta: boolean
+  parentToolUseId?: string
 }): Message {
   return {
     id: input.id,
@@ -32,6 +33,7 @@ export function buildAssistantStreamMessage(input: {
     content: input.content,
     isStreamDelta: input.isStreamDelta,
     timestamp: Date.now(),
+    ...(input.parentToolUseId ? { parentToolUseId: input.parentToolUseId } : {}),
   }
 }
 

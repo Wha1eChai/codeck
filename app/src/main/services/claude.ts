@@ -242,6 +242,11 @@ export class ClaudeService {
           if (result.metadata.sessionId) {
             ctx.sdkSessionId = result.metadata.sessionId;
           }
+          // Push metadata to renderer — use app sessionId (not SDK sessionId)
+          // so the renderer can look it up by currentSessionId
+          if (!window.isDestroyed()) {
+            window.webContents.send(MAIN_TO_RENDERER.SESSION_METADATA, { ...result.metadata, sessionId });
+          }
           if (params.onMetadata) {
             try {
               await params.onMetadata(result.metadata);

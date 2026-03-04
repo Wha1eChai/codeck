@@ -104,6 +104,7 @@ export function createMockElectron() {
     onMultiSessionStateChanged: vi.fn().mockReturnValue(vi.fn()),
     onUsageStatsUpdated: vi.fn().mockReturnValue(vi.fn()),
     onSyncCompleted: vi.fn().mockReturnValue(vi.fn()),
+    onSessionMetadata: vi.fn().mockReturnValue(vi.fn()),
 
     // Multi-session management
     focusSession: vi.fn().mockResolvedValue(undefined),

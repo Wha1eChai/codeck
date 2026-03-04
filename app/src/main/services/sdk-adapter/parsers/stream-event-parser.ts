@@ -99,6 +99,7 @@ function handleMessageStart(
       : (msg.uuid as string) ?? crypto.randomUUID()
 
   streamState.activeMessageId = streamMessageId
+  streamState.activeParentToolUseId = typeof msg.parent_tool_use_id === 'string' ? msg.parent_tool_use_id : null
   streamState.blocks.clear()
   return { messages: [] }
 }
@@ -131,6 +132,7 @@ function handleContentBlockStart(
               type: 'text',
               content: text,
               isStreamDelta: true,
+              parentToolUseId: streamState.activeParentToolUseId ?? undefined,
             }),
           ],
         }
@@ -151,6 +153,7 @@ function handleContentBlockStart(
               type: 'thinking',
               content: thinking,
               isStreamDelta: true,
+              parentToolUseId: streamState.activeParentToolUseId ?? undefined,
             }),
           ],
         }
@@ -217,6 +220,7 @@ function handleContentBlockDelta(
             type: 'text',
             content: nextText,
             isStreamDelta: true,
+            parentToolUseId: streamState.activeParentToolUseId ?? undefined,
           }),
         ],
       }
@@ -240,6 +244,7 @@ function handleContentBlockDelta(
             type: 'thinking',
             content: nextThinking,
             isStreamDelta: true,
+            parentToolUseId: streamState.activeParentToolUseId ?? undefined,
           }),
         ],
       }
@@ -300,6 +305,7 @@ function handleContentBlockStop(
           type: 'text',
           content: block.text,
           isStreamDelta: false,
+          parentToolUseId: streamState.activeParentToolUseId ?? undefined,
         }),
       ],
     }
@@ -314,6 +320,7 @@ function handleContentBlockStop(
           type: 'thinking',
           content: block.thinking,
           isStreamDelta: false,
+          parentToolUseId: streamState.activeParentToolUseId ?? undefined,
         }),
       ],
     }
@@ -334,6 +341,7 @@ function handleContentBlockStop(
         toolInput,
         isStreamDelta: false,
         timestamp: Date.now(),
+        ...(streamState.activeParentToolUseId ? { parentToolUseId: streamState.activeParentToolUseId } : {}),
       },
     ],
   }
@@ -341,6 +349,7 @@ function handleContentBlockStop(
 
 function handleMessageStop(streamState: StreamParseState): ParseResult {
   streamState.activeMessageId = null
+  streamState.activeParentToolUseId = null
   streamState.blocks.clear()
   return { messages: [] }
 }

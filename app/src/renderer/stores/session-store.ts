@@ -1,9 +1,11 @@
 import { create } from 'zustand'
 import { Session, SessionStatus, SessionState } from '@common/types'
+import type { SessionMetadata } from '@common/types'
 import type { ActiveSessionState, SessionTab, MultiSessionManagerState } from '@common/multi-session-types'
 
 const EMPTY_SESSION_STATES: Readonly<Record<string, ActiveSessionState>> = {}
 const EMPTY_TABS: readonly SessionTab[] = []
+const EMPTY_METADATA_MAP: Readonly<Record<string, SessionMetadata>> = {}
 
 interface SessionStore {
   sessions: Session[]
@@ -16,6 +18,9 @@ interface SessionStore {
   sessionStates: Readonly<Record<string, ActiveSessionState>>
   openTabs: readonly SessionTab[]
   scrollPositions: Readonly<Record<string, number>>
+
+  // Session metadata (from SDK system/init)
+  sessionMetadataMap: Readonly<Record<string, SessionMetadata>>
 
   setSessions: (sessions: Session[]) => void
   setCurrentSession: (id: string | null) => void
@@ -32,6 +37,9 @@ interface SessionStore {
   reorderTabs: (tabs: readonly SessionTab[]) => void
   updateTabStatus: (sessionId: string, status: SessionStatus) => void
   saveScrollPosition: (sessionId: string, position: number) => void
+
+  // Session metadata actions
+  setSessionMetadata: (sessionId: string, metadata: SessionMetadata) => void
 }
 
 export const useSessionStore = create<SessionStore>((set) => ({
@@ -45,6 +53,7 @@ export const useSessionStore = create<SessionStore>((set) => ({
   sessionStates: EMPTY_SESSION_STATES,
   openTabs: EMPTY_TABS,
   scrollPositions: {},
+  sessionMetadataMap: EMPTY_METADATA_MAP,
 
   setSessions: (sessions) => set({ sessions }),
 
@@ -90,11 +99,13 @@ export const useSessionStore = create<SessionStore>((set) => ({
 
   removeSession: (id) => set((state) => {
     const { [id]: _, ...restStates } = state.sessionStates
+    const { [id]: _meta, ...restMetadata } = state.sessionMetadataMap
     return {
       sessions: state.sessions.filter(s => s.id !== id),
       currentSessionId: state.currentSessionId === id ? null : state.currentSessionId,
       openTabs: state.openTabs.filter(t => t.sessionId !== id),
       sessionStates: restStates,
+      sessionMetadataMap: restMetadata,
     }
   }),
 
@@ -183,5 +194,11 @@ export const useSessionStore = create<SessionStore>((set) => ({
 
   saveScrollPosition: (sessionId, position) => set((state) => ({
     scrollPositions: { ...state.scrollPositions, [sessionId]: position },
+  })),
+
+  // ── Session metadata ──
+
+  setSessionMetadata: (sessionId, metadata) => set((state) => ({
+    sessionMetadataMap: { ...state.sessionMetadataMap, [sessionId]: metadata },
   })),
 }))

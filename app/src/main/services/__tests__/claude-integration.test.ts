@@ -151,8 +151,8 @@ describe('ClaudeService Integration Flow', () => {
       }),
     }));
 
-    // Count: 1 streaming + 0 (init) + 2 (assistant fan-out) + 1 (progress) + 1 (summary) + 1 (text) + 1 (result usage) + 1 idle = 8
-    expect(mockWebContents.send).toHaveBeenCalledTimes(8);
+    // Count: 1 streaming + 1 (metadata) + 2 (assistant fan-out) + 1 (progress) + 1 (summary) + 1 (text) + 1 (result usage) + 1 idle = 9
+    expect(mockWebContents.send).toHaveBeenCalledTimes(9);
 
     // First call: streaming status
     expect(mockWebContents.send).toHaveBeenNthCalledWith(1,
@@ -160,8 +160,14 @@ describe('ClaudeService Integration Flow', () => {
       expect.objectContaining({ status: 'streaming' })
     );
 
-    // Fan-out: thinking block
+    // Session metadata push (from system/init) — sessionId overwritten to app sessionId
     expect(mockWebContents.send).toHaveBeenNthCalledWith(2,
+      MAIN_TO_RENDERER.SESSION_METADATA,
+      expect.objectContaining({ sessionId: 'test-session' })
+    );
+
+    // Fan-out: thinking block
+    expect(mockWebContents.send).toHaveBeenNthCalledWith(3,
       MAIN_TO_RENDERER.CLAUDE_MESSAGE,
       expect.objectContaining({
         id: 'msg_1_block_0',
@@ -171,7 +177,7 @@ describe('ClaudeService Integration Flow', () => {
     );
 
     // Fan-out: tool_use block
-    expect(mockWebContents.send).toHaveBeenNthCalledWith(3,
+    expect(mockWebContents.send).toHaveBeenNthCalledWith(4,
       MAIN_TO_RENDERER.CLAUDE_MESSAGE,
       expect.objectContaining({
         id: 'msg_1_block_1',
@@ -183,7 +189,7 @@ describe('ClaudeService Integration Flow', () => {
     );
 
     // Tool progress
-    expect(mockWebContents.send).toHaveBeenNthCalledWith(4,
+    expect(mockWebContents.send).toHaveBeenNthCalledWith(5,
       MAIN_TO_RENDERER.CLAUDE_MESSAGE,
       expect.objectContaining({
         type: 'tool_progress',
@@ -193,7 +199,7 @@ describe('ClaudeService Integration Flow', () => {
     );
 
     // Tool use summary (now system/text)
-    expect(mockWebContents.send).toHaveBeenNthCalledWith(5,
+    expect(mockWebContents.send).toHaveBeenNthCalledWith(6,
       MAIN_TO_RENDERER.CLAUDE_MESSAGE,
       expect.objectContaining({
         role: 'system',
@@ -203,7 +209,7 @@ describe('ClaudeService Integration Flow', () => {
     );
 
     // Assistant text
-    expect(mockWebContents.send).toHaveBeenNthCalledWith(6,
+    expect(mockWebContents.send).toHaveBeenNthCalledWith(7,
       MAIN_TO_RENDERER.CLAUDE_MESSAGE,
       expect.objectContaining({
         id: 'msg_2_block_0',
@@ -213,7 +219,7 @@ describe('ClaudeService Integration Flow', () => {
     );
 
     // Result usage
-    expect(mockWebContents.send).toHaveBeenNthCalledWith(7,
+    expect(mockWebContents.send).toHaveBeenNthCalledWith(8,
       MAIN_TO_RENDERER.CLAUDE_MESSAGE,
       expect.objectContaining({
         type: 'usage',
@@ -221,7 +227,7 @@ describe('ClaudeService Integration Flow', () => {
     );
 
     // Last call: idle status
-    expect(mockWebContents.send).toHaveBeenNthCalledWith(8,
+    expect(mockWebContents.send).toHaveBeenNthCalledWith(9,
       MAIN_TO_RENDERER.CLAUDE_STATUS,
       expect.objectContaining({ status: 'idle' })
     );

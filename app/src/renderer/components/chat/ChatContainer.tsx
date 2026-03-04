@@ -105,7 +105,7 @@ export const ChatContainer: React.FC = () => {
               </div>
             )
           ) : (
-            <ConversationFlow groups={groups} />
+            <ConversationFlow groups={groups} sessionId={currentSessionId ?? undefined} />
           )}
         </div>
       </div>

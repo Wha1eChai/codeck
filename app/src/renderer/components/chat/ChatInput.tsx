@@ -5,9 +5,18 @@ import { useSessionActions } from '../../hooks/useSessionActions'
 import { useSessionStore } from '../../stores/session-store'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useUIStore } from '../../stores/ui-store'
-import { Square, SendHorizontal } from 'lucide-react'
+import { Square, SendHorizontal, X, ImageIcon } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { InputFooter } from './InputFooter'
+import { buildPaletteItems, filterPaletteItems } from '@renderer/lib/command-palette'
+import type { PaletteItem } from '@renderer/lib/command-palette'
+import { CommandPaletteDropdown } from './CommandPaletteDropdown'
+
+interface ImageAttachment {
+  readonly id: string
+  readonly dataUrl: string
+  readonly name: string
+}
 
 // ── Streaming Status Verbs ──
 
@@ -16,17 +25,6 @@ const STREAMING_VERBS = [
   'Analyzing...', 'Composing...', 'Reasoning...', 'Exploring...',
   'Weaving...', 'Conjuring...', 'Deliberating...', 'Assembling...',
 ] as const
-
-// ── Slash Commands ──
-
-interface SlashCommand {
-  readonly command: string
-  readonly description: string
-}
-
-const SLASH_COMMANDS: readonly SlashCommand[] = [
-  { command: '/compact', description: '压缩当前会话上下文以节省 token' },
-]
 
 export const ChatInput: React.FC = () => {
   const [input, setInput] = useState('')
@@ -70,18 +68,21 @@ export const ChatInput: React.FC = () => {
     ? 'Waiting for permission'
     : isStreaming ? streamingVerbRef.current : 'Ready'
 
-  // Filter slash commands based on current input
-  const filteredCommands = useMemo(() => {
-    if (!input.startsWith('/')) return []
-    const query = input.toLowerCase()
-    return SLASH_COMMANDS.filter(c => c.command.startsWith(query))
-  }, [input])
+  // Dynamic command palette from SDK metadata
+  const metadata = useSessionStore(s => currentSessionId ? s.sessionMetadataMap[currentSessionId] : undefined)
+  const paletteItems = useMemo(() => buildPaletteItems(metadata), [metadata])
+
+  const filteredItems = useMemo(() => {
+    if (!input.startsWith('/') && !input.startsWith('@')) return []
+    if (input.includes(' ') && input.startsWith('/')) return []
+    return filterPaletteItems(paletteItems, input)
+  }, [input, paletteItems])
 
   // Show/hide slash menu
   useEffect(() => {
-    setShowSlashMenu(filteredCommands.length > 0 && input.startsWith('/') && !input.includes(' '))
+    setShowSlashMenu(filteredItems.length > 0)
     setSlashIndex(0)
-  }, [filteredCommands, input])
+  }, [filteredItems.length])
 
   // Auto-resize textarea
   useEffect(() => {
@@ -95,8 +96,8 @@ export const ChatInput: React.FC = () => {
     currentSessionId ? s.sessions.find(sess => sess.id === currentSessionId) : undefined
   )
 
-  const selectSlashCommand = (cmd: SlashCommand) => {
-    setInput(cmd.command)
+  const selectPaletteItem = (item: PaletteItem) => {
+    setInput(item.insertText)
     setShowSlashMenu(false)
     textareaRef.current?.focus()
   }
@@ -108,6 +109,7 @@ export const ChatInput: React.FC = () => {
     const content = input
     setInput('')
     setShowSlashMenu(false)
+    setImageAttachments([])
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto'
     }
@@ -139,19 +141,53 @@ export const ChatInput: React.FC = () => {
   }
 
   const [pasteWarning, setPasteWarning] = useState(false)
+  const [imageAttachments, setImageAttachments] = useState<ImageAttachment[]>([])
+
+  const removeAttachment = useCallback((id: string) => {
+    setImageAttachments(prev => prev.filter(a => a.id !== id))
+  }, [])
 
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
     const items = e.clipboardData?.items
     if (!items) return
 
-    // Check if paste contains non-text content (images, files)
+    // Detect image files for preview
+    const imageFiles: File[] = []
+    let hasNonImageFile = false
     for (let i = 0; i < items.length; i++) {
       if (items[i].kind === 'file') {
-        e.preventDefault()
-        setPasteWarning(true)
-        setTimeout(() => setPasteWarning(false), 2000)
-        return
+        if (items[i].type.startsWith('image/')) {
+          const file = items[i].getAsFile()
+          if (file) imageFiles.push(file)
+        } else {
+          hasNonImageFile = true
+        }
       }
+    }
+
+    if (imageFiles.length > 0) {
+      e.preventDefault()
+      for (const file of imageFiles) {
+        const reader = new FileReader()
+        reader.onload = () => {
+          const dataUrl = reader.result as string
+          setImageAttachments(prev => [...prev, {
+            id: `img_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+            dataUrl,
+            name: file.name || 'pasted-image',
+          }])
+        }
+        reader.readAsDataURL(file)
+      }
+      return
+    }
+
+    // Non-image files: block with warning
+    if (hasNonImageFile) {
+      e.preventDefault()
+      setPasteWarning(true)
+      setTimeout(() => setPasteWarning(false), 2000)
+      return
     }
     // Plain text paste: let default behavior proceed; auto-resize triggers via input state
   }, [])
@@ -162,7 +198,7 @@ export const ChatInput: React.FC = () => {
     if (showSlashMenu) {
       if (e.key === 'ArrowDown') {
         e.preventDefault()
-        setSlashIndex(i => Math.min(i + 1, filteredCommands.length - 1))
+        setSlashIndex(i => Math.min(i + 1, filteredItems.length - 1))
         return
       }
       if (e.key === 'ArrowUp') {
@@ -172,8 +208,8 @@ export const ChatInput: React.FC = () => {
       }
       if (e.key === 'Tab' || (e.key === 'Enter' && !e.shiftKey)) {
         e.preventDefault()
-        if (filteredCommands[slashIndex]) {
-          selectSlashCommand(filteredCommands[slashIndex])
+        if (filteredItems[slashIndex]) {
+          selectPaletteItem(filteredItems[slashIndex])
         }
         return
       }
@@ -197,25 +233,40 @@ export const ChatInput: React.FC = () => {
         "focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/50",
         "dark:focus-within:ring-accent/30 dark:focus-within:border-accent/50 dark:focus-within:shadow-[0_0_12px_-2px_hsl(18_72%_50%/0.25)]"
       )}>
-        <div className="flex items-end gap-2 p-3">
-          {/* Slash command dropdown */}
-          {showSlashMenu && (
-            <div className="absolute bottom-full left-0 mb-2 w-64 bg-popover border rounded-lg shadow-xl overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-2">
-              {filteredCommands.map((cmd, i) => (
+        {/* Image attachment previews */}
+        {imageAttachments.length > 0 && (
+          <div className="flex items-center gap-2 px-3 pt-3 pb-0 overflow-x-auto">
+            <ImageIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            {imageAttachments.map(att => (
+              <div key={att.id} className="relative group shrink-0">
+                <img
+                  src={att.dataUrl}
+                  alt={att.name}
+                  className="h-16 w-16 object-cover rounded-lg border border-border/50"
+                />
                 <button
-                  key={cmd.command}
-                  className={`w-full text-left px-3 py-2.5 text-sm hover:bg-accent transition-colors ${i === slashIndex ? 'bg-accent' : ''
-                    }`}
-                  onMouseDown={(e) => {
-                    e.preventDefault()
-                    selectSlashCommand(cmd)
-                  }}
+                  type="button"
+                  onClick={() => removeAttachment(att.id)}
+                  className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                 >
-                  <span className="font-mono font-medium text-primary">{cmd.command}</span>
-                  <span className="ml-2 text-muted-foreground">{cmd.description}</span>
+                  <X className="h-2.5 w-2.5" />
                 </button>
-              ))}
-            </div>
+              </div>
+            ))}
+            <span className="text-[10px] text-muted-foreground/60 shrink-0">
+              Image sending coming soon
+            </span>
+          </div>
+        )}
+
+        <div className="flex items-end gap-2 p-3">
+          {/* Command palette dropdown */}
+          {showSlashMenu && (
+            <CommandPaletteDropdown
+              items={filteredItems}
+              selectedIndex={slashIndex}
+              onSelect={selectPaletteItem}
+            />
           )}
 
           <textarea
@@ -225,7 +276,7 @@ export const ChatInput: React.FC = () => {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
-            placeholder={pasteWarning ? "Image/file paste not yet supported" : isStreaming ? "Claude is thinking..." : "Message Claude... (type / for commands)"}
+            placeholder={pasteWarning ? "Image/file paste not yet supported" : isStreaming ? "Claude is thinking..." : "Message Claude... (/ commands, @ agents)"}
             className="flex-1 max-h-[300px] min-h-[40px] bg-transparent border-0 resize-none focus:ring-0 focus:outline-none py-2 px-1 text-sm leading-relaxed placeholder:text-muted-foreground/50"
             rows={1}
             disabled={isBusy}

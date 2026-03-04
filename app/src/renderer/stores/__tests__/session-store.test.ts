@@ -47,6 +47,7 @@ describe('session-store', () => {
       sessionStates: {},
       openTabs: [],
       scrollPositions: {},
+      sessionMetadataMap: {},
     })
   })
 
@@ -247,5 +248,23 @@ describe('session-store', () => {
   it('saveScrollPosition — saves and can be read', () => {
     useSessionStore.getState().saveScrollPosition('sess-1', 500)
     expect(useSessionStore.getState().scrollPositions['sess-1']).toBe(500)
+  })
+
+  // ── Session metadata ──
+
+  it('should store and retrieve session metadata', () => {
+    const { setSessionMetadata } = useSessionStore.getState()
+    const metadata = { sessionId: 'test-1', model: 'claude-opus-4-6', tools: ['Read', 'Write'], slashCommands: ['/compact', '/clear'] }
+    setSessionMetadata('test-1', metadata)
+    expect(useSessionStore.getState().sessionMetadataMap['test-1']).toEqual(metadata)
+  })
+
+  it('should store metadata for multiple sessions independently', () => {
+    const { setSessionMetadata } = useSessionStore.getState()
+    setSessionMetadata('s1', { sessionId: 's1', model: 'opus' })
+    setSessionMetadata('s2', { sessionId: 's2', model: 'sonnet' })
+    const state = useSessionStore.getState()
+    expect(state.sessionMetadataMap['s1']?.model).toBe('opus')
+    expect(state.sessionMetadataMap['s2']?.model).toBe('sonnet')
   })
 })

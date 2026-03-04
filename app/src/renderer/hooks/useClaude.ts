@@ -11,6 +11,7 @@ import { useUIStore, permissionToPendingInteraction, askUserQuestionToPendingInt
 export function useClaudeEvents() {
   const addMessage = useMessageStore(s => s.addMessage)
   const syncStatus = useSessionStore(s => s.syncStatus)
+  const setSessionMetadata = useSessionStore(s => s.setSessionMetadata)
   const setPendingInteraction = useUIStore(s => s.setPendingInteraction)
 
   useEffect(() => {
@@ -36,14 +37,19 @@ export function useClaudeEvents() {
       setPendingInteraction(exitPlanModeToPendingInteraction(req))
     })
 
+    const unsubMeta = window.electron.onSessionMetadata((metadata) => {
+      setSessionMetadata(metadata.sessionId, metadata)
+    })
+
     return () => {
       unsubMsg()
       unsubStatus()
       unsubPerm()
       unsubAskUser()
       unsubExitPlan()
+      unsubMeta()
     }
-  }, [addMessage, syncStatus, setPendingInteraction])
+  }, [addMessage, syncStatus, setSessionMetadata, setPendingInteraction])
 }
 
 export function useClaude(sessionId: string | null) {

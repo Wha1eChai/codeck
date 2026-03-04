@@ -12,6 +12,7 @@ import type { ParseResult } from '../message-parser'
 export function parseAssistant(msg: Record<string, unknown>, sessionId: string): ParseResult {
   const uuid = (msg.uuid as string) ?? crypto.randomUUID()
   const betaMessage = msg.message as Record<string, unknown> | undefined
+  const parentToolUseId = typeof msg.parent_tool_use_id === 'string' ? msg.parent_tool_use_id : undefined
 
   if (!betaMessage) {
     return { messages: [] }
@@ -32,7 +33,7 @@ export function parseAssistant(msg: Record<string, unknown>, sessionId: string):
     const label = errorLabels[assistantError] ?? assistantError
     // Still parse content blocks — the assistant may have partial output before the error
     const blocks = (betaMessage.content as readonly SDKContentBlock[]) ?? []
-    const contentMessages = parseContentBlocks(blocks, sessionId, uuid)
+    const contentMessages = parseContentBlocks(blocks, sessionId, uuid, parentToolUseId)
     return {
       messages: [
         ...contentMessages,
@@ -49,7 +50,7 @@ export function parseAssistant(msg: Record<string, unknown>, sessionId: string):
   }
 
   const blocks = (betaMessage.content as readonly SDKContentBlock[]) ?? []
-  const messages = parseContentBlocks(blocks, sessionId, uuid)
+  const messages = parseContentBlocks(blocks, sessionId, uuid, parentToolUseId)
 
   const sdkUsage = betaMessage.usage as Record<string, unknown> | undefined
   const usage = mapUsage(

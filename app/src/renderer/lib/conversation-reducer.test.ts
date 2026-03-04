@@ -18,6 +18,7 @@ function makeMessage(partial: Partial<Message>): Message {
     ...(partial.usage ? { usage: partial.usage } : {}),
     ...(partial.isStreamDelta !== undefined ? { isStreamDelta: partial.isStreamDelta } : {}),
     ...(partial.isReplay !== undefined ? { isReplay: partial.isReplay } : {}),
+    ...(partial.parentToolUseId ? { parentToolUseId: partial.parentToolUseId } : {}),
   }
 }
 
@@ -221,6 +222,113 @@ describe('reduceConversation', () => {
       'bash-progress-2',
     ])
     expect(groups[0].assistant.toolSteps[0].latestProgressMessage?.id).toBe('bash-progress-2')
+  })
+
+  it('nests sub-agent messages as childSteps of parent tool step', () => {
+    const groups = reduceConversation([
+      makeMessage({
+        id: 'agent_use',
+        role: 'assistant',
+        type: 'tool_use',
+        toolName: 'Agent',
+        toolUseId: 'toolu_agent_1',
+        timestamp: 1,
+      }),
+      makeMessage({
+        id: 'sub_text',
+        role: 'assistant',
+        type: 'text',
+        content: 'sub-agent output',
+        parentToolUseId: 'toolu_agent_1',
+        timestamp: 2,
+      }),
+      makeMessage({
+        id: 'sub_tool',
+        role: 'assistant',
+        type: 'tool_use',
+        toolName: 'Read',
+        toolUseId: 'toolu_sub_read',
+        parentToolUseId: 'toolu_agent_1',
+        timestamp: 3,
+      }),
+      makeMessage({
+        id: 'sub_result',
+        role: 'tool',
+        type: 'tool_result',
+        content: 'file content',
+        toolUseId: 'toolu_sub_read',
+        parentToolUseId: 'toolu_agent_1',
+        timestamp: 4,
+        success: true,
+      }),
+      makeMessage({
+        id: 'agent_result',
+        role: 'tool',
+        type: 'tool_result',
+        content: 'agent done',
+        toolUseId: 'toolu_agent_1',
+        timestamp: 5,
+        success: true,
+      }),
+    ])
+
+    expect(groups).toHaveLength(1)
+    expect(groups[0].kind).toBe('assistant')
+    if (groups[0].kind !== 'assistant') return
+
+    // Top-level should only have the Agent tool step, not the child messages
+    const agentStep = groups[0].assistant.toolSteps.find(s => s.toolName === 'Agent')
+    expect(agentStep).toBeDefined()
+    expect(agentStep!.childSteps).toBeDefined()
+    expect(agentStep!.childSteps!.length).toBeGreaterThan(0)
+
+    // Child steps should NOT appear in top-level flowSteps
+    const topLevelIds = groups[0].assistant.flowSteps.map(s => s.id)
+    expect(topLevelIds).not.toContain('text:sub_text')
+    expect(topLevelIds).not.toContain('tool:toolu_sub_read')
+  })
+
+  it('keeps top-level messages without parentToolUseId in flowSteps', () => {
+    const groups = reduceConversation([
+      makeMessage({
+        id: 'top_text',
+        role: 'assistant',
+        type: 'text',
+        content: 'top level',
+        timestamp: 1,
+      }),
+      makeMessage({
+        id: 'agent_use',
+        role: 'assistant',
+        type: 'tool_use',
+        toolName: 'Agent',
+        toolUseId: 'toolu_agent_1',
+        timestamp: 2,
+      }),
+      makeMessage({
+        id: 'sub_text',
+        role: 'assistant',
+        type: 'text',
+        content: 'sub output',
+        parentToolUseId: 'toolu_agent_1',
+        timestamp: 3,
+      }),
+      makeMessage({
+        id: 'agent_result',
+        role: 'tool',
+        type: 'tool_result',
+        content: 'done',
+        toolUseId: 'toolu_agent_1',
+        timestamp: 4,
+        success: true,
+      }),
+    ])
+
+    expect(groups).toHaveLength(1)
+    if (groups[0].kind !== 'assistant') return
+    const topLevelIds = groups[0].assistant.flowSteps.map(s => s.id)
+    expect(topLevelIds).toContain('text:top_text')
+    expect(topLevelIds).not.toContain('text:sub_text')
   })
 
   it('attaches late progress updates to the latest matching tool step', () => {

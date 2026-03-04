@@ -22,6 +22,8 @@ export const MAIN_TO_RENDERER = {
   USAGE_STATS_UPDATED: "usage:stats-updated",
   /** Sessions-server sync 完成通知 */
   SYNC_COMPLETED: "history:sync-completed",
+  /** SDK system/init 会话元数据推送 */
+  SESSION_METADATA: "session:metadata",
 } as const
 
 /** 渲染进程 → 主进程（invoke 调用） */

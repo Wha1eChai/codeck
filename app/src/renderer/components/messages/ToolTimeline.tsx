@@ -6,6 +6,7 @@ import { buildToolBlockViewModel } from '@renderer/lib/tool-presentation'
 import { semanticToolSummary, statisticalSuffix } from '@renderer/lib/tool-summary'
 import { DiffView } from './DiffView'
 import { FlowSection, FlowStepItem, FlowTimeline, ShowMoreText } from './primitives'
+import { AgentGroup } from './AgentGroup'
 
 const INITIAL_VISIBLE = 3
 
@@ -70,6 +71,20 @@ interface ToolStepRowProps {
 }
 
 const ToolStepRow: React.FC<ToolStepRowProps> = ({ step, isLast }) => {
+  // Sub-agent tool steps with child steps get dedicated rendering
+  if (step.childSteps && step.childSteps.length > 0) {
+    return (
+      <FlowStepItem
+        title={step.toolName}
+        subtitle="Agent"
+        tone={mapToolTone(step.status)}
+        isLast={isLast}
+      >
+        <AgentGroup step={step} />
+      </FlowStepItem>
+    )
+  }
+
   const baseMessage = step.useMessage ?? step.resultMessage
   const model = useMemo(
     () => (baseMessage ? buildToolBlockViewModel(baseMessage, step.resultMessage) : null),
@@ -113,6 +128,11 @@ const ToolStepRow: React.FC<ToolStepRowProps> = ({ step, isLast }) => {
             ? <Loader2 className="h-3 w-3 animate-spin text-blue-500 shrink-0" />
             : <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', statusDotColor(step.status))} />}
 
+          {model?.source === 'mcp' && model.mcpServerName && (
+            <span className="text-[10px] text-purple-600 dark:text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded-full shrink-0">
+              {model.mcpServerName}
+            </span>
+          )}
           <span className="text-xs text-muted-foreground truncate">{summary}</span>
 
           {hasDetails && (

@@ -110,6 +110,28 @@ describe('parseSDKMessage', () => {
       expect(result.messages[0].type).toBe('text')
       expect(result.messages[1].content).toBe('[Unknown content block: some_future_block]')
     })
+
+    it('should propagate parent_tool_use_id from assistant messages', () => {
+      const msg = {
+        type: 'assistant',
+        uuid: 'sub-uuid-1',
+        parent_tool_use_id: 'parent-toolu-123',
+        message: { role: 'assistant', content: [{ type: 'text', text: 'sub-agent response' }] },
+      }
+      const result = parseSDKMessage(msg, SESSION_ID)
+      expect(result.messages[0].parentToolUseId).toBe('parent-toolu-123')
+    })
+
+    it('should not set parentToolUseId for top-level messages', () => {
+      const msg = {
+        type: 'assistant',
+        uuid: 'top-uuid',
+        parent_tool_use_id: null,
+        message: { role: 'assistant', content: [{ type: 'text', text: 'top-level' }] },
+      }
+      const result = parseSDKMessage(msg, SESSION_ID)
+      expect(result.messages[0].parentToolUseId).toBeUndefined()
+    })
   })
 
   describe('user messages', () => {

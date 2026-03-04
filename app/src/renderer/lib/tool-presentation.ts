@@ -7,6 +7,8 @@ const SUMMARY_MAX_LENGTH = 60
 export type ToolBlockStatus = 'running' | 'completed' | 'failed'
 export type ToolBlockContentKind = 'diff' | 'write' | 'json' | 'none'
 
+export type ToolSource = 'builtin' | 'mcp'
+
 export interface ToolBlockViewModel {
   readonly toolName: string
   readonly displayName: string
@@ -20,6 +22,8 @@ export interface ToolBlockViewModel {
   readonly newStr?: string
   readonly writeContent?: string
   readonly hasExpandableContent: boolean
+  readonly source: ToolSource
+  readonly mcpServerName?: string
 }
 
 export function buildToolBlockViewModel(
@@ -31,7 +35,7 @@ export function buildToolBlockViewModel(
 
   const status = getToolStatus(resultMessage)
   const filePath = readString(input?.file_path)
-  const displayName = toolName
+  const { source, mcpServerName, displayName } = parseMcpToolName(toolName)
 
   const resultSummary = summarizeToolResult(resultMessage)
   const inputSummary = summarizeToolInput(toolName, input)
@@ -63,6 +67,8 @@ export function buildToolBlockViewModel(
     newStr,
     writeContent,
     hasExpandableContent,
+    source,
+    mcpServerName,
   }
 }
 
@@ -154,4 +160,30 @@ function truncate(value: string | undefined, maxLength: number): string | undefi
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/**
+ * Parse MCP tool names (format: `mcp__<serverName>__<toolName>`)
+ * into source, server name, and display name.
+ */
+function parseMcpToolName(toolName: string): {
+  source: ToolSource
+  mcpServerName?: string
+  displayName: string
+} {
+  if (!toolName.startsWith('mcp__')) {
+    return { source: 'builtin', displayName: toolName }
+  }
+  // Format: mcp__<serverName>__<toolName>
+  const parts = toolName.split('__')
+  if (parts.length >= 3) {
+    const serverName = parts[1]
+    const actualName = parts.slice(2).join('__')
+    return {
+      source: 'mcp',
+      mcpServerName: serverName,
+      displayName: actualName,
+    }
+  }
+  return { source: 'mcp', displayName: toolName }
 }

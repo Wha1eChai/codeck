@@ -44,6 +44,8 @@ export interface AssistantToolStep extends AssistantFlowStepBase {
   progressMessages: Message[]
   latestProgressMessage?: Message
   status: AssistantToolStepStatus
+  /** Nested steps from sub-agent execution */
+  childSteps?: AssistantFlowStep[]
 }
 
 export type AssistantFlowStep = AssistantThinkingStep | AssistantTextStep | AssistantToolStep
@@ -111,6 +113,18 @@ export function reduceConversation(messages: Message[]): ConversationGroupView[]
         key: msg.id,
         messages: [msg],
       })
+    } else if (msg.hookName) {
+      // Merge consecutive hook messages into one system group
+      const lastGroup = groups[groups.length - 1]
+      if (lastGroup && lastGroup.kind === 'system' && lastGroup.messages.some(m => m.hookName)) {
+        lastGroup.messages.push(msg)
+      } else {
+        groups.push({
+          kind: 'system',
+          key: msg.id,
+          messages: [msg],
+        })
+      }
     } else {
       groups.push({
         kind: 'system',
@@ -227,8 +241,50 @@ function buildAssistantGroupView(messages: Message[]): AssistantMessageGroupView
     }
   }
 
+  // ── Post-processing: nest sub-agent messages as childSteps ──
+
+  // Collect messages with parentToolUseId grouped by parent
+  const childMessagesByParent = new Map<string, Message[]>()
+  for (const msg of messages) {
+    if (msg.parentToolUseId) {
+      const existing = childMessagesByParent.get(msg.parentToolUseId)
+      if (existing) {
+        existing.push(msg)
+      } else {
+        childMessagesByParent.set(msg.parentToolUseId, [msg])
+      }
+    }
+  }
+
+  // Attach child steps to matching parent tool steps
+  if (childMessagesByParent.size > 0) {
+    for (const step of toolSteps) {
+      if (step.toolUseId && childMessagesByParent.has(step.toolUseId)) {
+        const childMsgs = childMessagesByParent.get(step.toolUseId)!
+        step.childSteps = buildChildFlowSteps(childMsgs)
+      }
+    }
+  }
+
+  // Collect IDs of all child messages to exclude from top-level
+  const childIds = new Set<string>()
+  for (const msgs of childMessagesByParent.values()) {
+    for (const m of msgs) childIds.add(m.id)
+  }
+
+  // Filter child messages from top-level step arrays
+  const topThinkingSteps = childIds.size > 0
+    ? thinkingSteps.filter(s => s.messages.every(m => !childIds.has(m.id)))
+    : thinkingSteps
+  const topTextSteps = childIds.size > 0
+    ? textSteps.filter(s => s.messages.every(m => !childIds.has(m.id)))
+    : textSteps
+  const topToolSteps = childIds.size > 0
+    ? toolSteps.filter(s => !s.toolUseId || !childIds.has(s.useMessage?.id ?? ''))
+    : toolSteps
+
   const lastMessage = messages[messages.length - 1] ?? null
-  const flowSteps = [...thinkingSteps, ...textSteps, ...toolSteps].sort((a, b) => a.order - b.order)
+  const flowSteps = [...topThinkingSteps, ...topTextSteps, ...topToolSteps].sort((a, b) => a.order - b.order)
 
   return {
     key: messages[0]?.id ?? 'assistant-empty',
@@ -237,12 +293,85 @@ function buildAssistantGroupView(messages: Message[]): AssistantMessageGroupView
     text,
     toolPairs,
     other,
-    thinkingSteps,
-    textSteps,
-    toolSteps,
+    thinkingSteps: topThinkingSteps,
+    textSteps: topTextSteps,
+    toolSteps: topToolSteps,
     flowSteps,
     lastMessage,
   }
+}
+
+function buildChildFlowSteps(childMessages: Message[]): AssistantFlowStep[] {
+  const steps: AssistantFlowStep[] = []
+  const pendingTools = new Map<string, AssistantToolStep>()
+
+  for (let i = 0; i < childMessages.length; i++) {
+    const msg = childMessages[i]
+    switch (msg.type) {
+      case 'thinking':
+        steps.push({
+          id: `thinking:${msg.id}`,
+          kind: 'thinking',
+          messages: [msg],
+          content: normalizeMessageContent(msg.content),
+          order: i,
+          startedAt: msg.timestamp,
+          updatedAt: msg.timestamp,
+          isStreaming: Boolean(msg.isStreamDelta),
+        })
+        break
+
+      case 'text':
+        steps.push({
+          id: `text:${msg.id}`,
+          kind: 'text',
+          messages: [msg],
+          content: normalizeMessageContent(msg.content),
+          order: i,
+          startedAt: msg.timestamp,
+          updatedAt: msg.timestamp,
+          isStreaming: Boolean(msg.isStreamDelta),
+        })
+        break
+
+      case 'tool_use': {
+        const toolStep = createToolStepFromUseMessage(msg, i)
+        steps.push(toolStep)
+        if (msg.toolUseId) {
+          pendingTools.set(msg.toolUseId, toolStep)
+        }
+        break
+      }
+
+      case 'tool_result': {
+        if (msg.toolUseId) {
+          const matchedStep = pendingTools.get(msg.toolUseId)
+          if (matchedStep) {
+            matchedStep.resultMessage = msg
+            matchedStep.status = msg.success === false ? 'failed' : 'completed'
+            matchedStep.updatedAt = Math.max(matchedStep.updatedAt, msg.timestamp)
+            pendingTools.delete(msg.toolUseId)
+            break
+          }
+        }
+        // Orphan result
+        steps.push(createToolStepFromOrphanResult(msg, i))
+        break
+      }
+
+      case 'tool_progress': {
+        if (msg.toolUseId) {
+          const matchedStep = pendingTools.get(msg.toolUseId)
+          if (matchedStep) {
+            appendToolProgress(matchedStep, msg)
+          }
+        }
+        break
+      }
+    }
+  }
+
+  return steps
 }
 
 function enqueuePendingByName(

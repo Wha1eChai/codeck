@@ -21,6 +21,7 @@ export type StreamBlockState =
 
 export interface StreamParseState {
   activeMessageId: string | null
+  activeParentToolUseId: string | null
   streamedMessageIds: Set<string>
   blocks: Map<number, StreamBlockState>
   toolUseNames: Map<string, string>
@@ -29,6 +30,7 @@ export interface StreamParseState {
 export function createStreamParseState(): StreamParseState {
   return {
     activeMessageId: null,
+    activeParentToolUseId: null,
     streamedMessageIds: new Set<string>(),
     blocks: new Map<number, StreamBlockState>(),
     toolUseNames: new Map<string, string>(),
@@ -37,6 +39,7 @@ export function createStreamParseState(): StreamParseState {
 
 export function resetStreamParseState(state: StreamParseState): void {
   state.activeMessageId = null
+  state.activeParentToolUseId = null
   state.streamedMessageIds.clear()
   state.blocks.clear()
   state.toolUseNames.clear()

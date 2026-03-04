@@ -144,6 +144,15 @@ export interface Message {
   // stream
   readonly isStreamDelta?: boolean
   readonly isReplay?: boolean
+
+  /** Parent tool_use ID indicating this message came from a sub-agent */
+  readonly parentToolUseId?: string
+
+  // hook lifecycle
+  readonly hookId?: string
+  readonly hookName?: string
+  readonly hookEvent?: string
+  readonly hookStatus?: 'started' | 'progress' | 'completed' | 'failed' | 'cancelled'
 }
 
 export interface TokenUsage {
@@ -262,6 +271,25 @@ export interface HistoryEntry {
   readonly messageCount: number
   /** UUID of first user message with parentUuid===null. Used to dedup resumed sessions. */
   readonly conversationRoot?: string
+}
+
+// ── 会话元数据（SDK system/init → 渲染进程） ──
+
+/** Metadata from SDK system/init — pushed to renderer after session starts */
+export interface SessionMetadata {
+  readonly sessionId: string
+  readonly model?: string
+  readonly tools?: readonly string[]
+  readonly cwd?: string
+  readonly permissionMode?: string
+  readonly claudeCodeVersion?: string
+  readonly apiKeySource?: string
+  readonly mcpServers?: readonly unknown[]
+  readonly slashCommands?: readonly string[]
+  readonly agents?: readonly string[]
+  readonly skills?: readonly string[]
+  readonly plugins?: readonly unknown[]
+  readonly fastModeState?: string
 }
 
 // ── Checkpoint ──
@@ -539,6 +567,7 @@ export interface ElectronAPI {
   onMultiSessionStateChanged: (callback: (state: import('./multi-session-types').MultiSessionManagerState) => void) => () => void
   onUsageStatsUpdated: (callback: () => void) => () => void
   onSyncCompleted: (callback: (result: import('./sync-types').SyncResult) => void) => () => void
+  onSessionMetadata: (callback: (metadata: SessionMetadata) => void) => () => void
 
   // Multi-session management
   focusSession: (sessionId: string) => Promise<void>
