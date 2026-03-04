@@ -69,7 +69,9 @@ export const ChatInput: React.FC = () => {
     : isStreaming ? streamingVerbRef.current : 'Ready'
 
   // Dynamic command palette from SDK metadata
-  const metadata = useSessionStore(s => currentSessionId ? s.sessionMetadataMap[currentSessionId] : undefined)
+  const metadata = useSessionStore(s =>
+    (currentSessionId ? s.sessionMetadataMap[currentSessionId] : null) ?? s.globalMetadata,
+  ) ?? undefined
   const paletteItems = useMemo(() => buildPaletteItems(metadata), [metadata])
 
   const filteredItems = useMemo(() => {
