@@ -28,7 +28,7 @@ describe('message-store', () => {
     useMessageStore.setState({ messages: {} })
   })
 
-  it('updates stream delta by stable message id', () => {
+  it('updates stream delta by stable message id', async () => {
     const { addMessage } = useMessageStore.getState()
 
     addMessage(
@@ -51,6 +51,8 @@ describe('message-store', () => {
       }),
     )
 
+    // Stream deltas are microtask-batched — wait for flush
+    await new Promise(resolve => queueMicrotask(resolve))
     const messages = useMessageStore.getState().messages[SESSION_ID]
     expect(messages).toHaveLength(1)
     expect(messages[0].content).toBe('Hello world')
@@ -86,7 +88,7 @@ describe('message-store', () => {
     expect(messages[0].isStreamDelta).toBe(false)
   })
 
-  it('keeps separate stream blocks when ids differ', () => {
+  it('keeps separate stream blocks when ids differ', async () => {
     const { addMessage } = useMessageStore.getState()
 
     addMessage(
@@ -109,6 +111,7 @@ describe('message-store', () => {
       }),
     )
 
+    await new Promise(resolve => queueMicrotask(resolve))
     const messages = useMessageStore.getState().messages[SESSION_ID]
     expect(messages).toHaveLength(2)
     expect(messages[0].id).toBe('turn-1_block_0')
@@ -143,7 +146,7 @@ describe('message-store', () => {
     expect(messages[0].content).toBe('updated')
   })
 
-  it('keeps in-flight stream messages when late history arrives', () => {
+  it('keeps in-flight stream messages when late history arrives', async () => {
     const { addMessage, setMessages } = useMessageStore.getState()
 
     addMessage(
@@ -155,6 +158,9 @@ describe('message-store', () => {
         isStreamDelta: true,
       }),
     )
+
+    // Flush the stream delta so it's visible in store before history arrives
+    await new Promise(resolve => queueMicrotask(resolve))
 
     setMessages(SESSION_ID, [
       makeMessage({
@@ -242,5 +248,52 @@ describe('message-store', () => {
     const messages = useMessageStore.getState().messages[SESSION_ID]
     expect(messages).toHaveLength(1)
     expect(messages[0].id).toBe('history-2')
+  })
+
+  it('should batch multiple stream deltas into fewer store updates', async () => {
+    const { addMessage } = useMessageStore.getState()
+
+    // Send 10 rapid stream deltas
+    for (let i = 0; i < 10; i++) {
+      addMessage(SESSION_ID, makeMessage({
+        id: 'delta_1',
+        type: 'text',
+        content: `chunk ${i}`,
+        timestamp: i,
+        isStreamDelta: true,
+      }))
+    }
+
+    // After microtask flush, the final content should be available
+    await new Promise(resolve => queueMicrotask(resolve))
+    const msgs = useMessageStore.getState().messages[SESSION_ID]
+    expect(msgs).toBeDefined()
+    expect(msgs[0]?.content).toBe('chunk 9')
+    expect(msgs).toHaveLength(1)
+  })
+
+  it('should flush pending deltas before applying non-delta message', () => {
+    const { addMessage } = useMessageStore.getState()
+
+    // Queue some deltas
+    addMessage(SESSION_ID, makeMessage({
+      id: 'delta_stream',
+      type: 'text',
+      content: 'streaming...',
+      isStreamDelta: true,
+    }))
+
+    // Then add a non-delta message — should flush first
+    addMessage(SESSION_ID, makeMessage({
+      id: 'final_msg',
+      type: 'text',
+      content: 'done',
+      isStreamDelta: false,
+    }))
+
+    const msgs = useMessageStore.getState().messages[SESSION_ID]
+    expect(msgs).toHaveLength(2)
+    expect(msgs[0].id).toBe('delta_stream')
+    expect(msgs[1].id).toBe('final_msg')
   })
 })

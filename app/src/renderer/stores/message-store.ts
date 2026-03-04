@@ -46,21 +46,51 @@ function mergeHistoricalBeforeLive(current: Message[], historical: Message[]): M
   return [...historicalOnly, ...current]
 }
 
+// ── Microtask-batched delta flushing ──
+
+let pendingDeltas: { sessionId: string; msg: Message }[] = []
+let flushScheduled = false
+
+function flushPendingDeltas(): void {
+  flushScheduled = false
+  const batch = pendingDeltas
+  pendingDeltas = []
+  if (batch.length === 0) return
+
+  useMessageStore.setState((state) => {
+    let nextMessages = { ...state.messages }
+    for (const { sessionId, msg } of batch) {
+      const current = nextMessages[sessionId] || []
+      nextMessages = { ...nextMessages, [sessionId]: upsertMessage(current, msg, sessionId) }
+    }
+    return { messages: nextMessages }
+  })
+}
+
+function scheduleDeltaFlush(): void {
+  if (flushScheduled) return
+  flushScheduled = true
+  queueMicrotask(flushPendingDeltas)
+}
+
 export const useMessageStore = create<MessageStore>((set) => ({
   messages: {},
 
-  addMessage: (sessionId, msg) =>
-    set((state) => {
-      const currentMessages = state.messages[sessionId] || []
-      const updatedMessages = upsertMessage(currentMessages, msg, sessionId)
-
-      return {
-        messages: {
-          ...state.messages,
-          [sessionId]: updatedMessages,
-        },
-      }
-    }),
+  addMessage: (sessionId, msg) => {
+    if (msg.isStreamDelta) {
+      pendingDeltas.push({ sessionId, msg })
+      scheduleDeltaFlush()
+      return
+    }
+    // Non-delta: flush pending first, then apply immediately
+    if (pendingDeltas.length > 0) flushPendingDeltas()
+    set((state) => ({
+      messages: {
+        ...state.messages,
+        [sessionId]: upsertMessage(state.messages[sessionId] || [], msg, sessionId),
+      },
+    }))
+  },
 
   setMessages: (sessionId, messages) =>
     set((state) => ({
