@@ -61,30 +61,40 @@ export const ToolNodeDetail: React.FC<ToolNodeDetailProps> = ({ step }) => {
   )
   const resultText = readResultText(step)
 
+  // Bash: unified I/O block
+  if (step.toolName === 'Bash') {
+    const command = (step.useMessage?.toolInput as Record<string, unknown>)?.command
+    return (
+      <div className="rounded border border-border/30 bg-card/50 overflow-hidden font-mono text-xs">
+        {command != null && (
+          <div className="px-2.5 py-1.5 border-b border-border/20 text-foreground/80">
+            <span className="text-muted-foreground/60 select-none mr-2">{'$ '}</span>
+            <span>{String(command)}</span>
+          </div>
+        )}
+        {resultText && (
+          <div className="px-2.5 py-1.5 text-muted-foreground whitespace-pre-wrap break-words max-h-60 overflow-y-auto">
+            {resultText}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <>
-      {step.progressMessages.length > 1 && (
-        <div className="space-y-1">
-          <div className="text-[11px] font-medium text-muted-foreground">Progress</div>
-          {step.progressMessages.map((progress) => (
-            <div key={progress.id} className="text-muted-foreground">
-              {progress.content}
-            </div>
-          ))}
-        </div>
-      )}
-
+      {step.progressMessages.length > 1 &&
+        step.progressMessages.map((p) => (
+          <div key={p.id} className="text-muted-foreground">{p.content}</div>
+        ))
+      }
       {model && <ToolInputDetail model={model} />}
-
       {resultText && (
-        <div className="space-y-1">
-          <div className="text-[11px] font-medium text-muted-foreground">Result</div>
-          <ShowMoreText
-            text={resultText}
-            maxChars={560}
-            className="whitespace-pre-wrap break-words text-foreground/90"
-          />
-        </div>
+        <ShowMoreText
+          text={resultText}
+          maxChars={560}
+          className="whitespace-pre-wrap break-words text-foreground/80"
+        />
       )}
     </>
   )
@@ -96,33 +106,22 @@ interface ToolInputDetailProps {
 
 const ToolInputDetail: React.FC<ToolInputDetailProps> = ({ model }) => {
   if (model.contentKind === 'diff' && model.oldStr !== undefined && model.newStr !== undefined) {
-    return (
-      <div className="space-y-1">
-        <div className="text-[11px] font-medium text-muted-foreground">Changes</div>
-        <DiffView oldStr={model.oldStr} newStr={model.newStr} filePath={model.filePath} />
-      </div>
-    )
+    return <DiffView oldStr={model.oldStr} newStr={model.newStr} filePath={model.filePath} />
   }
 
   if (model.contentKind === 'write' && model.writeContent) {
     return (
-      <div className="space-y-1">
-        <div className="text-[11px] font-medium text-muted-foreground">Write Content</div>
-        <pre className="rounded border border-border/50 bg-card/70 p-2 overflow-x-auto max-h-60 overflow-y-auto whitespace-pre-wrap text-xs">
-          {model.writeContent}
-        </pre>
-      </div>
+      <pre className="rounded border border-border/30 bg-card/50 p-2 overflow-x-auto max-h-60 overflow-y-auto whitespace-pre-wrap text-xs">
+        {model.writeContent}
+      </pre>
     )
   }
 
   if (model.contentKind === 'json' && model.input) {
     return (
-      <div className="space-y-1">
-        <div className="text-[11px] font-medium text-muted-foreground">Input</div>
-        <pre className="rounded border border-border/50 bg-card/70 p-2 overflow-x-auto max-h-48 overflow-y-auto whitespace-pre-wrap text-xs">
-          {JSON.stringify(model.input, null, 2)}
-        </pre>
-      </div>
+      <pre className="rounded border border-border/30 bg-card/50 p-2 overflow-x-auto max-h-48 overflow-y-auto whitespace-pre-wrap text-xs">
+        {JSON.stringify(model.input, null, 2)}
+      </pre>
     )
   }
 

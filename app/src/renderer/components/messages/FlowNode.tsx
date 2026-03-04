@@ -4,20 +4,12 @@ import { cn } from '@renderer/lib/utils'
 import type { AssistantFlowStep, AssistantToolStep, AssistantHookStep } from '@renderer/lib/conversation-reducer'
 
 type FlowNodeTone = 'neutral' | 'running' | 'success' | 'failed'
-type StackPosition = 'solo' | 'first' | 'middle' | 'last'
 
 const DOT_STYLES: Record<FlowNodeTone, string> = {
   neutral: 'bg-muted-foreground/70',
   running: 'bg-blue-500 animate-pulse',
   success: 'bg-emerald-500',
   failed: 'bg-red-500',
-}
-
-const STACK_RADIUS: Record<StackPosition, string> = {
-  solo: 'rounded-[var(--chat-tool-radius)] border border-border/50',
-  first: 'rounded-t-[var(--chat-tool-radius)] border border-border/50 border-b-0',
-  middle: 'border-x border-border/50 border-b-0',
-  last: 'rounded-b-[var(--chat-tool-radius)] border border-border/50',
 }
 
 export interface FlowNodeProps {
@@ -28,7 +20,6 @@ export interface FlowNodeProps {
   summary?: string
   defaultExpanded?: boolean
   mcpBadge?: string
-  stackPosition?: StackPosition
   children?: React.ReactNode
   className?: string
 }
@@ -41,7 +32,6 @@ export const FlowNode: React.FC<FlowNodeProps> = ({
   summary,
   defaultExpanded = false,
   mcpBadge,
-  stackPosition = 'solo',
   children,
   className,
 }) => {
@@ -49,13 +39,13 @@ export const FlowNode: React.FC<FlowNodeProps> = ({
   const hasDetails = Boolean(children)
 
   return (
-    <div className={cn('bg-muted/10', STACK_RADIUS[stackPosition], className)}>
+    <div className={cn(className)}>
       <button
         type="button"
         onClick={hasDetails ? () => setIsExpanded(v => !v) : undefined}
         className={cn(
-          'w-full flex items-center gap-2 px-3 py-2 text-left',
-          hasDetails && 'hover:bg-muted/20 transition-colors cursor-pointer',
+          'w-full flex items-center gap-2 px-3 py-1 text-left rounded-md',
+          hasDetails && 'hover:bg-muted/15 transition-colors cursor-pointer',
           !hasDetails && 'cursor-default',
         )}
       >
@@ -105,7 +95,7 @@ export const FlowNode: React.FC<FlowNodeProps> = ({
           )}
         >
           <div className="overflow-hidden">
-            <div className="px-3 pb-3 pt-1 border-t border-border/30 space-y-2 text-xs">
+            <div className="px-3 pb-3 pt-1.5 ml-7 bg-muted/5 rounded-md space-y-2 text-xs">
               {children}
             </div>
           </div>
@@ -121,7 +111,7 @@ export interface FlowNodeStackProps {
 }
 
 export const FlowNodeStack: React.FC<FlowNodeStackProps> = ({ children, className }) => (
-  <div className={cn('flex flex-col bg-muted/10 rounded-[var(--chat-tool-radius)] overflow-hidden', className)}>
+  <div className={cn('flex flex-col', className)}>
     {children}
   </div>
 )

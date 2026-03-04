@@ -16,7 +16,6 @@ import { buildToolBlockViewModel } from '@renderer/lib/tool-presentation'
 import {
   MessageRow,
   MessageAvatar,
-  MessageCard,
 } from './primitives'
 import { MessageMarkdown } from './MessageMarkdown'
 import { FlowNode, FlowNodeStack, computeDefaultExpanded } from './FlowNode'
@@ -80,68 +79,47 @@ interface FlowRunRendererProps {
 }
 
 const FlowRunRenderer: React.FC<FlowRunRendererProps> = ({ run, isStreaming, isLastRun }) => {
-  // Text runs render as MessageCard (unchanged — text IS the main content)
+  // Text runs render naked — no card, no border
   if (run.kind === 'text') {
     const steps = run.steps as AssistantTextStep[]
     const nonEmpty = steps.filter(s => s.content)
     if (nonEmpty.length === 0) return null
     return (
-      <MessageCard>
-        <div className={cn('px-4 py-3.5 text-foreground')}>
-          {nonEmpty.map(step =>
-            step.messages.map(message => (
-              <div key={message.id} className="markdown-body">
-                <MessageMarkdown content={message.content} />
-              </div>
-            )),
-          )}
-        </div>
-      </MessageCard>
+      <div className="text-foreground pl-3">
+        {nonEmpty.map(step =>
+          step.messages.map(message => (
+            <div key={message.id} className="markdown-body">
+              <MessageMarkdown content={message.content} />
+            </div>
+          )),
+        )}
+      </div>
     )
   }
 
   // Non-text runs: render as flat FlowNode stream
   const { steps } = run
 
-  if (steps.length === 1) {
-    return (
-      <RenderFlowNode
-        step={steps[0]}
-        stackPosition="solo"
-        isLastStep={isLastRun}
-        isStreaming={isStreaming}
-      />
-    )
-  }
+  const nodes = steps.map((step, i) => (
+    <RenderFlowNode
+      key={step.id}
+      step={step}
+      isLastStep={isLastRun && i === steps.length - 1}
+      isStreaming={isStreaming}
+    />
+  ))
 
-  return (
-    <FlowNodeStack>
-      {steps.map((step, i) => {
-        const pos = i === 0 ? 'first' : i === steps.length - 1 ? 'last' : 'middle'
-        return (
-          <RenderFlowNode
-            key={step.id}
-            step={step}
-            stackPosition={pos as 'first' | 'middle' | 'last'}
-            isLastStep={isLastRun && i === steps.length - 1}
-            isStreaming={isStreaming}
-          />
-        )
-      })}
-    </FlowNodeStack>
-  )
+  return steps.length > 1 ? <FlowNodeStack>{nodes}</FlowNodeStack> : <>{nodes}</>
 }
 
 interface RenderFlowNodeProps {
   step: AssistantFlowStep
-  stackPosition: 'solo' | 'first' | 'middle' | 'last'
   isLastStep: boolean
   isStreaming: boolean
 }
 
 const RenderFlowNode: React.FC<RenderFlowNodeProps> = ({
   step,
-  stackPosition,
   isLastStep,
   isStreaming,
 }) => {
@@ -158,7 +136,7 @@ const RenderFlowNode: React.FC<RenderFlowNodeProps> = ({
           summary={truncate(keyLine, 60) || undefined}
           tone={thinkingStep.isStreaming && isStreaming ? 'running' : 'neutral'}
           defaultExpanded={expanded}
-          stackPosition={stackPosition}
+
         >
           <ThinkingNodeDetail step={thinkingStep} />
         </FlowNode>
@@ -179,7 +157,7 @@ const RenderFlowNode: React.FC<RenderFlowNodeProps> = ({
             subtitle={statusLabel}
             tone={toolStep.status === 'failed' ? 'failed' : toolStep.status === 'completed' ? 'success' : 'running'}
             defaultExpanded={expanded}
-            stackPosition={stackPosition}
+  
           >
             <AgentNodeDetail step={toolStep} />
           </FlowNode>
@@ -204,7 +182,7 @@ const RenderFlowNode: React.FC<RenderFlowNodeProps> = ({
           summary={summary}
           defaultExpanded={expanded || toolStep.status === 'failed'}
           mcpBadge={model?.source === 'mcp' ? model.mcpServerName : undefined}
-          stackPosition={stackPosition}
+
         >
           {hasContent ? <ToolNodeDetail step={toolStep} /> : undefined}
         </FlowNode>
@@ -225,7 +203,7 @@ const RenderFlowNode: React.FC<RenderFlowNodeProps> = ({
           subtitle={hookStep.hookStatus}
           tone={hookTone}
           defaultExpanded={expanded}
-          stackPosition={stackPosition}
+
         >
           {hookStep.hookOutput ? <HookNodeDetail step={hookStep} /> : undefined}
         </FlowNode>

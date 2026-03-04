@@ -11,7 +11,7 @@ interface MessageRowProps {
 export const MessageRow: React.FC<MessageRowProps> = ({ children, avatar, className }) => (
   <div className={cn('flex gap-3 w-full', className)}>
     {avatar}
-    <div className="flex flex-col flex-1 min-w-0 gap-2">
+    <div className="flex flex-col flex-1 min-w-0 gap-1.5">
       {children}
     </div>
   </div>
@@ -61,8 +61,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ children, classNam
   <div
     className={cn(
       'rounded-[var(--chat-card-radius)]',
-      'bg-primary text-primary-foreground',
-      'px-4 py-2.5 shadow-sm',
+      'bg-muted/40 text-foreground',
+      'px-4 py-2.5',
       className,
     )}
   >
