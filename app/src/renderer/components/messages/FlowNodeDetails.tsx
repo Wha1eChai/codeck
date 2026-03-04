@@ -1,12 +1,15 @@
 import React, { useMemo, useState } from 'react'
-import { Bot, ChevronDown } from 'lucide-react'
-import type { AssistantFlowStep, AssistantToolStep, AssistantHookStep, AssistantThinkingStep } from '@renderer/lib/conversation-reducer'
+import { ChevronDown, Sparkles } from 'lucide-react'
+import type { AssistantFlowStep, AssistantToolStep, AssistantHookStep, AssistantThinkingStep, AssistantTextStep } from '@renderer/lib/conversation-reducer'
 import { cn } from '@renderer/lib/utils'
 import { buildToolBlockViewModel } from '@renderer/lib/tool-presentation'
 import { DiffView } from './DiffView'
 import { ShowMoreText } from './primitives'
 import { MessageMarkdown } from './MessageMarkdown'
 import { FlowNode } from './FlowNode'
+import { getToolIcon } from './tool-icons'
+
+const MARKDOWN_RESULT_TOOLS = new Set(['WebSearch', 'WebFetch'])
 
 // ── Thinking ──────────────────────────────────────────────────────────
 
@@ -22,8 +25,9 @@ export const ThinkingNodeDetail: React.FC<ThinkingNodeDetailProps> = ({ step }) 
 
   return (
     <div className="space-y-1.5">
-      <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">{keyLine}</p>
-
+      <div className="text-xs text-foreground/70 leading-relaxed [&_p]:mb-1 [&_p:last-child]:mb-0">
+        <MessageMarkdown content={keyLine} />
+      </div>
       {hasDetails && (
         <>
           <button
@@ -33,13 +37,10 @@ export const ThinkingNodeDetail: React.FC<ThinkingNodeDetailProps> = ({ step }) 
           >
             {expanded ? 'Hide details' : 'Show details'}
           </button>
-
           {expanded && (
-            <ShowMoreText
-              text={normalized}
-              maxChars={900}
-              className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap pt-1"
-            />
+            <div className="text-xs text-muted-foreground leading-relaxed max-h-96 overflow-y-auto pt-1 [&_p]:mb-1.5 [&_p:last-child]:mb-0">
+              <MessageMarkdown content={normalized} />
+            </div>
           )}
         </>
       )}
@@ -90,11 +91,17 @@ export const ToolNodeDetail: React.FC<ToolNodeDetailProps> = ({ step }) => {
       }
       {model && <ToolInputDetail model={model} />}
       {resultText && (
-        <ShowMoreText
-          text={resultText}
-          maxChars={560}
-          className="whitespace-pre-wrap break-words text-foreground/80"
-        />
+        MARKDOWN_RESULT_TOOLS.has(step.toolName) ? (
+          <div className="text-xs text-foreground/80 max-h-96 overflow-y-auto [&_p]:mb-2 [&_p:last-child]:mb-0">
+            <MessageMarkdown content={resultText} />
+          </div>
+        ) : (
+          <ShowMoreText
+            text={resultText}
+            maxChars={560}
+            className="whitespace-pre-wrap break-words text-foreground/80"
+          />
+        )
       )}
     </>
   )
@@ -110,18 +117,28 @@ const ToolInputDetail: React.FC<ToolInputDetailProps> = ({ model }) => {
   }
 
   if (model.contentKind === 'write' && model.writeContent) {
+    const ext = model.filePath?.split('.').pop()?.toLowerCase()
+    const langMap: Record<string, string> = {
+      ts: 'typescript', tsx: 'tsx', js: 'javascript', jsx: 'jsx',
+      py: 'python', json: 'json', css: 'css', html: 'html',
+      md: 'markdown', sh: 'bash', yaml: 'yaml', yml: 'yaml',
+      sql: 'sql', go: 'go', rs: 'rust',
+    }
+    const lang = ext ? (langMap[ext] ?? '') : ''
+    const fence = '```' + lang + '\n' + model.writeContent + '\n```'
     return (
-      <pre className="rounded border border-border/30 bg-card/50 p-2 overflow-x-auto max-h-60 overflow-y-auto whitespace-pre-wrap text-xs">
-        {model.writeContent}
-      </pre>
+      <div className="max-h-60 overflow-y-auto [&_.my-3]:my-0">
+        <MessageMarkdown content={fence} />
+      </div>
     )
   }
 
   if (model.contentKind === 'json' && model.input) {
+    const jsonStr = JSON.stringify(model.input, null, 2)
     return (
-      <pre className="rounded border border-border/30 bg-card/50 p-2 overflow-x-auto max-h-48 overflow-y-auto whitespace-pre-wrap text-xs">
-        {JSON.stringify(model.input, null, 2)}
-      </pre>
+      <div className="max-h-48 overflow-y-auto [&_.my-3]:my-0">
+        <MessageMarkdown content={'```json\n' + jsonStr + '\n```'} />
+      </div>
     )
   }
 
@@ -157,11 +174,25 @@ export interface AgentNodeDetailProps {
 
 export const AgentNodeDetail: React.FC<AgentNodeDetailProps> = ({ step }) => {
   const childSteps = step.childSteps ?? []
-  const childTextSteps = childSteps.filter(s => s.kind === 'text')
+  const childThinkingSteps = childSteps.filter(
+    (s): s is AssistantThinkingStep => s.kind === 'thinking',
+  )
+  const childTextSteps = childSteps.filter((s): s is AssistantTextStep => s.kind === 'text')
   const childToolSteps = childSteps.filter((s): s is AssistantToolStep => s.kind === 'tool')
 
   return (
     <div className="border-l-2 border-purple-400/40 pl-3 ml-1 space-y-1">
+      {childThinkingSteps.map(thinkingStep => (
+        <FlowNode
+          key={thinkingStep.id}
+          icon={<Sparkles className="h-3.5 w-3.5 text-amber-500" />}
+          title="Thinking"
+          tone="neutral"
+          defaultExpanded={false}
+        >
+          <ThinkingNodeDetail step={thinkingStep} />
+        </FlowNode>
+      ))}
       {childTextSteps.map(textStep => (
         <div key={textStep.id} className="px-2 text-sm">
           <MessageMarkdown content={textStep.content} />
@@ -174,7 +205,7 @@ export const AgentNodeDetail: React.FC<AgentNodeDetailProps> = ({ step }) => {
         return (
           <FlowNode
             key={childStep.id}
-            icon={<Bot className="h-3.5 w-3.5 text-purple-500" />}
+            icon={getToolIcon(childStep.toolName)}
             title={childModel?.displayName ?? childStep.toolName}
             subtitle={childStep.status === 'completed' ? 'Done' : childStep.status === 'failed' ? 'Failed' : 'Running'}
             tone={childStep.status === 'failed' ? 'failed' : childStep.status === 'completed' ? 'success' : 'running'}

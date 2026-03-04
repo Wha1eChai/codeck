@@ -70,57 +70,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ children, classNam
   </div>
 )
 
-type ToolChipStatus = 'running' | 'completed' | 'failed'
-
-interface ToolChipProps {
-  name: string
-  status: ToolChipStatus
-  summary?: string
-  onClick?: () => void
-  className?: string
-}
-
-const STATUS_STYLES: Record<ToolChipStatus, string> = {
-  running: 'bg-blue-500',
-  completed: 'bg-emerald-500',
-  failed: 'bg-red-500',
-}
-
-export const ToolChip: React.FC<ToolChipProps> = ({
-  name,
-  status,
-  summary,
-  onClick,
-  className,
-}) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className={cn(
-      'flex items-center gap-2.5 w-full rounded-[var(--chat-tool-radius)]',
-      'border border-border/50 bg-muted/30 hover:bg-muted/60',
-      'px-3 py-2 text-sm transition-colors text-left cursor-pointer',
-      className,
-    )}
-  >
-    <span
-      className={cn(
-        'shrink-0 w-2 h-2 rounded-full',
-        STATUS_STYLES[status],
-        status === 'running' && 'animate-pulse',
-      )}
-    />
-
-    <span className="font-medium text-foreground truncate">{name}</span>
-
-    {summary && (
-      <span className="ml-auto text-xs text-muted-foreground font-mono truncate max-w-[200px]">
-        {summary}
-      </span>
-    )}
-  </button>
-)
-
 interface CollapsibleSectionProps {
   label: string
   icon?: React.ReactNode
@@ -208,7 +157,7 @@ export const ShowMoreText: React.FC<ShowMoreTextProps> = ({
   const preview = text.slice(0, maxChars).trimEnd()
   return (
     <div className={cn('space-y-1', className)}>
-      <div>{expanded ? text : `${preview}...`}</div>
+      <div className={cn(expanded && 'max-h-96 overflow-y-auto')}>{expanded ? text : `${preview}...`}</div>
       <button
         type="button"
         onClick={() => setExpanded(v => !v)}

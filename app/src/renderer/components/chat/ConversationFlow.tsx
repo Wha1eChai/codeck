@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react'
+import { AlertCircle, ScrollText } from 'lucide-react'
 import type { Message } from '@common/types'
-import type { ConversationGroupView } from '@renderer/lib/conversation-reducer'
+import type { ConversationGroupView, UserGroupSubtype } from '@renderer/lib/conversation-reducer'
 import { useMessageStore } from '@renderer/stores/message-store'
 import { AiMessageGroup } from '../messages/AiMessageGroup'
 import { TextMessage } from '../messages/TextMessage'
@@ -8,6 +9,8 @@ import { ErrorMessage } from '../messages/ErrorMessage'
 import { CompactedMessage } from '../messages/CompactedMessage'
 import { FallbackMessage } from '../messages/FallbackMessage'
 import { SystemBanner } from '../messages/primitives'
+import { FlowNode } from '../messages/FlowNode'
+import { MessageMarkdown } from '../messages/MessageMarkdown'
 import { cn } from '@renderer/lib/utils'
 
 interface ConversationFlowProps {
@@ -53,7 +56,7 @@ export const ConversationFlow: React.FC<ConversationFlowProps> = ({ groups, sess
               {group.kind === 'assistant' ? (
                 <AiMessageGroup group={group.assistant} />
               ) : group.kind === 'user' ? (
-                <TextMessage message={group.messages[0]} />
+                renderUserGroup(group.messages[0], group.userSubtype)
               ) : (
                 group.messages.map(renderSystemMessage)
               )}
@@ -96,6 +99,54 @@ function renderSystemMessage(message: Message): React.ReactNode {
     default:
       return null
   }
+}
+
+function renderUserGroup(msg: Message, subtype: UserGroupSubtype): React.ReactNode {
+  const content = typeof msg.content === 'string' ? msg.content : ''
+
+  switch (subtype) {
+    case 'hidden':
+      return null
+
+    case 'interrupted':
+      return (
+        <SystemBanner icon={<AlertCircle className="h-3 w-3 opacity-60" />}>
+          {content}
+        </SystemBanner>
+      )
+
+    case 'system-injection': {
+      const title = extractInjectionTitle(content)
+      return (
+        <FlowNode
+          icon={<ScrollText className="h-3.5 w-3.5" />}
+          title={title}
+          tone="neutral"
+          defaultExpanded={false}
+        >
+          <div className="text-xs text-muted-foreground max-h-60 overflow-y-auto [&_p]:mb-1.5 [&_p:last-child]:mb-0">
+            <MessageMarkdown content={content} />
+          </div>
+        </FlowNode>
+      )
+    }
+
+    case 'real':
+    default:
+      return <TextMessage message={msg} />
+  }
+}
+
+function extractInjectionTitle(content: string): string {
+  const cmdMatch = content.match(/<command-name>([^<]+)<\/command-name>/)
+  if (cmdMatch) return `Skill: ${cmdMatch[1].replace(/^\//, '')}`
+
+  const msgMatch = content.match(/<command-message>([^<]+)<\/command-message>/)
+  if (msgMatch) return `Command: ${msgMatch[1]}`
+
+  if (content.startsWith('Base directory for this skill:')) return 'Skill Context'
+
+  return 'System Context'
 }
 
 export function classifySystemMessage(message: Message): SystemMessageRenderKind {

@@ -4,6 +4,10 @@ const EDIT_TOOLS = new Set(['Edit', 'MultiEdit'])
 const WRITE_TOOLS = new Set(['Write'])
 const SUMMARY_MAX_LENGTH = 60
 
+const INPUT_PREFERRED_TOOLS = new Set([
+  'Read', 'Write', 'Edit', 'MultiEdit', 'Grep', 'Glob', 'WebSearch', 'WebFetch',
+])
+
 export type ToolBlockStatus = 'running' | 'completed' | 'failed'
 export type ToolBlockContentKind = 'diff' | 'write' | 'json' | 'none'
 
@@ -39,7 +43,9 @@ export function buildToolBlockViewModel(
 
   const resultSummary = summarizeToolResult(resultMessage)
   const inputSummary = summarizeToolInput(toolName, input)
-  const summary = resultSummary ?? inputSummary
+  const summary = INPUT_PREFERRED_TOOLS.has(toolName)
+    ? (inputSummary ?? resultSummary)
+    : (resultSummary ?? inputSummary)
 
   const isEditTool = EDIT_TOOLS.has(toolName)
   const isWriteTool = WRITE_TOOLS.has(toolName)

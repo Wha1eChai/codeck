@@ -67,6 +67,15 @@ export function getRefreshInterval(timestamp: number, now: number = Date.now()):
   return null                       // No refresh needed for older items
 }
 
+export function formatDuration(ms: number): string {
+  if (ms < 1000) return `${(ms / 1000).toFixed(1)}s`
+  const totalSeconds = Math.floor(ms / 1000)
+  if (totalSeconds < 60) return `${totalSeconds}s`
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  return seconds === 0 ? `${minutes}m` : `${minutes}m ${seconds}s`
+}
+
 /**
  * Legacy formatTime — kept for compatibility but prefer formatRelativeTime.
  */

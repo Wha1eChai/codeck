@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react'
-import { Sparkles, Wrench, Anchor, Bot } from 'lucide-react'
+import { Sparkles, Anchor, Bot } from 'lucide-react'
 import { useSessionStore } from '@renderer/stores/session-store'
-import { cn, formatTime } from '@renderer/lib/utils'
+import { cn, formatTime, formatDuration } from '@renderer/lib/utils'
 import type {
   AssistantMessageGroupView,
   AssistantHookStep,
@@ -24,11 +24,10 @@ import {
   ToolNodeDetail,
   HookNodeDetail,
   AgentNodeDetail,
-  extractKeyLine,
-  truncate,
   extractAgentName,
   readResultText,
 } from './FlowNodeDetails'
+import { getToolIcon } from './tool-icons'
 
 export interface AiMessageGroupProps {
   group: AssistantMessageGroupView
@@ -128,15 +127,12 @@ const RenderFlowNode: React.FC<RenderFlowNodeProps> = ({
   switch (step.kind) {
     case 'thinking': {
       const thinkingStep = step as AssistantThinkingStep
-      const keyLine = extractKeyLine(thinkingStep.content.trim())
       return (
         <FlowNode
           icon={<Sparkles className={cn('h-3.5 w-3.5 text-amber-500', thinkingStep.isStreaming && isStreaming && 'animate-pulse')} />}
           title="Thinking"
-          summary={truncate(keyLine, 60) || undefined}
           tone={thinkingStep.isStreaming && isStreaming ? 'running' : 'neutral'}
           defaultExpanded={expanded}
-
         >
           <ThinkingNodeDetail step={thinkingStep} />
         </FlowNode>
@@ -173,16 +169,22 @@ const RenderFlowNode: React.FC<RenderFlowNodeProps> = ({
       )
       const summary = toolStep.latestProgressMessage?.content ?? model?.summary
       const tone = toolStep.status === 'failed' ? 'failed' as const : toolStep.status === 'completed' ? 'success' as const : 'running' as const
+      const durationMs = toolStep.status !== 'running'
+        ? toolStep.updatedAt - toolStep.startedAt
+        : undefined
+      const durationLabel = durationMs !== undefined && durationMs > 200
+        ? formatDuration(durationMs)
+        : undefined
 
       return (
         <FlowNode
-          icon={<Wrench className="h-3.5 w-3.5" />}
+          icon={getToolIcon(toolStep.toolName)}
           title={model?.displayName ?? toolStep.toolName}
           tone={tone}
           summary={summary}
+          subtitle={durationLabel}
           defaultExpanded={expanded || toolStep.status === 'failed'}
           mcpBadge={model?.source === 'mcp' ? model.mcpServerName : undefined}
-
         >
           {hasContent ? <ToolNodeDetail step={toolStep} /> : undefined}
         </FlowNode>

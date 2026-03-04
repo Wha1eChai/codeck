@@ -94,6 +94,8 @@ export interface AssistantMessageGroupView {
   lastMessage: Message | null
 }
 
+export type UserGroupSubtype = 'real' | 'interrupted' | 'system-injection' | 'hidden'
+
 export type ConversationGroupView =
   | {
     kind: 'assistant'
@@ -105,6 +107,7 @@ export type ConversationGroupView =
     kind: 'user'
     key: string
     messages: Message[]
+    userSubtype: UserGroupSubtype
   }
   | {
     kind: 'system'
@@ -149,6 +152,7 @@ export function reduceConversation(messages: Message[]): ConversationGroupView[]
         kind: 'user',
         key: msg.id,
         messages: [msg],
+        userSubtype: classifyUserMessage(msg),
       })
     } else {
       groups.push({
@@ -165,6 +169,20 @@ export function reduceConversation(messages: Message[]): ConversationGroupView[]
 
 function isAssistantContentMessage(msg: Message): boolean {
   return (msg.role === 'assistant' || msg.role === 'tool') && AI_GROUP_TYPES.has(msg.type)
+}
+
+function classifyUserMessage(msg: Message): UserGroupSubtype {
+  const content = typeof msg.content === 'string' ? msg.content : ''
+
+  if (content.includes('[Request interrupted by user]')) return 'interrupted'
+  if (content.includes('<system-reminder>')) return 'hidden'
+  if (
+    content.startsWith('<command-message>') ||
+    content.startsWith('<command-name>') ||
+    content.startsWith('Base directory for this skill:')
+  ) return 'system-injection'
+
+  return 'real'
 }
 
 function buildAssistantGroupView(messages: Message[]): AssistantMessageGroupView {
