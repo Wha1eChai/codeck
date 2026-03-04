@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react'
-import { Loader2 } from 'lucide-react'
 import { useSessionStore } from '@renderer/stores/session-store'
 import { cn, formatTime } from '@renderer/lib/utils'
-import type { AssistantMessageGroupView } from '@renderer/lib/conversation-reducer'
+import type { AssistantMessageGroupView, AssistantHookStep, AssistantTextStep, AssistantThinkingStep, AssistantToolStep } from '@renderer/lib/conversation-reducer'
+import { groupFlowStepsIntoRuns } from '@renderer/lib/conversation-reducer'
+import type { FlowRun } from '@renderer/lib/conversation-reducer'
 import {
   MessageRow,
   MessageAvatar,
@@ -11,6 +12,7 @@ import {
 import { MessageMarkdown } from './MessageMarkdown'
 import { ThinkingTimeline } from './ThinkingTimeline'
 import { ToolTimeline } from './ToolTimeline'
+import { HookRunSection } from './HookRunSection'
 
 export interface AiMessageGroupProps {
   group: AssistantMessageGroupView
@@ -19,85 +21,29 @@ export interface AiMessageGroupProps {
 export const AiMessageGroup: React.FC<AiMessageGroupProps> = ({ group }) => {
   const sessionStatus = useSessionStore(s => s.sessionStatus)
   const isStreamingSession = sessionStatus === 'streaming'
-  const {
-    thinkingSteps,
-    text: textMessages,
-    textSteps,
-    toolSteps,
-    other: otherMessages,
-    lastMessage,
-  } = group
-  const nonEmptyTextMessages = useMemo(
-    () => textMessages.filter(msg => msg.content),
-    [textMessages],
-  )
-  const hasCardContent = nonEmptyTextMessages.length > 0
-  const hasStreamingThinking = useMemo(
-    () => thinkingSteps.some(step => step.isStreaming),
-    [thinkingSteps],
-  )
-  const visibleOtherMessages = useMemo(
-    () => otherMessages.filter(message => message.type !== 'tool_progress'),
-    [otherMessages],
-  )
-  const sectionOrder = useMemo(() => {
-    const sections: Array<{ kind: 'thinking' | 'text' | 'tool'; order: number }> = []
-    if (thinkingSteps.length > 0) {
-      sections.push({ kind: 'thinking', order: Math.min(...thinkingSteps.map(step => step.order)) })
-    }
-    if (nonEmptyTextMessages.length > 0 && textSteps.length > 0) {
-      sections.push({ kind: 'text', order: Math.min(...textSteps.map(step => step.order)) })
-    }
-    if (toolSteps.length > 0) {
-      sections.push({ kind: 'tool', order: Math.min(...toolSteps.map(step => step.order)) })
-    }
-    return sections.sort((a, b) => a.order - b.order)
-  }, [thinkingSteps, nonEmptyTextMessages.length, textSteps, toolSteps])
+  const { flowSteps, lastMessage } = group
 
-  const hasVisibleContent =
-    thinkingSteps.length > 0 ||
-    hasCardContent ||
-    toolSteps.length > 0 ||
-    visibleOtherMessages.length > 0
+  const runs = useMemo(() => groupFlowStepsIntoRuns(flowSteps), [flowSteps])
+
+  const hasVisibleContent = useMemo(() => {
+    return runs.some(run => {
+      if (run.kind === 'text') {
+        return run.steps.some(s => (s as AssistantTextStep).content)
+      }
+      return true
+    })
+  }, [runs])
 
   if (!hasVisibleContent) return null
 
   return (
     <MessageRow avatar={<MessageAvatar role="assistant" />}>
-      {sectionOrder.map((section) => {
-        if (section.kind === 'thinking') {
-          return (
-            <ThinkingTimeline
-              key="thinking-section"
-              steps={thinkingSteps}
-              isStreaming={Boolean(hasStreamingThinking && isStreamingSession)}
-            />
-          )
-        }
-
-        if (section.kind === 'text') {
-          if (!hasCardContent) return null
-          return (
-            <MessageCard key="text-section">
-              <div className={cn('px-4 py-3.5 text-foreground')}>
-                {nonEmptyTextMessages.map(message => (
-                  <div key={message.id} className="markdown-body">
-                    <MessageMarkdown content={message.content} />
-                  </div>
-                ))}
-              </div>
-            </MessageCard>
-          )
-        }
-
-        return <ToolTimeline key="tool-section" steps={toolSteps} />
-      })}
-
-      {visibleOtherMessages.map(message => (
-        <div key={message.id} className="flex items-center gap-2 text-xs text-muted-foreground px-1">
-          {message.type === 'tool_progress' && <Loader2 className="h-3 w-3 animate-spin" />}
-          <span>{message.toolName ? `${message.toolName}: ` : ''}{typeof message.content === 'string' ? message.content : JSON.stringify(message.content)}</span>
-        </div>
+      {runs.map((run, index) => (
+        <FlowRunRenderer
+          key={`run-${run.kind}-${index}`}
+          run={run}
+          isStreamingSession={isStreamingSession}
+        />
       ))}
 
       {lastMessage?.timestamp && (
@@ -107,4 +53,52 @@ export const AiMessageGroup: React.FC<AiMessageGroupProps> = ({ group }) => {
       )}
     </MessageRow>
   )
+}
+
+interface FlowRunRendererProps {
+  run: FlowRun
+  isStreamingSession: boolean
+}
+
+const FlowRunRenderer: React.FC<FlowRunRendererProps> = ({ run, isStreamingSession }) => {
+  switch (run.kind) {
+    case 'thinking': {
+      const steps = run.steps as AssistantThinkingStep[]
+      const hasStreamingThinking = steps.some(s => s.isStreaming)
+      return (
+        <ThinkingTimeline
+          steps={steps}
+          isStreaming={Boolean(hasStreamingThinking && isStreamingSession)}
+        />
+      )
+    }
+
+    case 'text': {
+      const steps = run.steps as AssistantTextStep[]
+      const nonEmpty = steps.filter(s => s.content)
+      if (nonEmpty.length === 0) return null
+      return (
+        <MessageCard>
+          <div className={cn('px-4 py-3.5 text-foreground')}>
+            {nonEmpty.map(step =>
+              step.messages.map(message => (
+                <div key={message.id} className="markdown-body">
+                  <MessageMarkdown content={message.content} />
+                </div>
+              )),
+            )}
+          </div>
+        </MessageCard>
+      )
+    }
+
+    case 'tool':
+      return <ToolTimeline steps={run.steps as AssistantToolStep[]} />
+
+    case 'hook':
+      return <HookRunSection steps={run.steps as AssistantHookStep[]} />
+
+    default:
+      return null
+  }
 }
