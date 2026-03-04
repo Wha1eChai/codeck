@@ -48,7 +48,36 @@ export interface AssistantToolStep extends AssistantFlowStepBase {
   childSteps?: AssistantFlowStep[]
 }
 
-export type AssistantFlowStep = AssistantThinkingStep | AssistantTextStep | AssistantToolStep
+export interface AssistantHookStep extends AssistantFlowStepBase {
+  kind: 'hook'
+  hookName: string
+  hookStatus: string
+  hookOutput?: string
+  message: Message
+}
+
+export type AssistantFlowStep = AssistantThinkingStep | AssistantTextStep | AssistantToolStep | AssistantHookStep
+
+export interface FlowRun {
+  kind: AssistantFlowStep['kind']
+  steps: AssistantFlowStep[]
+}
+
+export function groupFlowStepsIntoRuns(steps: AssistantFlowStep[]): FlowRun[] {
+  if (steps.length === 0) return []
+  const runs: FlowRun[] = []
+  let currentRun: FlowRun = { kind: steps[0].kind, steps: [steps[0]] }
+  for (let i = 1; i < steps.length; i++) {
+    if (steps[i].kind === currentRun.kind) {
+      currentRun.steps.push(steps[i])
+    } else {
+      runs.push(currentRun)
+      currentRun = { kind: steps[i].kind, steps: [steps[i]] }
+    }
+  }
+  runs.push(currentRun)
+  return runs
+}
 
 export interface AssistantMessageGroupView {
   key: string
@@ -60,6 +89,7 @@ export interface AssistantMessageGroupView {
   thinkingSteps: AssistantThinkingStep[]
   textSteps: AssistantTextStep[]
   toolSteps: AssistantToolStep[]
+  hookSteps: AssistantHookStep[]
   flowSteps: AssistantFlowStep[]
   lastMessage: Message | null
 }
@@ -105,6 +135,13 @@ export function reduceConversation(messages: Message[]): ConversationGroupView[]
       continue
     }
 
+    // Absorb hook messages into the current or a new assistant group
+    if (msg.hookName) {
+      if (!currentAiGroup) currentAiGroup = []
+      currentAiGroup.push(msg)
+      continue
+    }
+
     flushAiGroup()
 
     if (msg.role === 'user' && msg.type === 'text') {
@@ -113,18 +150,6 @@ export function reduceConversation(messages: Message[]): ConversationGroupView[]
         key: msg.id,
         messages: [msg],
       })
-    } else if (msg.hookName) {
-      // Merge consecutive hook messages into one system group
-      const lastGroup = groups[groups.length - 1]
-      if (lastGroup && lastGroup.kind === 'system' && lastGroup.messages.some(m => m.hookName)) {
-        lastGroup.messages.push(msg)
-      } else {
-        groups.push({
-          kind: 'system',
-          key: msg.id,
-          messages: [msg],
-        })
-      }
     } else {
       groups.push({
         kind: 'system',
@@ -150,6 +175,7 @@ function buildAssistantGroupView(messages: Message[]): AssistantMessageGroupView
   const thinkingSteps: AssistantThinkingStep[] = []
   const textSteps: AssistantTextStep[] = []
   const toolSteps: AssistantToolStep[] = []
+  const hookSteps: AssistantHookStep[] = []
   const pendingByToolUseId = new Map<string, AssistantToolPair>()
   const pendingByToolName = new Map<string, AssistantToolPair[]>()
   const pendingToolStepsByToolUseId = new Map<string, AssistantToolStep>()
@@ -158,6 +184,25 @@ function buildAssistantGroupView(messages: Message[]): AssistantMessageGroupView
 
   for (let index = 0; index < messages.length; index++) {
     const msg = messages[index]
+
+    // Handle hook messages before the type switch
+    if (msg.hookName) {
+      const hookStep: AssistantHookStep = {
+        id: `hook:${msg.id}`,
+        kind: 'hook',
+        hookName: msg.hookName,
+        hookStatus: msg.hookStatus ?? 'started',
+        hookOutput: extractHookOutput(msg.content),
+        message: msg,
+        order: index,
+        startedAt: msg.timestamp,
+        updatedAt: msg.timestamp,
+        isStreaming: false,
+      }
+      hookSteps.push(hookStep)
+      continue
+    }
+
     switch (msg.type) {
       case 'thinking': {
         thinking.push(msg)
@@ -284,7 +329,7 @@ function buildAssistantGroupView(messages: Message[]): AssistantMessageGroupView
     : toolSteps
 
   const lastMessage = messages[messages.length - 1] ?? null
-  const flowSteps = [...topThinkingSteps, ...topTextSteps, ...topToolSteps].sort((a, b) => a.order - b.order)
+  const flowSteps = [...topThinkingSteps, ...topTextSteps, ...topToolSteps, ...hookSteps].sort((a, b) => a.order - b.order)
 
   return {
     key: messages[0]?.id ?? 'assistant-empty',
@@ -296,6 +341,7 @@ function buildAssistantGroupView(messages: Message[]): AssistantMessageGroupView
     thinkingSteps: topThinkingSteps,
     textSteps: topTextSteps,
     toolSteps: topToolSteps,
+    hookSteps,
     flowSteps,
     lastMessage,
   }
@@ -595,4 +641,10 @@ function findLatestToolStepByName(
     }
   }
   return undefined
+}
+
+function extractHookOutput(content: string | unknown): string | undefined {
+  if (typeof content !== 'string') return undefined
+  const match = content.match(/^\[Hook: [^\]]+\]\s*(.+)$/)
+  return match?.[1] ?? undefined
 }

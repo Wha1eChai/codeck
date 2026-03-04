@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Message } from '@common/types'
-import { reduceConversation } from './conversation-reducer'
+import { reduceConversation, groupFlowStepsIntoRuns } from './conversation-reducer'
+import type { AssistantFlowStep } from './conversation-reducer'
 
 function makeMessage(partial: Partial<Message>): Message {
   return {
@@ -19,6 +20,10 @@ function makeMessage(partial: Partial<Message>): Message {
     ...(partial.isStreamDelta !== undefined ? { isStreamDelta: partial.isStreamDelta } : {}),
     ...(partial.isReplay !== undefined ? { isReplay: partial.isReplay } : {}),
     ...(partial.parentToolUseId ? { parentToolUseId: partial.parentToolUseId } : {}),
+    ...(partial.hookName ? { hookName: partial.hookName } : {}),
+    ...(partial.hookStatus ? { hookStatus: partial.hookStatus as Message['hookStatus'] } : {}),
+    ...(partial.hookId ? { hookId: partial.hookId } : {}),
+    ...(partial.hookEvent ? { hookEvent: partial.hookEvent } : {}),
   }
 }
 
@@ -363,5 +368,79 @@ describe('reduceConversation', () => {
 
     expect(groups[0].assistant.toolSteps).toHaveLength(1)
     expect(groups[0].assistant.toolSteps[0].latestProgressMessage?.id).toBe('read-progress-late')
+  })
+
+  // ── Hook absorption ──
+
+  describe('hook absorption into assistant groups', () => {
+    it('should absorb hook messages into adjacent assistant group', () => {
+      const messages: Message[] = [
+        makeMessage({ id: 'text1', role: 'assistant', type: 'text', content: 'hello' }),
+        makeMessage({ id: 'hook1', role: 'system', type: 'text', content: '[Hook: prettier] Success', hookName: 'prettier', hookStatus: 'completed' }),
+        makeMessage({ id: 'tool1', role: 'assistant', type: 'tool_use', content: '', toolName: 'Read', toolUseId: 'toolu_1' }),
+        makeMessage({ id: 'result1', role: 'tool', type: 'tool_result', content: 'ok', toolUseId: 'toolu_1', success: true }),
+      ]
+      const groups = reduceConversation(messages)
+      expect(groups).toHaveLength(1)
+      expect(groups[0].kind).toBe('assistant')
+    })
+
+    it('should create hookSteps in flowSteps at correct chronological position', () => {
+      const messages: Message[] = [
+        makeMessage({ id: 'text1', role: 'assistant', type: 'text', content: 'hello' }),
+        makeMessage({ id: 'hook1', role: 'system', type: 'text', content: '', hookName: 'prettier', hookStatus: 'completed' }),
+        makeMessage({ id: 'tool1', role: 'assistant', type: 'tool_use', content: '', toolName: 'Read', toolUseId: 'toolu_1' }),
+      ]
+      const groups = reduceConversation(messages)
+      const assistant = groups[0].kind === 'assistant' ? groups[0].assistant : null
+      expect(assistant!.flowSteps).toHaveLength(3)
+      expect(assistant!.flowSteps[0].kind).toBe('text')
+      expect(assistant!.flowSteps[1].kind).toBe('hook')
+      expect(assistant!.flowSteps[2].kind).toBe('tool')
+    })
+
+    it('should handle hooks between user messages as standalone assistant group', () => {
+      const messages: Message[] = [
+        makeMessage({ id: 'user1', role: 'user', type: 'text', content: 'hi' }),
+        makeMessage({ id: 'hook1', role: 'system', type: 'text', content: '', hookName: 'startup', hookStatus: 'completed' }),
+        makeMessage({ id: 'user2', role: 'user', type: 'text', content: 'bye' }),
+      ]
+      const groups = reduceConversation(messages)
+      expect(groups).toHaveLength(3)
+      expect(groups[1].kind).toBe('assistant')
+      if (groups[1].kind !== 'assistant') return
+      expect(groups[1].assistant.flowSteps[0].kind).toBe('hook')
+    })
+  })
+})
+
+describe('groupFlowStepsIntoRuns', () => {
+  it('should merge adjacent same-kind steps into runs', () => {
+    const steps = [
+      { id: 't1', kind: 'thinking' as const, order: 0, startedAt: 0, updatedAt: 0, isStreaming: false, messages: [], content: '' },
+      { id: 't2', kind: 'thinking' as const, order: 1, startedAt: 0, updatedAt: 0, isStreaming: false, messages: [], content: '' },
+      { id: 'x1', kind: 'text' as const, order: 2, startedAt: 0, updatedAt: 0, isStreaming: false, messages: [], content: '' },
+      { id: 'tl1', kind: 'tool' as const, order: 3, startedAt: 0, updatedAt: 0, isStreaming: false, toolName: 'Read', progressMessages: [], status: 'completed' as const },
+      { id: 'tl2', kind: 'tool' as const, order: 4, startedAt: 0, updatedAt: 0, isStreaming: false, toolName: 'Write', progressMessages: [], status: 'completed' as const },
+    ] as AssistantFlowStep[]
+    const runs = groupFlowStepsIntoRuns(steps)
+    expect(runs).toHaveLength(3)
+    expect(runs[0].kind).toBe('thinking')
+    expect(runs[0].steps).toHaveLength(2)
+    expect(runs[2].kind).toBe('tool')
+    expect(runs[2].steps).toHaveLength(2)
+  })
+
+  it('should keep non-adjacent same-kind as separate runs', () => {
+    const steps = [
+      { id: 't1', kind: 'thinking' as const, order: 0, startedAt: 0, updatedAt: 0, isStreaming: false, messages: [], content: '' },
+      { id: 'x1', kind: 'text' as const, order: 1, startedAt: 0, updatedAt: 0, isStreaming: false, messages: [], content: '' },
+      { id: 't2', kind: 'thinking' as const, order: 2, startedAt: 0, updatedAt: 0, isStreaming: false, messages: [], content: '' },
+    ] as AssistantFlowStep[]
+    expect(groupFlowStepsIntoRuns(steps)).toHaveLength(3)
+  })
+
+  it('should return empty array for empty input', () => {
+    expect(groupFlowStepsIntoRuns([])).toEqual([])
   })
 })
