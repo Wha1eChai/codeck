@@ -91,12 +91,20 @@ export const useMessageStore = create<MessageStore>((set) => ({
     }
     // Non-delta: flush pending first, then apply immediately
     if (pendingDeltas.length > 0) flushPendingDeltas()
-    set((state) => ({
-      messages: {
-        ...state.messages,
-        [sessionId]: upsertMessage(state.messages[sessionId] || [], msg, sessionId),
-      },
-    }))
+    set((state) => {
+      const updates: Partial<MessageStore> = {
+        messages: {
+          ...state.messages,
+          [sessionId]: upsertMessage(state.messages[sessionId] || [], msg, sessionId),
+        },
+      }
+      // Auto-clear rewind point when a new user message arrives (conversation continues)
+      if (msg.role === 'user' && state.rewindPoints[sessionId]) {
+        const { [sessionId]: _, ...restRewind } = state.rewindPoints
+        updates.rewindPoints = restRewind
+      }
+      return updates
+    })
   },
 
   setMessages: (sessionId, messages) =>
@@ -123,6 +131,8 @@ export const useMessageStore = create<MessageStore>((set) => ({
   clearMessages: (sessionId) =>
     set((state) => {
       delete messageIndexMaps[sessionId]
+      // Drain any pending deltas for this session to prevent resurrection
+      pendingDeltas = pendingDeltas.filter(d => d.sessionId !== sessionId)
       const { [sessionId]: _, ...rest } = state.messages
       const { [sessionId]: _rp, ...restRewind } = state.rewindPoints
       return { messages: rest, rewindPoints: restRewind }

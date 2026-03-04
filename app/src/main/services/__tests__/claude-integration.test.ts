@@ -160,10 +160,10 @@ describe('ClaudeService Integration Flow', () => {
       expect.objectContaining({ status: 'streaming' })
     );
 
-    // Session metadata push (from system/init)
+    // Session metadata push (from system/init) — sessionId overwritten to app sessionId
     expect(mockWebContents.send).toHaveBeenNthCalledWith(2,
       MAIN_TO_RENDERER.SESSION_METADATA,
-      expect.objectContaining({ sessionId: 'session_test' })
+      expect.objectContaining({ sessionId: 'test-session' })
     );
 
     // Fan-out: thinking block

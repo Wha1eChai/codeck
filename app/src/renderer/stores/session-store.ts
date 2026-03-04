@@ -99,11 +99,13 @@ export const useSessionStore = create<SessionStore>((set) => ({
 
   removeSession: (id) => set((state) => {
     const { [id]: _, ...restStates } = state.sessionStates
+    const { [id]: _meta, ...restMetadata } = state.sessionMetadataMap
     return {
       sessions: state.sessions.filter(s => s.id !== id),
       currentSessionId: state.currentSessionId === id ? null : state.currentSessionId,
       openTabs: state.openTabs.filter(t => t.sessionId !== id),
       sessionStates: restStates,
+      sessionMetadataMap: restMetadata,
     }
   }),
 

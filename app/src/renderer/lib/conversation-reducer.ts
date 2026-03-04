@@ -295,7 +295,7 @@ function buildAssistantGroupView(messages: Message[]): AssistantMessageGroupView
     other,
     thinkingSteps: topThinkingSteps,
     textSteps: topTextSteps,
-    toolSteps,
+    toolSteps: topToolSteps,
     flowSteps,
     lastMessage,
   }
