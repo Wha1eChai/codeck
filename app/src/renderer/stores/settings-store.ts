@@ -1,6 +1,9 @@
 import { create } from 'zustand'
 import { AppPreferences, ExecutionOptions, HookSettings } from '@common/types'
 import { DEFAULT_APP_PREFERENCES, DEFAULT_EXECUTION_OPTIONS, DEFAULT_HOOK_SETTINGS } from '@common/defaults'
+import { createLogger } from '../lib/logger'
+
+const logger = createLogger('settings-store')
 
 interface SettingsStore {
   settings: AppPreferences
@@ -39,7 +42,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       set({ lastSaved: Date.now() })
     } catch (error) {
       // Rollback on failure by reloading from backend
-      console.error('Failed to persist settings:', error)
+      logger.error('Failed to persist settings:', error)
       await get().loadSettings()
     }
   },
@@ -50,7 +53,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       const loaded = await window.electron.getSettings()
       set({ settings: loaded })
     } catch (error) {
-      console.error('Failed to load settings:', error)
+      logger.error('Failed to load settings:', error)
       // Keep default settings on failure
     } finally {
       set({ isLoading: false })

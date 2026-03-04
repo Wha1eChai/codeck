@@ -1,7 +1,10 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { FolderOpen, ChevronDown, Check, Loader2, FolderKanban, Search, X } from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
+import { createLogger } from '../../lib/logger'
 import { useSessionStore } from '../../stores/session-store'
+
+const logger = createLogger('ProjectSwitcher')
 import { useRelativeTime } from '../../hooks/useRelativeTime'
 import { cn, formatRelativeTime } from '../../lib/utils'
 import type { ProjectInfo } from '@common/types'
@@ -31,7 +34,7 @@ export const ProjectSwitcherDropdown: React.FC = () => {
       const result = await window.electron.scanProjects()
       setProjects(result)
     } catch (err) {
-      console.error('Failed to scan projects:', err)
+      logger.error('Failed to scan projects:', err)
     } finally {
       setLoading(false)
     }
@@ -55,7 +58,7 @@ export const ProjectSwitcherDropdown: React.FC = () => {
       setSessions([...sessions])
       setOpen(false)
     } catch (err) {
-      console.error('Failed to select project:', err)
+      logger.error('Failed to select project:', err)
     }
   }, [setProjectPath, setSessions])
 
@@ -66,7 +69,7 @@ export const ProjectSwitcherDropdown: React.FC = () => {
         await handleSelect(dir)
       }
     } catch (err) {
-      console.error('Failed to open folder:', err)
+      logger.error('Failed to open folder:', err)
     }
   }, [handleSelect])
 

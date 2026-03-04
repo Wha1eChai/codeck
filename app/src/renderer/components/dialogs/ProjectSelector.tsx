@@ -3,7 +3,10 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { X, Folder, Clock, Hash, ChevronRight } from 'lucide-react'
 import { useUIStore } from '../../stores/ui-store'
 import { useSessionStore } from '../../stores/session-store'
+import { createLogger } from '../../lib/logger'
 import { ProjectInfo } from '@common/types'
+
+const logger = createLogger('ProjectSelector')
 
 export function ProjectSelector() {
     const isOpen = useUIStore((state) => state.isProjectSelectorOpen)
@@ -27,7 +30,7 @@ export function ProjectSelector() {
             const sorted = [...data].sort((a, b) => b.lastAccessed - a.lastAccessed)
             setProjects(sorted)
         } catch (error) {
-            console.error('Failed to scan projects:', error)
+            logger.error('Failed to scan projects:', error)
         } finally {
             setIsLoading(false)
         }

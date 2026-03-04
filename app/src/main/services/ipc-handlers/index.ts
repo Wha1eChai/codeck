@@ -3,6 +3,9 @@ import { MAIN_TO_RENDERER } from '@common/ipc-channels';
 import { warmUsageCache, invalidateUsageCache } from '../ccusage-runner';
 import { debouncedSync } from '../sessions-server';
 import { sessionManager } from '../session';
+import { createLogger } from '../logger';
+
+const logger = createLogger('ipc');
 import { registerSessionHandlers } from './session-handlers';
 import { registerClaudeHandlers } from './claude-handlers';
 import { registerHistoryHandlers } from './history-handlers';
@@ -38,7 +41,7 @@ export function registerIpcHandlers(windowGetter: () => BrowserWindow | null) {
           const w = getMainWindow();
           if (w) w.webContents.send(MAIN_TO_RENDERER.USAGE_STATS_UPDATED);
         })
-        .catch(console.error);
+        .catch((err) => logger.error('usage cache warmup after session end failed:', err));
 
       // Refresh sessions-server DB after session ends
       debouncedSync();
@@ -52,7 +55,7 @@ export function registerIpcHandlers(windowGetter: () => BrowserWindow | null) {
   });
 
   // Background usage cache warmup (non-blocking)
-  warmUsageCache().catch(console.error);
+  warmUsageCache().catch((err) => logger.error('initial usage cache warmup failed:', err));
 
   // Register all domain handlers
   registerSessionHandlers(getMainWindow);

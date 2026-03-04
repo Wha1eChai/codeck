@@ -4,6 +4,9 @@ import { execSync } from "child_process"
 import { electronApp, optimizer, is } from "@electron-toolkit/utils"
 import { registerIpcHandlers } from "./services/ipc-handlers"
 import { startSessionsServer, stopSessionsServer, SESSIONS_SERVER_PORT } from "./services/sessions-server"
+import { createLogger } from "./services/logger"
+
+const logger = createLogger('app')
 
 // Windows 终端默认 codepage (GBK/936) 无法正确显示 UTF-8 中文，
 // 设置为 65001 (UTF-8) 确保 process.stdout.write 输出的调试日志可读。
@@ -87,7 +90,7 @@ app.whenReady().then(async () => {
 
   // Start the sessions parsing server before registering IPC handlers
   startSessionsServer().catch((err) => {
-    console.error('[main] Failed to start sessions server:', err)
+    logger.error('Failed to start sessions server:', err)
   })
 
   // Register IPC handlers with a getter to always resolve the current window

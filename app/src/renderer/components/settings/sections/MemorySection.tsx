@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import { createLogger } from '../../../lib/logger'
 import { Button } from '../../ui/Button'
 import { Textarea } from '../../ui/Textarea'
 import { BookOpen, Loader2, Save, User, Folder, Brain, FileText } from 'lucide-react'
+
+const logger = createLogger('MemorySection')
 import { SectionHeader, SettingsCard, StorageHint } from '../SettingsCard'
 import { ScrollArea } from '../../ui/ScrollArea'
 import { cn } from '../../../lib/utils'
@@ -71,7 +74,7 @@ export const MemorySection: React.FC = () => {
       await window.electron.updateMemoryContent(selectedFile.path, content)
       setOriginalContent(content)
     } catch (err) {
-      console.error('Failed to save memory file:', err)
+      logger.error('Failed to save memory file:', err)
     } finally {
       setSaving(false)
     }

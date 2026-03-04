@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import { createLogger } from '../../../lib/logger'
 import { Button } from '../../ui/Button'
 import { Webhook, Loader2, Plus, ChevronRight, ChevronDown, Save } from 'lucide-react'
+
+const logger = createLogger('HooksSection')
 import {
   Select,
   SelectContent,
@@ -69,7 +72,7 @@ export const HooksSection: React.FC = () => {
       await window.electron.updateCliHooks(hooks)
       setDirty(false)
     } catch (err) {
-      console.error('Failed to save hooks:', err)
+      logger.error('Failed to save hooks:', err)
     } finally {
       setSaving(false)
     }

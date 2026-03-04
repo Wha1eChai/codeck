@@ -8,6 +8,7 @@
 // ============================================================
 
 import type { SessionMetadata } from './sdk-types'
+import { createLogger } from '../logger'
 import { createStreamParseState, resetStreamParseState } from './stream-state'
 import type { StreamParseState } from './stream-state'
 import { parseAssistant, parseAssistantWithStreamAwareness } from './parsers/assistant-parser'
@@ -16,6 +17,8 @@ import { parseResult } from './parsers/result-parser'
 import { parseSystem } from './parsers/system-parser'
 import { parseStreamEvent, parseStreamEventWithState } from './parsers/stream-event-parser'
 import { parseToolProgress, parseToolUseSummary } from './parsers/tool-parser'
+
+const logger = createLogger('sdk-parser')
 
 export interface ParseResult {
   readonly messages: readonly import('@common/types').Message[]
@@ -101,7 +104,7 @@ export function parseSDKMessage(
 
     default:
       if (typeof type === 'string') {
-        console.warn(`[sdk-adapter] Unknown SDK message type: ${type}`)
+        logger.warn(`Unknown SDK message type: ${type}`)
       }
       return { messages: [] }
   }
@@ -159,7 +162,7 @@ function parseSDKMessageWithState(
 
     default:
       if (typeof type === 'string') {
-        console.warn(`[sdk-adapter] Unknown SDK message type: ${type}`)
+        logger.warn(`Unknown SDK message type: ${type}`)
       }
       return { messages: [] }
   }

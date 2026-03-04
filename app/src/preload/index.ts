@@ -284,10 +284,10 @@ const api: ElectronAPI = {
   // ── Multi-session management ──
 
   focusSession: (sessionId: string): Promise<void> =>
-    ipcRenderer.invoke(RENDERER_TO_MAIN.FOCUS_SESSION, sessionId),
+    ipcRenderer.invoke(RENDERER_TO_MAIN.FOCUS_SESSION, { sessionId }),
 
   closeSessionTab: (sessionId: string): Promise<void> =>
-    ipcRenderer.invoke(RENDERER_TO_MAIN.CLOSE_SESSION_TAB, sessionId),
+    ipcRenderer.invoke(RENDERER_TO_MAIN.CLOSE_SESSION_TAB, { sessionId }),
 }
 
 contextBridge.exposeInMainWorld("electron", api)

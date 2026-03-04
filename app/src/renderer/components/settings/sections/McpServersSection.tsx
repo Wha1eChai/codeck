@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import { createLogger } from '../../../lib/logger'
 import { Button } from '../../ui/Button'
 import { Input } from '../../ui/Input'
 import { Server, Loader2, Plus, Trash2, User, Folder, Terminal } from 'lucide-react'
+
+const logger = createLogger('McpServersSection')
 import {
   Select,
   SelectContent,
@@ -52,7 +55,7 @@ export const McpServersSection: React.FC = () => {
       setShowAddForm(false)
       await loadServers()
     } catch (err) {
-      console.error('Failed to add MCP server:', err)
+      logger.error('Failed to add MCP server:', err)
     }
   }
 
@@ -61,7 +64,7 @@ export const McpServersSection: React.FC = () => {
       await window.electron.removeMcpServer(scope, name)
       setServers(prev => prev.filter(s => !(s.scope === scope && s.name === name)))
     } catch (err) {
-      console.error('Failed to remove MCP server:', err)
+      logger.error('Failed to remove MCP server:', err)
     }
   }
 

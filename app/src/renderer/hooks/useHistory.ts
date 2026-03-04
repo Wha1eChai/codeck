@@ -1,5 +1,8 @@
 import { useState, useCallback, useEffect } from 'react'
 import type { HistoryEntry } from '@common/types'
+import { createLogger } from '../lib/logger'
+
+const logger = createLogger('useHistory')
 
 /**
  * Hook for browsing global session history across all projects.
@@ -16,7 +19,7 @@ export function useHistory() {
             const sessions = await window.electron.getAllSessions()
             setEntries(sessions)
         } catch (err) {
-            console.error('Failed to load history:', err)
+            logger.error('Failed to load history:', err)
         } finally {
             setIsLoading(false)
         }
@@ -31,7 +34,7 @@ export function useHistory() {
             const results = await window.electron.searchSessions(query)
             setEntries(results)
         } catch (err) {
-            console.error('Failed to search history:', err)
+            logger.error('Failed to search history:', err)
         } finally {
             setIsLoading(false)
         }
@@ -43,7 +46,7 @@ export function useHistory() {
         try {
             await window.electron.triggerSync()
         } catch (err) {
-            console.error('Sync failed:', err)
+            logger.error('Sync failed:', err)
         } finally {
             setSyncStatus('idle')
         }

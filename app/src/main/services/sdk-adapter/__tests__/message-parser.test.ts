@@ -767,7 +767,8 @@ describe('parseSDKMessage', () => {
 
       expect(result.messages).toHaveLength(0)
       expect(warnSpy).toHaveBeenCalledWith(
-        '[sdk-adapter] Unknown SDK message type: future_type',
+        '[sdk-parser]',
+        'Unknown SDK message type: future_type',
       )
 
       warnSpy.mockRestore()

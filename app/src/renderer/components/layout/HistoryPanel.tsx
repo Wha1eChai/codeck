@@ -1,6 +1,9 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import { Folder, Loader2, Search, X, ChevronRight, RefreshCw } from 'lucide-react'
+import { createLogger } from '../../lib/logger'
 import { useSessionStore } from '../../stores/session-store'
+
+const logger = createLogger('HistoryPanel')
 import { useUIStore } from '../../stores/ui-store'
 import { useSessionActions } from '../../hooks/useSessionActions'
 import { useHistory } from '../../hooks/useHistory'
@@ -136,7 +139,7 @@ export const HistoryPanel: React.FC = () => {
           addTab({ sessionId: entry.sessionId, name: entry.title, status: 'idle' })
         }
       } catch (err) {
-        console.error('Failed to open history session:', err)
+        logger.error('Failed to open history session:', err)
       }
     },
     [setProjectPath, setSessions, switchSession, setActiveView, addTab],

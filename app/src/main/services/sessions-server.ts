@@ -2,6 +2,9 @@ import { spawn, type ChildProcess } from 'child_process'
 import { resolve } from 'path'
 import { SESSIONS_SERVER_PORT, SESSIONS_SERVER_URL } from '@codeck/sessions'
 import type { SyncResult } from '@common/sync-types'
+import { createLogger } from './logger'
+
+const logger = createLogger('sessions-server')
 
 let serverProcess: ChildProcess | null = null
 let syncInFlight = false
@@ -34,20 +37,20 @@ export async function startSessionsServer(): Promise<void> {
   })
 
   serverProcess.on('error', (err) => {
-    console.error('[sessions-server] spawn error:', err.message)
+    logger.error('spawn error:', err.message)
     serverProcess = null
   })
 
   serverProcess.stdout?.on('data', (data: Buffer) => {
-    console.log('[sessions-server]', data.toString().trim())
+    logger.info(data.toString().trim())
   })
 
   serverProcess.stderr?.on('data', (data: Buffer) => {
-    console.error('[sessions-server]', data.toString().trim())
+    logger.error(data.toString().trim())
   })
 
   serverProcess.on('exit', (code) => {
-    console.log(`[sessions-server] exited with code ${code}`)
+    logger.info(`exited with code ${code}`)
     serverProcess = null
   })
 
@@ -56,12 +59,12 @@ export async function startSessionsServer(): Promise<void> {
 
   // Trigger initial sync (non-blocking) to populate SQLite from ~/.claude/projects/
   triggerSync().catch((err) => {
-    console.error('[sessions-server] initial sync failed:', err)
+    logger.error('initial sync failed:', err)
   })
 
   // Periodic re-sync (5min) to capture CLI-created sessions
   syncInterval = setInterval(() => {
-    triggerSync().catch(console.error)
+    triggerSync().catch((err) => logger.error('periodic sync failed:', err))
   }, 5 * 60 * 1000)
 }
 
@@ -91,7 +94,7 @@ export async function triggerSync(full = false): Promise<SyncResult | null> {
     })
     if (!res.ok) throw new Error(`Sync failed: ${res.status}`)
     const json = (await res.json()) as { data: SyncResult }
-    console.log('[sessions-server] sync complete:', JSON.stringify(json.data))
+    logger.info('sync complete:', JSON.stringify(json.data))
     return json.data
   } finally {
     syncInFlight = false
@@ -102,7 +105,7 @@ export async function triggerSync(full = false): Promise<SyncResult | null> {
 export function debouncedSync(delayMs = 2000): void {
   if (debounceTimer) clearTimeout(debounceTimer)
   debounceTimer = setTimeout(() => {
-    triggerSync().catch(console.error)
+    triggerSync().catch((err) => logger.error('debounced sync failed:', err))
   }, delayMs)
 }
 
@@ -116,7 +119,7 @@ async function waitForServer(maxRetries = 20, intervalMs = 300): Promise<void> {
     }
     await new Promise((r) => setTimeout(r, intervalMs))
   }
-  console.warn('[sessions-server] did not become ready in time — continuing anyway')
+  logger.warn('did not become ready in time — continuing anyway')
 }
 
 export { SESSIONS_SERVER_URL, SESSIONS_SERVER_PORT }

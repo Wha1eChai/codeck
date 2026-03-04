@@ -78,8 +78,11 @@ vi.mock('../../session-orchestrator', () => ({
     getSessionMessages: vi.fn(),
     sendMessage: vi.fn(),
     abort: vi.fn(),
+    abortSession: vi.fn(),
     resolvePermission: vi.fn(),
     scanProjects: vi.fn(),
+    focusSession: vi.fn(),
+    closeSessionTab: vi.fn(),
   },
 }));
 
@@ -314,6 +317,30 @@ describe('ipc-handlers', () => {
       const handler = handlers.get(RENDERER_TO_MAIN.UPDATE_MEMORY_CONTENT);
       await handler!({}, '/home/.claude/CLAUDE.md', 'new content');
       expect(mockConfigWriter.writeMemoryContent).toHaveBeenCalledWith('/home/.claude/CLAUDE.md', 'new content');
+    });
+  });
+
+  describe('multi-session IPC payload protocol', () => {
+    it('FOCUS_SESSION accepts object payload { sessionId }', async () => {
+      const handler = handlers.get(RENDERER_TO_MAIN.FOCUS_SESSION);
+      await handler!({}, { sessionId: 'sess-1' });
+      expect(sessionOrchestrator.focusSession).toHaveBeenCalledWith('sess-1');
+    });
+
+    it('FOCUS_SESSION rejects bare string payload', async () => {
+      const handler = handlers.get(RENDERER_TO_MAIN.FOCUS_SESSION);
+      await expect(handler!({}, 'sess-1')).rejects.toThrow();
+    });
+
+    it('CLOSE_SESSION_TAB accepts object payload { sessionId }', async () => {
+      const handler = handlers.get(RENDERER_TO_MAIN.CLOSE_SESSION_TAB);
+      await handler!({}, { sessionId: 'sess-1' });
+      expect(sessionOrchestrator.closeSessionTab).toHaveBeenCalledWith('sess-1');
+    });
+
+    it('CLOSE_SESSION_TAB rejects bare string payload', async () => {
+      const handler = handlers.get(RENDERER_TO_MAIN.CLOSE_SESSION_TAB);
+      await expect(handler!({}, 'sess-1')).rejects.toThrow();
     });
   });
 });

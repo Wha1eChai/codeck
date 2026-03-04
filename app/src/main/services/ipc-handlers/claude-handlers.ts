@@ -10,28 +10,32 @@ import {
   closeSessionTabSchema,
 } from '@common/schemas';
 import { sessionOrchestrator } from '../session-orchestrator';
+import { createValidatedHandler, createMultiArgWindowHandler } from './create-handler';
 
 import type { BrowserWindow } from 'electron';
 
 export function registerClaudeHandlers(getMainWindow: () => BrowserWindow | null) {
-  ipcMain.handle(
-    RENDERER_TO_MAIN.SEND_MESSAGE,
-    async (_, sessionId: unknown, content: unknown, permissionMode?: unknown, executionOptions?: unknown, hookSettings?: unknown) => {
-      const validated = sendMessageSchema.parse({ sessionId, content, permissionMode, executionOptions, hookSettings });
+  // SEND_MESSAGE — multi-arg + window, uses factory
+  createMultiArgWindowHandler(RENDERER_TO_MAIN.SEND_MESSAGE, {
+    schema: sendMessageSchema,
+    window: getMainWindow,
+    mapArgs: (sessionId, content, permissionMode, executionOptions, hookSettings) => ({
+      sessionId,
+      content,
+      permissionMode,
+      executionOptions,
+      hookSettings,
+    }),
+    handle: (win, validated) => sessionOrchestrator.sendMessage(win, {
+      sessionId: validated.sessionId,
+      content: validated.content,
+      permissionMode: validated.permissionMode,
+      executionOptions: validated.executionOptions,
+      hookSettings: validated.hookSettings,
+    }),
+  });
 
-      const win = getMainWindow();
-      if (!win) throw new Error('No active window');
-
-      await sessionOrchestrator.sendMessage(win, {
-        sessionId: validated.sessionId,
-        content: validated.content,
-        permissionMode: validated.permissionMode,
-        executionOptions: validated.executionOptions,
-        hookSettings: validated.hookSettings,
-      });
-    },
-  );
-
+  // ABORT — conditional logic, kept manual
   ipcMain.handle(RENDERER_TO_MAIN.ABORT, async (_, sessionId?: unknown) => {
     if (sessionId && typeof sessionId === 'string') {
       sessionOrchestrator.abortSession(sessionId);
@@ -40,33 +44,33 @@ export function registerClaudeHandlers(getMainWindow: () => BrowserWindow | null
     }
   });
 
-  ipcMain.handle(RENDERER_TO_MAIN.ABORT_SESSION, async (_, payload: unknown) => {
-    const { sessionId } = z.object({ sessionId: z.string().min(1) }).parse(payload);
-    sessionOrchestrator.abortSession(sessionId);
+  createValidatedHandler(RENDERER_TO_MAIN.ABORT_SESSION, {
+    schema: z.object({ sessionId: z.string().min(1) }),
+    handle: ({ sessionId }) => sessionOrchestrator.abortSession(sessionId),
   });
 
-  ipcMain.handle(RENDERER_TO_MAIN.FOCUS_SESSION, async (_, sessionId: unknown) => {
-    const validated = focusSessionSchema.parse(typeof sessionId === 'string' ? { sessionId } : sessionId);
-    await sessionOrchestrator.focusSession(validated.sessionId);
+  createValidatedHandler(RENDERER_TO_MAIN.FOCUS_SESSION, {
+    schema: focusSessionSchema,
+    handle: (validated) => sessionOrchestrator.focusSession(validated.sessionId),
   });
 
-  ipcMain.handle(RENDERER_TO_MAIN.CLOSE_SESSION_TAB, async (_, sessionId: unknown) => {
-    const validated = closeSessionTabSchema.parse(typeof sessionId === 'string' ? { sessionId } : sessionId);
-    await sessionOrchestrator.closeSessionTab(validated.sessionId);
+  createValidatedHandler(RENDERER_TO_MAIN.CLOSE_SESSION_TAB, {
+    schema: closeSessionTabSchema,
+    handle: (validated) => sessionOrchestrator.closeSessionTab(validated.sessionId),
   });
 
-  ipcMain.handle(RENDERER_TO_MAIN.PERMISSION_RESPONSE, async (_, response: unknown) => {
-    const validated = permissionResponseSchema.parse(response);
-    sessionOrchestrator.resolvePermission(validated);
+  createValidatedHandler(RENDERER_TO_MAIN.PERMISSION_RESPONSE, {
+    schema: permissionResponseSchema,
+    handle: (validated) => sessionOrchestrator.resolvePermission(validated),
   });
 
-  ipcMain.handle(RENDERER_TO_MAIN.ASK_USER_QUESTION_RESPONSE, async (_, response: unknown) => {
-    const validated = askUserQuestionResponseSchema.parse(response);
-    sessionOrchestrator.resolveAskUserQuestion(validated);
+  createValidatedHandler(RENDERER_TO_MAIN.ASK_USER_QUESTION_RESPONSE, {
+    schema: askUserQuestionResponseSchema,
+    handle: (validated) => sessionOrchestrator.resolveAskUserQuestion(validated),
   });
 
-  ipcMain.handle(RENDERER_TO_MAIN.EXIT_PLAN_MODE_RESPONSE, async (_, response: unknown) => {
-    const validated = exitPlanModeResponseSchema.parse(response);
-    sessionOrchestrator.resolveExitPlanMode(validated);
+  createValidatedHandler(RENDERER_TO_MAIN.EXIT_PLAN_MODE_RESPONSE, {
+    schema: exitPlanModeResponseSchema,
+    handle: (validated) => sessionOrchestrator.resolveExitPlanMode(validated),
   });
 }

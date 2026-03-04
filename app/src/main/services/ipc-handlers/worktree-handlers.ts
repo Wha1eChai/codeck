@@ -9,20 +9,31 @@ import {
 import { sessionOrchestrator } from '../session-orchestrator';
 import { sessionManager } from '../session';
 import { worktreeService } from '../worktree-service';
+import { createValidatedHandler, createMultiArgHandler } from './create-handler';
+
+const checkpointRewindSchema = z.object({
+  sessionId: z.string().min(1),
+  userMessageId: z.string().min(1),
+  dryRun: z.boolean(),
+});
 
 export function registerWorktreeHandlers() {
-  ipcMain.handle(RENDERER_TO_MAIN.CHECKPOINT_REWIND, async (_, sessionId: unknown, userMessageId: unknown, dryRun?: unknown) => {
-    const sid = z.string().min(1).parse(sessionId);
-    const id = z.string().min(1).parse(userMessageId);
-    const dry = typeof dryRun === 'boolean' ? dryRun : false;
-    return sessionOrchestrator.rewindFiles(sid, id, dry);
+  createMultiArgHandler(RENDERER_TO_MAIN.CHECKPOINT_REWIND, {
+    schema: checkpointRewindSchema,
+    mapArgs: (sessionId, userMessageId, dryRun) => ({
+      sessionId,
+      userMessageId,
+      dryRun: typeof dryRun === 'boolean' ? dryRun : false,
+    }),
+    handle: (v) => sessionOrchestrator.rewindFiles(v.sessionId, v.userMessageId, v.dryRun),
   });
 
-  ipcMain.handle(RENDERER_TO_MAIN.GET_WORKTREES, async (_, projectPath: unknown) => {
-    const validated = z.string().min(1).parse(projectPath);
-    return worktreeService.listWorktrees(validated);
+  createValidatedHandler(RENDERER_TO_MAIN.GET_WORKTREES, {
+    schema: z.string().min(1),
+    handle: (projectPath) => worktreeService.listWorktrees(projectPath),
   });
 
+  // MERGE_WORKTREE — complex (multi-step with side effects), kept manual
   ipcMain.handle(RENDERER_TO_MAIN.MERGE_WORKTREE, async (_, payload: unknown) => {
     const { sessionId, worktreeBranch, baseBranch } = mergeWorktreeSchema.parse(payload);
     const projectPath = sessionManager.getCurrentProjectPath();
@@ -30,13 +41,13 @@ export function registerWorktreeHandlers() {
 
     const result = await worktreeService.mergeWorktree(projectPath, worktreeBranch, baseBranch);
     if (result.success) {
-      // Clean up worktree after successful merge
       await worktreeService.removeWorktree(projectPath, sessionId);
       sessionManager.removeSessionWorktree(projectPath, sessionId);
     }
     return result;
   });
 
+  // REMOVE_WORKTREE — complex (needs projectPath + cleanup), kept manual
   ipcMain.handle(RENDERER_TO_MAIN.REMOVE_WORKTREE, async (_, payload: unknown) => {
     const { sessionId } = removeWorktreeSchema.parse(payload);
     const projectPath = sessionManager.getCurrentProjectPath();
@@ -46,6 +57,7 @@ export function registerWorktreeHandlers() {
     sessionManager.removeSessionWorktree(projectPath, sessionId);
   });
 
+  // GET_WORKTREE_DIFF — needs projectPath guard, kept manual
   ipcMain.handle(RENDERER_TO_MAIN.GET_WORKTREE_DIFF, async (_, payload: unknown) => {
     const { baseBranch, worktreeBranch } = getWorktreeDiffSchema.parse(payload);
     const projectPath = sessionManager.getCurrentProjectPath();

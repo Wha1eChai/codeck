@@ -1,5 +1,8 @@
 import { useCallback, useState } from 'react'
+import { createLogger } from '../lib/logger'
 import { useSessionStore } from '../stores/session-store'
+
+const logger = createLogger('useSessionActions')
 import { useSettingsStore } from '../stores/settings-store'
 import { useMessageStore } from '../stores/message-store'
 import { useUIStore } from '../stores/ui-store'
@@ -40,7 +43,7 @@ export function useSessionActions() {
             setCurrentSession(sessionId)
             setFocusedTab(sessionId)
         } catch (error) {
-            console.error('Failed to switch session:', error)
+            logger.error('Failed to switch session:', error)
             throw error
         } finally {
             setLoading(false)
@@ -61,7 +64,7 @@ export function useSessionActions() {
             addTab({ sessionId: session.id, name: session.name, status: 'idle' })
             return session
         } catch (error) {
-            console.error('Failed to create session:', error)
+            logger.error('Failed to create session:', error)
             throw error
         } finally {
             setLoading(false)
@@ -144,7 +147,7 @@ export function useSessionActions() {
             const freshSessions = await window.electron.getSessions(targetPath)
             setSessions([...freshSessions])
         } catch (error) {
-            console.error('Failed to refresh sessions:', error)
+            logger.error('Failed to refresh sessions:', error)
         }
     }, [projectPath, setSessions])
 
