@@ -8,6 +8,9 @@ import { useUIStore } from '../../stores/ui-store'
 import { Square, SendHorizontal } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { InputFooter } from './InputFooter'
+import { buildPaletteItems, filterPaletteItems } from '@renderer/lib/command-palette'
+import type { PaletteItem } from '@renderer/lib/command-palette'
+import { CommandPaletteDropdown } from './CommandPaletteDropdown'
 
 // ── Streaming Status Verbs ──
 
@@ -16,17 +19,6 @@ const STREAMING_VERBS = [
   'Analyzing...', 'Composing...', 'Reasoning...', 'Exploring...',
   'Weaving...', 'Conjuring...', 'Deliberating...', 'Assembling...',
 ] as const
-
-// ── Slash Commands ──
-
-interface SlashCommand {
-  readonly command: string
-  readonly description: string
-}
-
-const SLASH_COMMANDS: readonly SlashCommand[] = [
-  { command: '/compact', description: '压缩当前会话上下文以节省 token' },
-]
 
 export const ChatInput: React.FC = () => {
   const [input, setInput] = useState('')
@@ -70,18 +62,21 @@ export const ChatInput: React.FC = () => {
     ? 'Waiting for permission'
     : isStreaming ? streamingVerbRef.current : 'Ready'
 
-  // Filter slash commands based on current input
-  const filteredCommands = useMemo(() => {
-    if (!input.startsWith('/')) return []
-    const query = input.toLowerCase()
-    return SLASH_COMMANDS.filter(c => c.command.startsWith(query))
-  }, [input])
+  // Dynamic command palette from SDK metadata
+  const metadata = useSessionStore(s => currentSessionId ? s.sessionMetadataMap[currentSessionId] : undefined)
+  const paletteItems = useMemo(() => buildPaletteItems(metadata), [metadata])
+
+  const filteredItems = useMemo(() => {
+    if (!input.startsWith('/') && !input.startsWith('@')) return []
+    if (input.includes(' ') && input.startsWith('/')) return []
+    return filterPaletteItems(paletteItems, input)
+  }, [input, paletteItems])
 
   // Show/hide slash menu
   useEffect(() => {
-    setShowSlashMenu(filteredCommands.length > 0 && input.startsWith('/') && !input.includes(' '))
+    setShowSlashMenu(filteredItems.length > 0)
     setSlashIndex(0)
-  }, [filteredCommands, input])
+  }, [filteredItems.length])
 
   // Auto-resize textarea
   useEffect(() => {
@@ -95,8 +90,8 @@ export const ChatInput: React.FC = () => {
     currentSessionId ? s.sessions.find(sess => sess.id === currentSessionId) : undefined
   )
 
-  const selectSlashCommand = (cmd: SlashCommand) => {
-    setInput(cmd.command)
+  const selectPaletteItem = (item: PaletteItem) => {
+    setInput(item.insertText)
     setShowSlashMenu(false)
     textareaRef.current?.focus()
   }
@@ -162,7 +157,7 @@ export const ChatInput: React.FC = () => {
     if (showSlashMenu) {
       if (e.key === 'ArrowDown') {
         e.preventDefault()
-        setSlashIndex(i => Math.min(i + 1, filteredCommands.length - 1))
+        setSlashIndex(i => Math.min(i + 1, filteredItems.length - 1))
         return
       }
       if (e.key === 'ArrowUp') {
@@ -172,8 +167,8 @@ export const ChatInput: React.FC = () => {
       }
       if (e.key === 'Tab' || (e.key === 'Enter' && !e.shiftKey)) {
         e.preventDefault()
-        if (filteredCommands[slashIndex]) {
-          selectSlashCommand(filteredCommands[slashIndex])
+        if (filteredItems[slashIndex]) {
+          selectPaletteItem(filteredItems[slashIndex])
         }
         return
       }
@@ -198,24 +193,13 @@ export const ChatInput: React.FC = () => {
         "dark:focus-within:ring-accent/30 dark:focus-within:border-accent/50 dark:focus-within:shadow-[0_0_12px_-2px_hsl(18_72%_50%/0.25)]"
       )}>
         <div className="flex items-end gap-2 p-3">
-          {/* Slash command dropdown */}
+          {/* Command palette dropdown */}
           {showSlashMenu && (
-            <div className="absolute bottom-full left-0 mb-2 w-64 bg-popover border rounded-lg shadow-xl overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-2">
-              {filteredCommands.map((cmd, i) => (
-                <button
-                  key={cmd.command}
-                  className={`w-full text-left px-3 py-2.5 text-sm hover:bg-accent transition-colors ${i === slashIndex ? 'bg-accent' : ''
-                    }`}
-                  onMouseDown={(e) => {
-                    e.preventDefault()
-                    selectSlashCommand(cmd)
-                  }}
-                >
-                  <span className="font-mono font-medium text-primary">{cmd.command}</span>
-                  <span className="ml-2 text-muted-foreground">{cmd.description}</span>
-                </button>
-              ))}
-            </div>
+            <CommandPaletteDropdown
+              items={filteredItems}
+              selectedIndex={slashIndex}
+              onSelect={selectPaletteItem}
+            />
           )}
 
           <textarea
@@ -225,7 +209,7 @@ export const ChatInput: React.FC = () => {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
-            placeholder={pasteWarning ? "Image/file paste not yet supported" : isStreaming ? "Claude is thinking..." : "Message Claude... (type / for commands)"}
+            placeholder={pasteWarning ? "Image/file paste not yet supported" : isStreaming ? "Claude is thinking..." : "Message Claude... (/ commands, @ agents)"}
             className="flex-1 max-h-[300px] min-h-[40px] bg-transparent border-0 resize-none focus:ring-0 focus:outline-none py-2 px-1 text-sm leading-relaxed placeholder:text-muted-foreground/50"
             rows={1}
             disabled={isBusy}
