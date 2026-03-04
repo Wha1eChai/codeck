@@ -14,6 +14,7 @@ export function parseContentBlocks(
   blocks: readonly SDKContentBlock[],
   sessionId: string,
   parentUuid: string,
+  parentToolUseId?: string,
 ): readonly Message[] {
   const messages: Message[] = []
 
@@ -35,6 +36,7 @@ export function parseContentBlocks(
             type: 'error',
             content: b.text,
             timestamp,
+            ...(parentToolUseId ? { parentToolUseId } : {}),
           })
         } else {
           messages.push({
@@ -44,6 +46,7 @@ export function parseContentBlocks(
             type: 'text',
             content: b.text,
             timestamp,
+            ...(parentToolUseId ? { parentToolUseId } : {}),
           })
         }
         break
@@ -58,6 +61,7 @@ export function parseContentBlocks(
           type: 'thinking',
           content: b.thinking,
           timestamp,
+          ...(parentToolUseId ? { parentToolUseId } : {}),
         })
         break
       }
@@ -79,6 +83,7 @@ export function parseContentBlocks(
           toolInput: b.input,
           toolUseId: b.id,
           timestamp,
+          ...(parentToolUseId ? { parentToolUseId } : {}),
         })
         break
       }
@@ -101,6 +106,7 @@ export function parseContentBlocks(
           toolUseId: b.tool_use_id,
           success: !b.is_error,
           timestamp,
+          ...(parentToolUseId ? { parentToolUseId } : {}),
         })
         break
       }
@@ -113,6 +119,7 @@ export function parseContentBlocks(
           type: 'text',
           content: `[Unknown content block: ${block.type}]`,
           timestamp,
+          ...(parentToolUseId ? { parentToolUseId } : {}),
         })
         break
       }
