@@ -144,6 +144,9 @@ export interface Message {
   // stream
   readonly isStreamDelta?: boolean
   readonly isReplay?: boolean
+
+  /** Parent tool_use ID indicating this message came from a sub-agent */
+  readonly parentToolUseId?: string
 }
 
 export interface TokenUsage {
