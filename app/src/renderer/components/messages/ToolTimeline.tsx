@@ -6,6 +6,7 @@ import { buildToolBlockViewModel } from '@renderer/lib/tool-presentation'
 import { semanticToolSummary, statisticalSuffix } from '@renderer/lib/tool-summary'
 import { DiffView } from './DiffView'
 import { FlowSection, FlowStepItem, FlowTimeline, ShowMoreText } from './primitives'
+import { AgentGroup } from './AgentGroup'
 
 const INITIAL_VISIBLE = 3
 
@@ -70,6 +71,20 @@ interface ToolStepRowProps {
 }
 
 const ToolStepRow: React.FC<ToolStepRowProps> = ({ step, isLast }) => {
+  // Sub-agent tool steps with child steps get dedicated rendering
+  if (step.childSteps && step.childSteps.length > 0) {
+    return (
+      <FlowStepItem
+        title={step.toolName}
+        subtitle="Agent"
+        tone={mapToolTone(step.status)}
+        isLast={isLast}
+      >
+        <AgentGroup step={step} />
+      </FlowStepItem>
+    )
+  }
+
   const baseMessage = step.useMessage ?? step.resultMessage
   const model = useMemo(
     () => (baseMessage ? buildToolBlockViewModel(baseMessage, step.resultMessage) : null),
