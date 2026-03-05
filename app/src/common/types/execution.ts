@@ -15,7 +15,7 @@ export const PERMISSION_MODE_OPTIONS: readonly { readonly value: PermissionMode;
   { value: "bypassPermissions", label: "Bypass permissions" },
 ] as const
 
-export type RuntimeProvider = "claude" | "codex" | "opencode"
+export type RuntimeProvider = "claude" | "codex" | "opencode" | "kernel"
 
 // ── 模型别名 + Effort ──
 

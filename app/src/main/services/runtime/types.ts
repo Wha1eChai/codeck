@@ -9,7 +9,7 @@ import type {
 import type { SessionContext } from '../session-context';
 import type { StartSessionParams } from '../claude';
 
-export type RuntimeId = 'claude' | 'codex' | 'opencode';
+export type RuntimeId = 'claude' | 'codex' | 'opencode' | 'kernel';
 
 export interface RuntimeCapabilityReport {
   runtime: RuntimeId;
