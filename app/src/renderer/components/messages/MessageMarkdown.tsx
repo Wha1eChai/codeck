@@ -124,7 +124,7 @@ const markdownComponents = {
   hr: ({ node, ...props }: any) => <hr className="my-4 border-border" {...props} />,
 }
 
-export const MessageMarkdown: React.FC<MessageMarkdownProps> = ({ content }) => {
+export const MessageMarkdown: React.FC<MessageMarkdownProps> = React.memo(({ content }) => {
   const text = typeof content === 'string' ? content : JSON.stringify(content)
 
   return (
@@ -135,4 +135,4 @@ export const MessageMarkdown: React.FC<MessageMarkdownProps> = ({ content }) => 
       {text}
     </ReactMarkdown>
   )
-}
+})

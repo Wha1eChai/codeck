@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState, useEffect, useRef, useCallback, type CSSProperties } from 'react'
 import { AlertCircle, ScrollText } from 'lucide-react'
 import type { Message } from '@common/types'
 import type { ConversationGroupView, UserGroupSubtype } from '@renderer/lib/conversation-reducer'
@@ -25,9 +25,64 @@ export type SystemMessageRenderKind =
   | 'banner'
   | 'fallback'
 
+// CSS content-visibility: auto on older groups lets the browser skip layout/paint
+// for off-screen messages. The last TAIL_RENDER_COUNT groups always render fully
+// to avoid visual glitches during streaming.
+const TAIL_RENDER_COUNT = 20
+const OFFSCREEN_STYLE: CSSProperties = {
+  contentVisibility: 'auto',
+  containIntrinsicSize: 'auto 200px',
+}
+
+// Message window slicing: only render recent groups, load more on scroll-up
+const INITIAL_WINDOW = 30
+const LOAD_CHUNK = 20
+
 export const ConversationFlow: React.FC<ConversationFlowProps> = ({ groups, sessionId }) => {
   const rewindMessageId = useMessageStore(s =>
     sessionId ? s.rewindPoints[sessionId] : undefined,
+  )
+
+  // ── Message window slicing ──
+  const [windowStart, setWindowStart] = useState(() =>
+    Math.max(0, groups.length - INITIAL_WINDOW),
+  )
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  const prevSessionId = useRef(sessionId)
+
+  // Reset window when session changes or groups grow (streaming)
+  useEffect(() => {
+    if (sessionId !== prevSessionId.current) {
+      // Session switch: show latest messages
+      prevSessionId.current = sessionId
+      setWindowStart(Math.max(0, groups.length - INITIAL_WINDOW))
+      return
+    }
+    // Auto-advance: keep window pinned to tail during streaming
+    const idealStart = Math.max(0, groups.length - INITIAL_WINDOW)
+    setWindowStart(prev => Math.max(prev, idealStart))
+  }, [groups.length, sessionId])
+
+  // Load more groups when sentinel enters viewport (scroll-up)
+  const loadMore = useCallback(() => {
+    setWindowStart(prev => Math.max(0, prev - LOAD_CHUNK))
+  }, [])
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    if (!sentinel || windowStart <= 0) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) loadMore() },
+      { rootMargin: '200px 0px 0px 0px' },
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [windowStart, loadMore])
+
+  const visibleGroups = useMemo(
+    () => groups.slice(windowStart),
+    [groups, windowStart],
   )
 
   // Find the index of the group containing the rewind point message
@@ -38,11 +93,25 @@ export const ConversationFlow: React.FC<ConversationFlowProps> = ({ groups, sess
     )
   }, [rewindMessageId, groups])
 
+  // Adjust rewind index relative to visible window
+  const visibleRewindIndex = rewindGroupIndex >= 0 ? rewindGroupIndex - windowStart : -1
+
   return (
     <>
-      {groups.map((group, index) => {
-        const isAfterRewind = rewindGroupIndex >= 0 && index > rewindGroupIndex
-        const isRewindBoundary = rewindGroupIndex >= 0 && index === rewindGroupIndex
+      {/* Sentinel for loading earlier messages */}
+      {windowStart > 0 && (
+        <div ref={sentinelRef} className="flex justify-center py-2">
+          <span className="text-xs text-muted-foreground-subtle">
+            {windowStart} earlier messages
+          </span>
+        </div>
+      )}
+
+      {visibleGroups.map((group, index) => {
+        const isAfterRewind = visibleRewindIndex >= 0 && index > visibleRewindIndex
+        const isRewindBoundary = visibleRewindIndex >= 0 && index === visibleRewindIndex
+
+        const useContentVisibility = index < visibleGroups.length - TAIL_RENDER_COUNT
 
         return (
           <React.Fragment key={group.key}>
@@ -52,6 +121,7 @@ export const ConversationFlow: React.FC<ConversationFlowProps> = ({ groups, sess
                 isAfterRewind && 'opacity-30 pointer-events-none',
               )}
               data-group-id={group.key}
+              style={useContentVisibility ? OFFSCREEN_STYLE : undefined}
             >
               {group.kind === 'assistant' ? (
                 <AiMessageGroup group={group.assistant} />

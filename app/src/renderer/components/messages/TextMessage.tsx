@@ -8,7 +8,7 @@ interface TextMessageProps {
   message: Message
 }
 
-export const TextMessage: React.FC<TextMessageProps> = ({ message }) => {
+export const TextMessage: React.FC<TextMessageProps> = React.memo(({ message }) => {
   const content = typeof message.content === 'string' ? message.content : JSON.stringify(message.content)
 
   return (
@@ -25,4 +25,4 @@ export const TextMessage: React.FC<TextMessageProps> = ({ message }) => {
       </MessageRow>
     </div>
   )
-}
+})

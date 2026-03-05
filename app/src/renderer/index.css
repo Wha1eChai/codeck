@@ -269,6 +269,11 @@
   animation: flash-highlight 1.2s ease-out forwards;
 }
 
+/* ── Conversation group containment — isolate layout from global recalculations ── */
+[data-group-id] {
+  contain: layout style;
+}
+
 /* Markdown Styles */
 .markdown-body {
   font-size: 14px;

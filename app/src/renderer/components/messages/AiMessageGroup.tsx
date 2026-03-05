@@ -33,7 +33,7 @@ export interface AiMessageGroupProps {
   group: AssistantMessageGroupView
 }
 
-export const AiMessageGroup: React.FC<AiMessageGroupProps> = ({ group }) => {
+export const AiMessageGroup: React.FC<AiMessageGroupProps> = React.memo(({ group }) => {
   const sessionStatus = useSessionStore(s => s.sessionStatus)
   const isStreaming = sessionStatus === 'streaming'
   const { flowSteps, lastMessage } = group
@@ -69,7 +69,7 @@ export const AiMessageGroup: React.FC<AiMessageGroupProps> = ({ group }) => {
       )}
     </MessageRow>
   )
-}
+})
 
 interface FlowRunRendererProps {
   run: FlowRun
@@ -77,7 +77,7 @@ interface FlowRunRendererProps {
   isLastRun: boolean
 }
 
-const FlowRunRenderer: React.FC<FlowRunRendererProps> = ({ run, isStreaming, isLastRun }) => {
+const FlowRunRenderer: React.FC<FlowRunRendererProps> = React.memo(({ run, isStreaming, isLastRun }) => {
   // Text runs render naked — no card, no border
   if (run.kind === 'text') {
     const steps = run.steps as AssistantTextStep[]
@@ -109,7 +109,7 @@ const FlowRunRenderer: React.FC<FlowRunRendererProps> = ({ run, isStreaming, isL
   ))
 
   return steps.length > 1 ? <FlowNodeStack>{nodes}</FlowNodeStack> : <>{nodes}</>
-}
+})
 
 interface RenderFlowNodeProps {
   step: AssistantFlowStep

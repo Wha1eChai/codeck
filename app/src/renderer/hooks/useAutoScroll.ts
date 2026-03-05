@@ -44,15 +44,25 @@ export function useAutoScroll() {
     return () => {
       observer.disconnect()
       mutationObserver.disconnect()
+      if (rafId.current !== null) {
+        cancelAnimationFrame(rafId.current)
+        rafId.current = null
+      }
     }
   }, [shouldAutoScroll])
 
+  const rafId = useRef<number | null>(null)
+
   const handleScroll = useCallback(() => {
-    if (scrollRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = scrollRef.current
-      const isAtBottom = scrollHeight - scrollTop - clientHeight < 100
-      setShouldAutoScroll(isAtBottom)
-    }
+    if (rafId.current !== null) return
+    rafId.current = requestAnimationFrame(() => {
+      rafId.current = null
+      if (scrollRef.current) {
+        const { scrollTop, scrollHeight, clientHeight } = scrollRef.current
+        const isAtBottom = scrollHeight - scrollTop - clientHeight < 100
+        setShouldAutoScroll(isAtBottom)
+      }
+    })
   }, [])
 
   const scrollToBottom = useCallback(() => setShouldAutoScroll(true), [])

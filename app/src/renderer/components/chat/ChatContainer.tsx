@@ -70,7 +70,7 @@ export const ChatContainer: React.FC = () => {
         ref={scrollRef}
         onScroll={handleScroll}
       >
-        <div className="w-full max-w-4xl flex flex-col" style={{ gap: 'var(--chat-gap)' }}>
+        <div className="w-full max-w-4xl flex flex-col" style={{ gap: 'var(--chat-gap)', contain: 'layout style' }}>
           {showEmptyState ? (
             showWelcome ? (
               <WelcomeView />

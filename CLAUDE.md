@@ -365,6 +365,8 @@ updateSettings: async (partial) => {
 - `app/src/renderer/__test-utils__/` 提供 `installMockElectron()` / `uninstallMockElectron()`（全量 `ElectronAPI` mock）、`resetAllStores()`、`createMockSession()` 等 fixture 工厂
 - Hooks 测试需要 `// @vitest-environment happy-dom` 指令 + `@testing-library/react` 的 `renderHook`；Store 测试直接在 `node` 环境下调用 `getState()` / `setState()`
 - `syncStatus()` 仅在 `currentSessionId === state.sessionId` 时更新顶层 `sessionStatus`，测试时须先设置 `currentSessionId`
+- **组件测试**：读 Zustand store 状态的组件**不能用 `renderToStaticMarkup`**（SSR 走 `getServerSnapshot`，忽略 `setState`），必须用 `@testing-library/react` 的 `render`；只接收 props 的纯展示组件才可用 `renderToStaticMarkup`
+- `installMockElectron()` 应直接赋值到 `window.electron`，不能替换 `globalThis.window`（会破坏 happy-dom 的 `addEventListener`）
 
 ### pnpm v10
 - Electron 首次安装后需 `pnpm approve-builds electron` 批准构建脚本
@@ -392,6 +394,17 @@ updateSettings: async (partial) => {
 - Zod v4 要求显式传两个参数：`z.record(z.string(), z.string())`
 - 仅传一个参数 `z.record(z.string())` 会报 TS2554，且 infer 出 `Record<string, unknown>` 类型
 
+### IPC payload 协议一致性
+
+- preload 的 `ipcRenderer.invoke(channel, payload)` 与主进程 handler 的 Zod schema 必须严格匹配 **payload 形态（字符串 vs 对象）**
+- `createValidatedHandler` 接收 `payload` 整体传给 `schema.parse()`；若 schema 是 `z.object({sessionId})` 而 preload 传裸字符串，Zod 抛 ZodError，前端 `catch(()=>{})` 静默吞掉，表现为"偶发无响应"
+- 重构 IPC handler（如引入工厂函数）时，检查原始 handler 是否有 `typeof x === 'string' ? { key: x } : x` 的字符串适配逻辑——工厂化后需在 preload 侧同步改为传对象
+
+### 日志
+
+- 主进程用 `createLogger(module)` from `app/src/main/services/logger.ts`，渲染进程用 `app/src/renderer/lib/logger.ts`
+- 生产代码禁止直接 `console.*`，统一用 logger（便于生产模式静音及后续结构化日志接入）
+
 ### Zod schema 与 AppPreferences 同步
 - 新增 `AppPreferences` 字段时**必须**同步更新 `schemas.ts` 的 `updatePreferencesSchema`，否则 Zod 默认 strip 行为会静默丢弃未声明字段，前端乐观更新成功但后端实际未写入，重启后配置丢失
 
@@ -414,6 +427,13 @@ updateSettings: async (partial) => {
   4. 更新 `message-parser.ts` 添加新分支
   5. 更新 `__tests__/fixtures.ts` 添加真实结构 fixture
   6. 运行 `pnpm test` 验证单元测试
+
+### 渲染性能优化注意事项
+
+- `content-visibility: auto` 只加在非最后 20 个消息组上（`TAIL_RENDER_COUNT`），最后 20 个始终完整渲染以避免流式尾部闪烁
+- 消息窗口切片（`INITIAL_WINDOW = 30`）在 session 切换时自动重置，流式时自动推进窗口尾部
+- `React.memo()` 加在 `MessageMarkdown` / `TextMessage` / `AiMessageGroup` / `FlowRunRenderer` 上；`markdownComponents` 对象已是模块级常量，无需额外处理
+- `useAutoScroll.handleScroll` 用 rAF 去重避免每帧多次 scroll 回调，cleanup 在 ResizeObserver 的 useEffect 中
 
 ### Vitest — Electron & Workspace 包解析
 
@@ -523,13 +543,17 @@ interface RuntimeAdapter {
 
 > **说明**：渲染层代码完全在 SDK 无关区域，以下改进不受迁移影响，随时可做。
 
-### P0：流式渲染性能
+### P0：流式渲染性能（已完成）
 
-- [ ] `message-store` 的 `addMessage` 路径无节流，每个 stream delta 触发一次 Zustand `set()` → React re-render。高速流式时可能每秒几十次渲染。需加 `requestAnimationFrame` 批量合并或 Zustand temporal 中间件
+- [x] `message-store` rAF 批量合并 — `pendingDeltas` + `requestAnimationFrame` 每帧只触发一次 `set()`
+- [x] CSS containment — `[data-group-id]` 加 `contain: layout style`，旧消息组加 `content-visibility: auto`
+- [x] 消息窗口切片 — `ConversationFlow` 只渲染最近 30 组，上滑 IntersectionObserver 按需加载历史
+- [x] 组件 memoization — `MessageMarkdown` / `TextMessage` / `AiMessageGroup` / `FlowRunRenderer` 加 `React.memo()`
+- [x] 滚动回调 rAF 节流 — `useAutoScroll.handleScroll` 用 `requestAnimationFrame` 去重
 
 ### P1：交互反馈补全
 
-- [ ] **Timeline scrollToGroup 着陆高亮**：滚动到位后给目标 `data-group-id` 元素加 `flash-highlight` class，CSS `@keyframes` 做 1.5s 背景色渐隐。纯 CSS，约 10 行
+- [x] **Timeline scrollToGroup 着陆高亮**：`flash-highlight` CSS 动画已实现
 - [ ] **工具状态过渡动画**：`running` → `completed` 时状态点颜色瞬间跳变，需加 `transition-colors duration-300` + 完成时短暂 `scale` 弹跳
 
 ### P2：Rewind 操作安全感
