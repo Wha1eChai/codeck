@@ -16,7 +16,6 @@ import { sessionManager } from './session';
 import { runtimeRegistry } from './runtime';
 import { runtimeContextService } from './runtime-context';
 import { capabilityGate } from './capability-gate';
-import { claudeService } from './claude';
 import { appPreferencesService } from './app-preferences';
 import { sessionContextStore } from './session-context';
 import { worktreeService } from './worktree-service';
@@ -204,7 +203,7 @@ export class SessionOrchestrator {
     const effectiveCwd = resolvedSession?.worktree?.worktreePath ?? projectPath;
 
     // Use context-aware startSession for multi-session support
-    await claudeService.startSession(window, {
+    await runtimeRegistry.getAdapter().startSession(window, {
       prompt: input.content,
       cwd: effectiveCwd,
       sessionId: resolvedSessionId,
@@ -284,7 +283,7 @@ export class SessionOrchestrator {
   abortSession(sessionId: string): void {
     const ctx = sessionContextStore.get(sessionId);
     if (ctx) {
-      claudeService.abort(ctx);
+      runtimeRegistry.getAdapter().abort(ctx);
     }
   }
 
@@ -300,7 +299,7 @@ export class SessionOrchestrator {
   resolvePermissionForSession(sessionId: string, response: PermissionResponse): void {
     const ctx = sessionContextStore.get(sessionId);
     if (ctx) {
-      claudeService.resolvePermission(ctx, response);
+      runtimeRegistry.getAdapter().resolvePermission(ctx, response);
     }
   }
 
@@ -315,7 +314,7 @@ export class SessionOrchestrator {
   resolveAskUserQuestionForSession(sessionId: string, response: AskUserQuestionResponse): void {
     const ctx = sessionContextStore.get(sessionId);
     if (ctx) {
-      claudeService.resolveAskUserQuestion(ctx, response);
+      runtimeRegistry.getAdapter().resolveAskUserQuestion(ctx, response);
     }
   }
 
@@ -329,7 +328,7 @@ export class SessionOrchestrator {
   resolveExitPlanModeForSession(sessionId: string, response: ExitPlanModeResponse): void {
     const ctx = sessionContextStore.get(sessionId);
     if (ctx) {
-      claudeService.resolveExitPlanMode(ctx, response);
+      runtimeRegistry.getAdapter().resolveExitPlanMode(ctx, response);
     }
   }
 
@@ -343,7 +342,7 @@ export class SessionOrchestrator {
   async rewindFiles(sessionId: string, userMessageId: string, dryRun?: boolean): Promise<RewindFilesResult> {
     const ctx = sessionContextStore.get(sessionId);
     if (ctx) {
-      return claudeService.rewindFiles(ctx, userMessageId, dryRun);
+      return runtimeRegistry.getAdapter().rewindFiles(ctx, userMessageId, dryRun);
     }
     return { canRewind: false, error: 'No active query for this session — cannot rewind.' };
   }
