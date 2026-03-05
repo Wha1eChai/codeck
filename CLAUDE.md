@@ -7,8 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 核心理念
 
 1. **原生文件驱动** — 直接读写 `~/.claude/` 目录，不引入额外数据库
-2. **SDK 优先** — 通过 `@anthropic-ai/claude-agent-sdk` 的 `query()` API 与 Claude 交互
-3. **渐进式架构** — Phase 1 核心对话 → Phase 2 体验增强 → Phase 3 差异化功能
+2. **多运行时架构** — 自研 Agent 内核（`@codeck/agent-core` + Vercel AI SDK）为主力，保留 `@anthropic-ai/claude-agent-sdk` 作为回退
+3. **渐进式架构** — Phase 1 核心对话 → Phase 2 体验增强 → Phase 3 差异化 → Phase 5 SDK 解耦
 
 ## Monorepo 结构
 
@@ -16,13 +16,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 codeck/                          # 仓库根目录（本文件所在处）
 ├── app/                         # Electron 桌面客户端（主包）
 ├── packages/
+│   ├── agent-core/              # @codeck/agent-core — 自研 Agent 内核（loop/tools/permission/prompt/mapper）
+│   ├── provider/                # @codeck/provider — LLM Provider 抽象（Anthropic via Vercel AI SDK）
 │   ├── config/                  # @codeck/config — 配置解析库（Zod schema + 读写）
 │   └── sessions/                # @codeck/sessions — 会话历史服务（Hono + SQLite）
 ├── package.json                 # Workspace 根
-└── pnpm-workspace.yaml
+└── pnpm-workspace.yaml          # packages: [app, packages/*]
 ```
 
 `app` 依赖 `@codeck/sessions`（workspace:*），通过 `sessions-server.ts` 启动其 HTTP 服务子进程。
+`app` 依赖 `@codeck/agent-core` + `@codeck/provider`（workspace:*），通过 `KernelService` 驱动自研 Agent 内核。
 
 ## 技术栈
 
@@ -36,7 +39,9 @@ codeck/                          # 仓库根目录（本文件所在处）
 | 图标 | lucide-react | - |
 | 状态管理 | Zustand (全局) + React 19 use() (细粒度) | - |
 | 数据源 | ~/.claude/ 原生文件 (JSON/JSONL/Markdown) | - |
-| SDK | @anthropic-ai/claude-agent-sdk | 0.2+ |
+| Agent 内核 | @codeck/agent-core + @codeck/provider (workspace) | 0.1 |
+| AI SDK | ai + @ai-sdk/anthropic (Vercel AI SDK) | 4.3+ |
+| SDK（回退） | @anthropic-ai/claude-agent-sdk | 0.2+ |
 | 配置管理 | @codeck/config (workspace) | - |
 | 包管理 | pnpm | - |
 | 测试 | Vitest | - |
@@ -51,6 +56,8 @@ pnpm build            # 生产构建
 pnpm test             # 运行所有包的单元测试
 pnpm test:config      # 仅运行 @codeck/config 测试
 pnpm test:sessions    # 仅运行 @codeck/sessions 测试
+pnpm --filter @codeck/agent-core run test   # 仅运行 agent-core 测试
+pnpm --filter @codeck/provider run test     # 仅运行 provider 测试
 
 # app 包级别（需要 filter 或 cd app/）
 pnpm --filter codeck typecheck          # TypeScript 类型检查（3 个子 tsconfig）
@@ -92,6 +99,10 @@ app/src/
 │       ├── config-bridge.ts      # @codeck/config 桥接（Plugin/Agent/MCP/Hook/Memory 读写）
 │       ├── ccusage-runner.ts     # ccusage 用量统计（直接 import data-loader + TTL 缓存）
 │       ├── runtime/             # 运行时抽象层（RuntimeAdapter + Registry）
+│       │   ├── types.ts / runtime-registry.ts / setup.ts
+│       │   ├── claude-runtime-adapter.ts   # SDK 回退（委托 ClaudeService）
+│       │   ├── kernel-runtime-adapter.ts   # 自研内核（委托 KernelService）
+│       │   └── kernel-service.ts           # Agent 内核编排（Provider → Loop → Mapper → IPC）
 │       └── sdk-adapter/         # SDK 消息适配（纯函数，隔离 SDK 依赖）
 │           ├── sdk-types.ts     # SDK 类型镜像
 │           ├── message-parser.ts / content-block-parser.ts  # 消息解析
@@ -139,9 +150,11 @@ Renderer IPC → ipc-handlers/（按领域拆分，Zod 验证）→ SessionOrche
     ├─→ SessionManager → 内存状态（activeSessions Map + focusedSessionId）
     ├─→ ClaudeFilesService → JSONL 读写 + ccuiProjectMeta 元数据
     ├─→ WorktreeService → Git worktree 创建/合并/删除
-    └─→ RuntimeRegistry.getAdapter().startSession(ctx) → ClaudeRuntimeAdapter → ClaudeService → SDK query()
-            ↓
-        sdk-adapter/（纯函数层：parseSDKMessage → Message[]）
+    └─→ RuntimeRegistry.getAdapter(runtimeId).startSession(ctx)
+            ├─→ ClaudeRuntimeAdapter → ClaudeService → SDK query()
+            │       ↓ sdk-adapter/（parseSDKMessage → Message[]）
+            └─→ KernelRuntimeAdapter → KernelService → @codeck/agent-core
+                    ↓ event-to-message mapper（AgentEvent → MessageLike）
             ↓
         IPC → Renderer → message-store → 组件渲染
 
@@ -166,7 +179,9 @@ Renderer IPC → ipc-handlers/（按领域拆分，Zod 验证）→ SessionOrche
 | `SessionManager` | 内存状态（activeSessions Map + focusedSessionId + worktreeInfoMap） |
 | `SessionContextStore` | Per-session 运行时上下文（AbortController / permissionResolver / queryRef） |
 | `WorktreeService` | Git worktree 生命周期（create / list / remove / diff / merge） |
-| `RuntimeRegistry` | 多运行时适配器管理，委托操作到 active runtime |
+| `RuntimeRegistry` | 多运行时适配器管理，委托操作到 active runtime（claude / kernel） |
+| `KernelService` | 自研 Agent 内核编排（Provider → Model → Agent Loop → Event Mapper → IPC） |
+| `KernelRuntimeAdapter` | 自研内核的 RuntimeAdapter 实现，委托 KernelService |
 | `RuntimeContextService` | 构建 runtime/permissionMode 上下文（request > session > settings > fallback） |
 | `CapabilityGate` | 验证运行时能力与请求参数兼容性 |
 | `sessions-server.ts` | 启动 @codeck/sessions HTTP 子进程 + triggerSync/debouncedSync 同步生命周期（启动初始 sync + 5min 定时 + 事件驱动） |
@@ -439,6 +454,7 @@ updateSettings: async (partial) => {
 
 - `electron` 通过 `app/vitest.config.ts` 的 alias 全局 mock → `src/__mocks__/electron.ts`，测试文件无需各自 `vi.mock('electron')`；新增直接或间接导入 `electron` 的服务文件时不需要额外操作
 - `@codeck/config` 同样通过 alias 指向 TypeScript 源码，无需先 `pnpm build`；**新增 workspace 包时需同步在 vitest alias 中注册**，否则 CI 会报 "Failed to resolve entry for package"
+- **新增 workspace 包还必须在 `app/package.json` 的 `dependencies` 中声明 `"@codeck/xxx": "workspace:*"`**，否则 pnpm 不会在 `app/node_modules/@codeck/` 创建 symlink，`electron-vite` 主进程构建会报 "Rollup failed to resolve import"（vitest 通过 alias 绕过不受影响，导致测试全绿但 `pnpm dev` 失败）
 - CI 用 `ELECTRON_SKIP_BINARY_DOWNLOAD=1`，本地因 binary 存在不会暴露此问题——两者差异只能通过 alias mock 消除
 
 ### Vitest — 平台相关测试
@@ -469,13 +485,17 @@ interface RuntimeAdapter {
 
 注册位置：`app/src/main/services/runtime/setup.ts`（RuntimeRegistry 类本身零 adapter 导入）
 
+已注册 adapter：
+- `claude`（默认）— `ClaudeRuntimeAdapter` → `ClaudeService` → Agent SDK `query()`
+- `kernel` — `KernelRuntimeAdapter` → `KernelService` → `@codeck/agent-core` + `@codeck/provider`
+
 ## 开发阶段
 
 - Phase 1（已完成）— 核心对话：项目选择、会话管理、流式聊天、权限审批
 - Phase 2（已完成）— 体验增强：Diff 视图、文件管理器、Token 仪表盘、Checkpoint 时间轴、会话历史、消息分组渲染
 - Phase 3（已完成）— 差异化：Settings 页面化、Plugin/Agent/MCP/Hook/Memory 管理 UI、主题切换
 - Phase 4（已完成）— 多 Session 并行：Activity Bar + SessionPanel 侧边栏重设计、Tab Bar 多标签、SessionContext 并发后端、Git Worktree 隔离
-- **Phase 5（进行中）— SDK 解耦 + 自研 Agent 内核**：5A 架构铺路 → 5B 自研内核 + 多 Provider → 5C Agent 上下文管理与编排
+- **Phase 5（进行中）— SDK 解耦 + 自研 Agent 内核**：5A 架构铺路 ✅ → 5B-Part1 内核基础 ✅ → 5B-Part2 功能对齐 → 5C 上下文编排
 - 远期：远程 WebUI、国际化、可执行版发布
 
 ### 多 Session 架构
@@ -508,8 +528,12 @@ interface RuntimeAdapter {
 | `sdk-types.ts` | 类型镜像 | 不 import SDK 包，但结构必须与 SDK 输出一致 |
 | `sdk-adapter/*`（其余文件） | **零 SDK 导入** | 纯函数层，仅依赖 sdk-types.ts 和 common/types.ts |
 | `session-orchestrator.ts` | **零（已解耦）** | 通过 `runtimeRegistry.getAdapter()` 路由，不再 import ClaudeService |
-| `runtime/setup.ts` | 间接（组装层） | 导入 ClaudeService + ClaudeRuntimeAdapter 进行注册，仅此一处 |
+| `runtime/setup.ts` | 间接（组装层） | 导入 ClaudeService + ClaudeRuntimeAdapter + KernelService + KernelRuntimeAdapter 进行注册 |
 | `runtime/claude-runtime-adapter.ts` | 间接（薄委托） | 接收 ClaudeService 实例，委托 6 个执行方法 |
+| `runtime/kernel-runtime-adapter.ts` | **零 SDK** | 委托 KernelService，使用 @codeck/agent-core + @codeck/provider |
+| `runtime/kernel-service.ts` | **零 SDK** | 自研 Agent 内核编排，完全独立于 SDK |
+| `@codeck/agent-core` | **零 SDK** | Agent loop / tools / permission / prompt / mapper |
+| `@codeck/provider` | **零 SDK** | Anthropic provider via Vercel AI SDK（`@ai-sdk/anthropic`） |
 | `common/types.ts` | **零** | Message / PermissionRequest / ExecutionOptions 全部本地定义 |
 | `preload/` + `renderer/*` | **零** | 仅消费 @common/types |
 
@@ -522,11 +546,19 @@ interface RuntimeAdapter {
 
 ### Phase 5B：自研 Agent 内核 + 多 Provider
 
-- [ ] 定义 provider 无关的消息流接口（`AgentMessageStream`），统一 Anthropic / OpenAI / 其他 provider 的流式事件
-- [ ] 第一个自研 provider：Anthropic Messages API（使用 MIT 许可的 `anthropic` SDK，非 Agent SDK）
-- [ ] 自研 agent 循环：工具调用编排、上下文管理、权限审批流程
-- [ ] 跑通端到端后，移除 `@anthropic-ai/claude-agent-sdk` 依赖
-- [ ] 后续扩展更多 provider
+**Part 1 — Agent 内核基础（已完成）**：
+- [x] `@codeck/provider`：Anthropic provider（Vercel AI SDK）+ 模型目录 + 短别名（sonnet/opus/haiku）
+- [x] `@codeck/agent-core`：Agent Loop（streamText + tool 执行）、Tool 系统（Bash/Read/Write/Edit/Glob/Grep + Registry）、Permission Gate（risk-based + memory store）、System Prompt 组装、Event-to-Message Mapper
+- [x] `KernelService` + `KernelRuntimeAdapter`：注册到 RuntimeRegistry，与 SDK adapter 并行
+- [x] Per-session `runtimeId` 路由，避免全局状态竞态
+
+**Part 2 — 功能对齐与端到端（待开始）**：
+- [ ] 端到端集成测试（真实 API 调用验证 kernel 路径）
+- [ ] 会话恢复（resume）支持
+- [ ] Hooks / MCP / Skills 集成
+- [ ] Checkpointing（git stash-based）
+- [ ] 移除 `@anthropic-ai/claude-agent-sdk` 依赖
+- [ ] 扩展更多 provider（OpenAI / Google）
 
 ### Phase 5C：Agent 上下文管理与编排
 
@@ -538,11 +570,11 @@ interface RuntimeAdapter {
 
 ### 工作量估算（1 人全职）
 
-| 阶段 | 预估 | 说明 |
+| 阶段 | 预估 | 状态 |
 |------|------|------|
-| Phase 5A（架构铺路） | 1-2 周 | 对现有功能零影响，纯重构 |
-| Phase 5B MVP（单 provider + 基础流式 + 工具调用闭环） | 2-4 周 | 在 Phase 5A 基础上 |
-| Phase 5B 功能对齐（权限、中断、结构化输出等） | 6-10 周 | 累计 |
+| Phase 5A（架构铺路） | 1-2 周 | ✅ 完成 |
+| Phase 5B Part 1（Agent 内核基础） | 2-3 周 | ✅ 完成 |
+| Phase 5B Part 2（功能对齐 + 端到端） | 4-6 周 | 待开始 |
 | Phase 5C（Agent 上下文管理与编排） | 待评估 | 5B 完成后细化 |
 | 多 provider 稳定架构 | 10-16 周 | 累计 |
 
