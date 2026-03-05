@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { RuntimeRegistry } from '../runtime-registry';
 import type { RuntimeAdapter } from '../types';
 
@@ -20,6 +20,12 @@ function createCodexAdapterMock(): RuntimeAdapter {
       supportedPermissionModes: ['default', 'plan'],
       notes: ['test adapter'],
     }),
+    startSession: vi.fn(),
+    abort: vi.fn(),
+    resolvePermission: vi.fn(),
+    resolveAskUserQuestion: vi.fn(),
+    resolveExitPlanMode: vi.fn(),
+    rewindFiles: vi.fn(),
   };
 }
 
