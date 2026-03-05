@@ -16,3 +16,7 @@ export type {
   PermissionMemoryStore,
 } from './permission/index.js'
 export { createPermissionGate, createPermissionMemoryStore, assessToolRisk } from './permission/index.js'
+
+export type { MessageLike, MessageRole, MessageType, TokenUsageLike } from './mapper/index.js'
+export type { EventToMessageMapper, EventToMessageMapperOptions } from './mapper/index.js'
+export { createEventToMessageMapper } from './mapper/index.js'
