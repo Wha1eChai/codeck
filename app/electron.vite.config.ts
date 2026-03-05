@@ -5,7 +5,7 @@ import tailwindcss from "@tailwindcss/vite"
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin({ exclude: ['@codeck/config', '@codeck/sessions'] })],
+    plugins: [externalizeDepsPlugin({ exclude: ['@codeck/config', '@codeck/sessions', '@codeck/provider', '@codeck/agent-core'] })],
     resolve: {
       alias: {
         "@common": resolve("src/common"),
