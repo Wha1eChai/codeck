@@ -6,6 +6,7 @@ import type {
   PermissionResponse,
   AskUserQuestionResponse,
   ExitPlanModeResponse,
+  RuntimeProvider,
 } from '@common/types'
 import type { SessionMetadata, SDKQuery } from './sdk-adapter'
 import type { PersistentPermissionStore } from './permission-store'
@@ -14,6 +15,8 @@ import type { PersistentPermissionStore } from './permission-store'
 export interface SessionContext {
   readonly sessionId: string
   readonly projectPath: string
+  /** Which runtime adapter this session was started with. Used for routing abort/resolve. */
+  runtimeId: RuntimeProvider | null
   abortController: AbortController | null
   permissionResolver: ((r: PermissionResponse) => void) | null
   askUserQuestionResolver: ((r: AskUserQuestionResponse) => void) | null
@@ -43,6 +46,7 @@ export class SessionContextStore {
     const ctx: SessionContext = {
       sessionId,
       projectPath,
+      runtimeId: null,
       abortController: null,
       permissionResolver: null,
       askUserQuestionResolver: null,

@@ -25,16 +25,16 @@ export function createToolRegistry(): ToolRegistry {
       return [...tools.values()]
     },
 
-    toAISDKTools(ctx: ToolContext): Record<string, unknown> {
+    toAISDKTools(_ctx: ToolContext): Record<string, unknown> {
+      // NOTE: We intentionally omit `execute` here. The agent-loop handles
+      // tool execution manually after receiving tool-call events from the stream.
+      // Including execute would cause AI SDK to auto-execute tools when maxSteps > 1,
+      // leading to double execution of side-effecting tools (Write, Bash, etc.).
       const result: Record<string, unknown> = {}
       for (const [name, def] of tools) {
         result[name] = aiTool({
           description: def.description,
           parameters: def.parameters,
-          execute: async (params: unknown) => {
-            const toolResult = await def.execute(params, ctx)
-            return toolResult.output
-          },
         })
       }
       return result

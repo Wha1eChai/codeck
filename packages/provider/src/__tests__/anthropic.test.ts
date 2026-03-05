@@ -21,99 +21,149 @@ import { createAnthropicProvider } from '../anthropic.js'
 import { createModelRegistry } from '../model-registry.js'
 
 describe('createAnthropicProvider', () => {
-  it('resolves a canonical model with correct capabilities', () => {
+  it('resolves the latest opus model', () => {
     const provider = createAnthropicProvider({ apiKey: 'test-key' })
-    const resolved = provider.resolveModel('claude-sonnet-4-20250514')
+    const resolved = provider.resolveModel('claude-opus-4-6')
 
     expect(resolved.ref).toEqual({
       providerId: 'anthropic',
-      modelId: 'claude-sonnet-4-20250514',
+      modelId: 'claude-opus-4-6',
     })
-    expect(resolved.capabilities).toEqual({
-      contextWindow: 200000,
-      maxOutputTokens: 16000,
-      supportsThinking: true,
-      supportsImages: true,
-      costPer1kInput: 0.003,
-      costPer1kOutput: 0.015,
-    })
+    expect(resolved.capabilities.maxOutputTokens).toBe(128000)
+    expect(resolved.capabilities.supportsThinking).toBe(true)
+    expect(resolved.capabilities.costPer1kInput).toBe(0.005)
     expect(resolved.languageModel).toBeDefined()
   })
 
-  it('resolves opus model with correct capabilities', () => {
+  it('resolves the latest sonnet model', () => {
     const provider = createAnthropicProvider()
-    const resolved = provider.resolveModel('claude-opus-4-20250514')
+    const resolved = provider.resolveModel('claude-sonnet-4-6')
 
-    expect(resolved.capabilities.maxOutputTokens).toBe(32000)
-    expect(resolved.capabilities.supportsThinking).toBe(true)
-    expect(resolved.capabilities.costPer1kInput).toBe(0.015)
+    expect(resolved.capabilities.maxOutputTokens).toBe(64000)
+    expect(resolved.capabilities.costPer1kInput).toBe(0.003)
   })
 
   it('resolves haiku model with correct capabilities', () => {
     const provider = createAnthropicProvider()
     const resolved = provider.resolveModel('claude-haiku-4-5-20251001')
 
-    expect(resolved.capabilities.maxOutputTokens).toBe(8192)
-    expect(resolved.capabilities.supportsThinking).toBe(false)
-    expect(resolved.capabilities.costPer1kInput).toBe(0.0008)
+    expect(resolved.capabilities.maxOutputTokens).toBe(64000)
+    expect(resolved.capabilities.supportsThinking).toBe(true)
+    expect(resolved.capabilities.costPer1kInput).toBe(0.001)
   })
 
-  describe('alias resolution', () => {
-    it('resolves claude-opus-4-6 to claude-opus-4-20250514', () => {
-      const provider = createAnthropicProvider()
-      const resolved = provider.resolveModel('claude-opus-4-6')
+  it('resolves legacy sonnet-4 model', () => {
+    const provider = createAnthropicProvider()
+    const resolved = provider.resolveModel('claude-sonnet-4-20250514')
 
-      expect(resolved.ref.modelId).toBe('claude-opus-4-20250514')
-      expect(resolved.capabilities.maxOutputTokens).toBe(32000)
+    expect(resolved.ref.modelId).toBe('claude-sonnet-4-20250514')
+    expect(resolved.capabilities.contextWindow).toBe(200000)
+  })
+
+  it('resolves legacy opus-4 model', () => {
+    const provider = createAnthropicProvider()
+    const resolved = provider.resolveModel('claude-opus-4-20250514')
+
+    expect(resolved.ref.modelId).toBe('claude-opus-4-20250514')
+    expect(resolved.capabilities.costPer1kInput).toBe(0.015)
+  })
+
+  describe('short alias resolution', () => {
+    it('resolves "sonnet" to claude-sonnet-4-6', () => {
+      const provider = createAnthropicProvider()
+      const resolved = provider.resolveModel('sonnet')
+
+      expect(resolved.ref.modelId).toBe('claude-sonnet-4-6')
     })
 
-    it('resolves claude-sonnet-4 to claude-sonnet-4-20250514', () => {
+    it('resolves "opus" to claude-opus-4-6', () => {
       const provider = createAnthropicProvider()
-      const resolved = provider.resolveModel('claude-sonnet-4')
+      const resolved = provider.resolveModel('opus')
 
-      expect(resolved.ref.modelId).toBe('claude-sonnet-4-20250514')
+      expect(resolved.ref.modelId).toBe('claude-opus-4-6')
     })
 
-    it('resolves claude-haiku-4-5 to claude-haiku-4-5-20251001', () => {
+    it('resolves "haiku" to claude-haiku-4-5-20251001', () => {
+      const provider = createAnthropicProvider()
+      const resolved = provider.resolveModel('haiku')
+
+      expect(resolved.ref.modelId).toBe('claude-haiku-4-5-20251001')
+    })
+  })
+
+  describe('official API alias resolution', () => {
+    it('resolves claude-haiku-4-5 alias', () => {
       const provider = createAnthropicProvider()
       const resolved = provider.resolveModel('claude-haiku-4-5')
 
       expect(resolved.ref.modelId).toBe('claude-haiku-4-5-20251001')
     })
 
-    it('resolves claude-opus-4 to claude-opus-4-20250514', () => {
+    it('resolves claude-sonnet-4-5 alias', () => {
       const provider = createAnthropicProvider()
-      const resolved = provider.resolveModel('claude-opus-4')
+      const resolved = provider.resolveModel('claude-sonnet-4-5')
+
+      expect(resolved.ref.modelId).toBe('claude-sonnet-4-5-20250929')
+    })
+
+    it('resolves claude-opus-4-5 alias', () => {
+      const provider = createAnthropicProvider()
+      const resolved = provider.resolveModel('claude-opus-4-5')
+
+      expect(resolved.ref.modelId).toBe('claude-opus-4-5-20251101')
+    })
+
+    it('resolves claude-sonnet-4-0 legacy alias', () => {
+      const provider = createAnthropicProvider()
+      const resolved = provider.resolveModel('claude-sonnet-4-0')
+
+      expect(resolved.ref.modelId).toBe('claude-sonnet-4-20250514')
+    })
+
+    it('resolves claude-opus-4-0 legacy alias', () => {
+      const provider = createAnthropicProvider()
+      const resolved = provider.resolveModel('claude-opus-4-0')
 
       expect(resolved.ref.modelId).toBe('claude-opus-4-20250514')
     })
+  })
 
-    it('resolves claude-haiku-4 to claude-haiku-4-5-20251001', () => {
+  describe('convenience alias resolution', () => {
+    it('resolves claude-sonnet-4 to latest sonnet', () => {
       const provider = createAnthropicProvider()
-      const resolved = provider.resolveModel('claude-haiku-4')
+      const resolved = provider.resolveModel('claude-sonnet-4')
 
-      expect(resolved.ref.modelId).toBe('claude-haiku-4-5-20251001')
+      expect(resolved.ref.modelId).toBe('claude-sonnet-4-6')
+    })
+
+    it('resolves claude-opus-4 to latest opus', () => {
+      const provider = createAnthropicProvider()
+      const resolved = provider.resolveModel('claude-opus-4')
+
+      expect(resolved.ref.modelId).toBe('claude-opus-4-6')
     })
   })
 
-  it('throws on unknown model', () => {
+  it('returns default capabilities for unknown model IDs instead of throwing', () => {
     const provider = createAnthropicProvider()
+    const resolved = provider.resolveModel('some-future-model-2027')
 
-    expect(() => provider.resolveModel('gpt-4o')).toThrow(
-      'Unknown model "gpt-4o" for provider "anthropic"',
-    )
+    // Should not throw — returns default capabilities
+    expect(resolved.ref.modelId).toBe('some-future-model-2027')
+    expect(resolved.capabilities.contextWindow).toBe(200000)
+    expect(resolved.languageModel).toBeDefined()
   })
 
-  it('lists all canonical models', () => {
+  it('lists all known canonical models', () => {
     const provider = createAnthropicProvider()
     const models = provider.listModels()
 
-    expect(models).toHaveLength(3)
+    expect(models.length).toBeGreaterThanOrEqual(7)
     expect(models.every((m) => m.providerId === 'anthropic')).toBe(true)
 
     const modelIds = models.map((m) => m.modelId)
-    expect(modelIds).toContain('claude-opus-4-20250514')
-    expect(modelIds).toContain('claude-sonnet-4-20250514')
+    expect(modelIds).toContain('claude-opus-4-6')
+    expect(modelIds).toContain('claude-sonnet-4-6')
     expect(modelIds).toContain('claude-haiku-4-5-20251001')
   })
 
@@ -154,10 +204,10 @@ describe('createModelRegistry', () => {
     const registry = createModelRegistry()
     registry.registerProvider(createAnthropicProvider())
 
-    const resolved = registry.resolveModel('anthropic', 'claude-sonnet-4-20250514')
+    const resolved = registry.resolveModel('anthropic', 'claude-sonnet-4-6')
 
     expect(resolved.ref.providerId).toBe('anthropic')
-    expect(resolved.ref.modelId).toBe('claude-sonnet-4-20250514')
+    expect(resolved.ref.modelId).toBe('claude-sonnet-4-6')
     expect(resolved.capabilities.contextWindow).toBe(200000)
   })
 
@@ -165,9 +215,9 @@ describe('createModelRegistry', () => {
     const registry = createModelRegistry()
     registry.registerProvider(createAnthropicProvider())
 
-    const resolved = registry.resolveModel('anthropic', 'claude-opus-4-6')
+    const resolved = registry.resolveModel('anthropic', 'sonnet')
 
-    expect(resolved.ref.modelId).toBe('claude-opus-4-20250514')
+    expect(resolved.ref.modelId).toBe('claude-sonnet-4-6')
   })
 
   it('throws when resolving from unknown provider', () => {
@@ -184,7 +234,7 @@ describe('createModelRegistry', () => {
 
     const allModels = registry.listAllModels()
 
-    expect(allModels).toHaveLength(3)
+    expect(allModels.length).toBeGreaterThanOrEqual(7)
     expect(allModels.every((m) => m.providerId === 'anthropic')).toBe(true)
   })
 
@@ -203,7 +253,7 @@ describe('createModelRegistry', () => {
 
     const allModels = registry.listAllModels()
 
-    expect(allModels).toHaveLength(4)
+    expect(allModels.length).toBeGreaterThanOrEqual(8)
     expect(allModels.some((m) => m.providerId === 'test-provider')).toBe(true)
   })
 })

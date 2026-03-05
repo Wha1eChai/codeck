@@ -211,7 +211,7 @@ function parsePermissionMode(value: unknown): PermissionMode | undefined {
 }
 
 function parseRuntimeProvider(value: unknown): RuntimeProvider | undefined {
-  return value === 'claude' || value === 'codex' || value === 'opencode' ? value : undefined;
+  return value === 'claude' || value === 'codex' || value === 'opencode' || value === 'kernel' ? value : undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, any> {

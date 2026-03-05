@@ -121,18 +121,35 @@ describe('EventToMessageMapper', () => {
       expect(result!.toolUseId).toBe('tc_1')
     })
 
-    it('tool_call_args produces tool_use delta with args', () => {
-      const result = mapper.map({
+    it('tool_call_args reuses the ID from tool_call_start', () => {
+      const start = mapper.map({
+        type: 'tool_call_start',
+        toolCallId: 'tc_1',
+        toolName: 'Read',
+      })
+      const args = mapper.map({
         type: 'tool_call_args',
         toolCallId: 'tc_1',
         args: { file_path: '/a.txt' },
       })
 
-      expect(result!.role).toBe('assistant')
-      expect(result!.type).toBe('tool_use')
-      expect(result!.toolUseId).toBe('tc_1')
-      expect(result!.toolInput).toEqual({ file_path: '/a.txt' })
-      expect(result!.isStreamDelta).toBe(true)
+      expect(args!.id).toBe(start!.id)
+      expect(args!.role).toBe('assistant')
+      expect(args!.type).toBe('tool_use')
+      expect(args!.toolUseId).toBe('tc_1')
+      expect(args!.toolInput).toEqual({ file_path: '/a.txt' })
+      expect(args!.isStreamDelta).toBe(true)
+    })
+
+    it('tool_call_args generates new ID when no prior start event', () => {
+      const result = mapper.map({
+        type: 'tool_call_args',
+        toolCallId: 'tc_orphan',
+        args: { cmd: 'ls' },
+      })
+
+      expect(result!.id).toBeDefined()
+      expect(result!.toolInput).toEqual({ cmd: 'ls' })
     })
 
     it('tool_result produces tool role message', () => {
@@ -200,7 +217,7 @@ describe('EventToMessageMapper', () => {
       expect(result!.usage!.cacheWriteTokens).toBe(20)
     })
 
-    it('done produces final usage message', () => {
+    it('done returns undefined to avoid double-counting with step_end', () => {
       const result = mapper.map({
         type: 'done',
         totalUsage: {
@@ -213,14 +230,7 @@ describe('EventToMessageMapper', () => {
         },
       })
 
-      expect(result!.role).toBe('system')
-      expect(result!.type).toBe('usage')
-      expect(result!.usage).toEqual({
-        inputTokens: 200,
-        outputTokens: 100,
-        cacheReadTokens: 150,
-        cacheWriteTokens: 50,
-      })
+      expect(result).toBeUndefined()
     })
   })
 
@@ -279,13 +289,12 @@ describe('EventToMessageMapper', () => {
 
       const messages = events.map(e => mapper.map(e)).filter((m): m is NonNullable<typeof m> => m !== undefined)
 
-      expect(messages).toHaveLength(5) // 2 deltas + 1 end + 1 step_end + 1 done
+      expect(messages).toHaveLength(4) // 2 deltas + 1 end + 1 step_end (done is suppressed)
       expect(messages[0]!.type).toBe('text')
       expect(messages[0]!.isStreamDelta).toBe(true)
       expect(messages[2]!.type).toBe('text')
       expect(messages[2]!.isStreamDelta).toBeUndefined()
       expect(messages[3]!.type).toBe('usage')
-      expect(messages[4]!.type).toBe('usage')
     })
 
     it('maps a tool call flow', () => {
@@ -304,7 +313,7 @@ describe('EventToMessageMapper', () => {
       const messages = events.map(e => mapper.map(e)).filter((m): m is NonNullable<typeof m> => m !== undefined)
 
       const types = messages.map(m => m.type)
-      expect(types).toEqual(['tool_use', 'tool_use', 'tool_result', 'usage', 'text', 'text', 'usage', 'usage'])
+      expect(types).toEqual(['tool_use', 'tool_use', 'tool_result', 'usage', 'text', 'text', 'usage'])
 
       const toolUse = messages[0]!
       expect(toolUse.toolName).toBe('Read')

@@ -23,7 +23,7 @@ import {
   assembleSystemPrompt,
   createEventToMessageMapper,
 } from '@codeck/agent-core'
-import type { PermissionCallback, PermissionRequest } from '@codeck/agent-core'
+import type { PermissionCallback, PermissionGate, PermissionRequest } from '@codeck/agent-core'
 import { createAnthropicProvider } from '@codeck/provider'
 
 export class KernelService {
@@ -62,31 +62,44 @@ export class KernelService {
       // 2. Build tools
       const tools = createDefaultToolRegistry()
 
-      // 3. Build permission gate (bridge to frontend IPC)
-      const permissionCallback: PermissionCallback = (request: PermissionRequest) => {
-        return new Promise<PermissionResponse>((resolve) => {
-          // Send permission request to renderer
-          window.webContents.send(MAIN_TO_RENDERER.PERMISSION_REQUEST, {
-            requestId: request.id,
-            toolName: request.toolName,
-            args: request.toolInput,
-            riskLevel: request.risk,
-            sessionId,
+      // 3. Build permission gate
+      const bypassPermissions = params.permissionMode === 'dontAsk' || params.permissionMode === 'bypassPermissions'
+
+      let permissionGate: PermissionGate
+
+      if (bypassPermissions) {
+        // Auto-allow all tool calls without prompting the user
+        permissionGate = {
+          check: async (_toolName: string, _toolInput: Record<string, unknown>) => ({
+            requestId: 'auto-approved',
+            allowed: true,
+          }),
+          clearCache: () => { /* no-op */ },
+        }
+      } else {
+        // Bridge to frontend IPC for interactive permission approval
+        const permissionCallback: PermissionCallback = (request: PermissionRequest) => {
+          return new Promise<PermissionResponse>((resolve) => {
+            window.webContents.send(MAIN_TO_RENDERER.PERMISSION_REQUEST, {
+              requestId: request.id,
+              toolName: request.toolName,
+              args: request.toolInput,
+              riskLevel: request.risk,
+              sessionId,
+            })
+            ctx.permissionResolver = resolve
+            const onAbort = (): void => {
+              resolve({ requestId: request.id, allowed: false, reason: 'Aborted' })
+            }
+            ctx.abortController?.signal.addEventListener('abort', onAbort, { once: true })
           })
-          // Store resolver on context so IPC handler can resolve it
-          ctx.permissionResolver = resolve
-          // Auto-deny on abort
-          const onAbort = (): void => {
-            resolve({ requestId: request.id, allowed: false, reason: 'Aborted' })
-          }
-          ctx.abortController?.signal.addEventListener('abort', onAbort, { once: true })
+        }
+
+        permissionGate = createPermissionGate({
+          store: createPermissionMemoryStore(),
+          onPermissionRequest: permissionCallback,
         })
       }
-
-      const permissionGate = createPermissionGate({
-        store: createPermissionMemoryStore(),
-        onPermissionRequest: permissionCallback,
-      })
 
       // 4. Build system prompt
       const systemPrompt = await assembleSystemPrompt({

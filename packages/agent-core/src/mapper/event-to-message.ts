@@ -37,6 +37,8 @@ export function createEventToMessageMapper(
   let currentThinkingId: string | undefined
   let currentTextContent = ''
   let currentThinkingContent = ''
+  // Track tool_call_start ID by toolCallId so tool_call_args can update the same message
+  const toolCallMessageIds = new Map<string, string>()
 
   function makeTimestamp(): number {
     return Date.now()
@@ -47,6 +49,7 @@ export function createEventToMessageMapper(
     currentThinkingId = undefined
     currentTextContent = ''
     currentThinkingContent = ''
+    toolCallMessageIds.clear()
   }
 
   function map(event: AgentEvent): MessageLike | undefined {
@@ -124,8 +127,10 @@ export function createEventToMessageMapper(
       }
 
       case 'tool_call_start': {
+        const id = generateId()
+        toolCallMessageIds.set(event.toolCallId, id)
         return {
-          id: generateId(),
+          id,
           sessionId,
           role: 'assistant',
           type: 'tool_use',
@@ -137,9 +142,10 @@ export function createEventToMessageMapper(
       }
 
       case 'tool_call_args': {
-        // Emit updated tool_use with args
+        // Reuse the same message ID from tool_call_start so the frontend updates in-place
+        const id = toolCallMessageIds.get(event.toolCallId) ?? generateId()
         return {
-          id: generateId(),
+          id,
           sessionId,
           role: 'assistant',
           type: 'tool_use',
@@ -196,21 +202,9 @@ export function createEventToMessageMapper(
       }
 
       case 'done': {
-        const usage: TokenUsageLike = {
-          inputTokens: event.totalUsage.inputTokens,
-          outputTokens: event.totalUsage.outputTokens,
-          cacheReadTokens: event.totalUsage.cacheReadTokens,
-          cacheWriteTokens: event.totalUsage.cacheWriteTokens,
-        }
-        return {
-          id: generateId(),
-          sessionId,
-          role: 'system',
-          type: 'usage',
-          content: '',
-          timestamp: makeTimestamp(),
-          usage,
-        }
+        // Don't emit a usage message — step_end already emits per-step usage.
+        // Emitting totalUsage here would cause double-counting in the frontend.
+        return undefined
       }
     }
   }

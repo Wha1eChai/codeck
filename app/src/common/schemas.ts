@@ -10,7 +10,7 @@ export const permissionModeSchema = z.enum([
     'bypassPermissions',
 ]);
 
-export const runtimeProviderSchema = z.enum(['claude', 'codex', 'opencode']);
+export const runtimeProviderSchema = z.enum(['claude', 'codex', 'opencode', 'kernel']);
 
 // ── Effort Level Schema ──
 
