@@ -1,4 +1,3 @@
-import { ClaudeRuntimeAdapter } from './claude-runtime-adapter';
 import type {
   RuntimeAdapter,
   RuntimeCapabilityReport,
@@ -10,12 +9,20 @@ export class RuntimeRegistry {
   private activeRuntime: RuntimeId;
 
   constructor(defaultRuntime: RuntimeId = 'claude') {
-    this.register(new ClaudeRuntimeAdapter());
     this.activeRuntime = defaultRuntime;
   }
 
   register(adapter: RuntimeAdapter): void {
     this.adapters.set(adapter.id, adapter);
+  }
+
+  getAdapter(runtimeId?: RuntimeId): RuntimeAdapter {
+    const id = runtimeId ?? this.activeRuntime;
+    const adapter = this.adapters.get(id);
+    if (!adapter) {
+      throw new Error(`Runtime adapter not registered: ${id}`);
+    }
+    return adapter;
   }
 
   setActiveRuntime(runtimeId: RuntimeId): void {
@@ -34,12 +41,6 @@ export class RuntimeRegistry {
   }
 
   getCapabilities(runtimeId: RuntimeId = this.activeRuntime): RuntimeCapabilityReport {
-    const adapter = this.adapters.get(runtimeId);
-    if (!adapter) {
-      throw new Error(`Runtime adapter not registered: ${runtimeId}`);
-    }
-    return adapter.getCapabilities();
+    return this.getAdapter(runtimeId).getCapabilities();
   }
 }
-
-export const runtimeRegistry = new RuntimeRegistry();

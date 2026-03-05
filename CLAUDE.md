@@ -139,7 +139,7 @@ Renderer IPC → ipc-handlers/（按领域拆分，Zod 验证）→ SessionOrche
     ├─→ SessionManager → 内存状态（activeSessions Map + focusedSessionId）
     ├─→ ClaudeFilesService → JSONL 读写 + ccuiProjectMeta 元数据
     ├─→ WorktreeService → Git worktree 创建/合并/删除
-    └─→ ClaudeService.startSessionWithContext(ctx) → SDK query()
+    └─→ RuntimeRegistry.getAdapter().startSession(ctx) → ClaudeRuntimeAdapter → ClaudeService → SDK query()
             ↓
         sdk-adapter/（纯函数层：parseSDKMessage → Message[]）
             ↓
@@ -453,17 +453,21 @@ updateSettings: async (partial) => {
 
 ## 运行时抽象（Adapter 模式）
 
-扩展新运行时只需实现 `RuntimeAdapter` 接口：
+扩展新运行时只需实现 `RuntimeAdapter` 接口并在 `setup.ts` 中注册：
 ```typescript
 interface RuntimeAdapter {
   readonly id: RuntimeId;
   getCapabilities(): RuntimeCapabilityReport;
-  startSession(window: BrowserWindow, params: RuntimeSessionParams): Promise<void>;
-  abort(): void;
-  resetSession(): void;
-  resolvePermission(response: PermissionResponse): void;
+  startSession(window: BrowserWindow, params: StartSessionParams, ctx: SessionContext): Promise<void>;
+  abort(ctx: SessionContext): void;
+  resolvePermission(ctx: SessionContext, response: PermissionResponse): void;
+  resolveAskUserQuestion(ctx: SessionContext, response: AskUserQuestionResponse): void;
+  resolveExitPlanMode(ctx: SessionContext, response: ExitPlanModeResponse): void;
+  rewindFiles(ctx: SessionContext, userMessageId: string, dryRun?: boolean): Promise<RewindFilesResult>;
 }
 ```
+
+注册位置：`app/src/main/services/runtime/setup.ts`（RuntimeRegistry 类本身零 adapter 导入）
 
 ## 开发阶段
 
@@ -471,7 +475,8 @@ interface RuntimeAdapter {
 - Phase 2（已完成）— 体验增强：Diff 视图、文件管理器、Token 仪表盘、Checkpoint 时间轴、会话历史、消息分组渲染
 - Phase 3（已完成）— 差异化：Settings 页面化、Plugin/Agent/MCP/Hook/Memory 管理 UI、主题切换
 - Phase 4（已完成）— 多 Session 并行：Activity Bar + SessionPanel 侧边栏重设计、Tab Bar 多标签、SessionContext 并发后端、Git Worktree 隔离
-- 未完成：远程 WebUI、国际化
+- **Phase 5（进行中）— SDK 解耦 + 自研 Agent 内核**：5A 架构铺路 → 5B 自研内核 + 多 Provider → 5C Agent 上下文管理与编排
+- 远期：远程 WebUI、国际化、可执行版发布
 
 ### 多 Session 架构
 
@@ -489,7 +494,7 @@ interface RuntimeAdapter {
 - **Worktree 隔离**：创建 session 时可选 `useWorktree`，在 `.claude-worktrees/<sessionId>/` 创建独立 git worktree，`sendMessage` 自动以 worktree path 作为 cwd
 - **项目切换**：`ProjectSwitcherDropdown`（HeaderBar 左侧）— `@radix-ui/react-dropdown-menu` + 搜索；切换项目不强制跳转 Session Panel
 
-## 待办：SDK 解耦与自研 Agent 内核迁移
+## 待办：SDK 解耦与自研 Agent 内核迁移（Phase 5 — 当前优先级最高）
 
 > **背景**：项目计划摆脱对 `@anthropic-ai/claude-agent-sdk` 的硬依赖，迁移到自研 agent 内核 + 多 LLM Provider 架构。当前 SDK 耦合点已经过审计，实际硬耦合仅 1 个生产文件（`claude.ts` 的 `import { query }`），整个渲染层、preload、common/types.ts 均零 SDK 导入，迁移可行性高。
 >
@@ -502,16 +507,18 @@ interface RuntimeAdapter {
 | `claude.ts` | **直接 import** | 唯一的 `import { query }` + `query()` 调用 + `queryRef.rewindFiles()` |
 | `sdk-types.ts` | 类型镜像 | 不 import SDK 包，但结构必须与 SDK 输出一致 |
 | `sdk-adapter/*`（其余文件） | **零 SDK 导入** | 纯函数层，仅依赖 sdk-types.ts 和 common/types.ts |
-| `session-orchestrator.ts` | 间接（调 ClaudeService） | 不 import SDK，但硬编码调用 claudeService 的 6 个方法 |
-| `runtime/` | **零** | RuntimeAdapter 当前是纯能力声明存根，不承载执行逻辑 |
+| `session-orchestrator.ts` | **零（已解耦）** | 通过 `runtimeRegistry.getAdapter()` 路由，不再 import ClaudeService |
+| `runtime/setup.ts` | 间接（组装层） | 导入 ClaudeService + ClaudeRuntimeAdapter 进行注册，仅此一处 |
+| `runtime/claude-runtime-adapter.ts` | 间接（薄委托） | 接收 ClaudeService 实例，委托 6 个执行方法 |
 | `common/types.ts` | **零** | Message / PermissionRequest / ExecutionOptions 全部本地定义 |
 | `preload/` + `renderer/*` | **零** | 仅消费 @common/types |
 
-### Phase 5A：架构层——为迁移铺路
+### Phase 5A：架构层——为迁移铺路（核心已完成）
 
-- [ ] **RuntimeAdapter 升级为执行接口**：当前只有 `id` + `getCapabilities()`，需新增 `startSession` / `abort` / `resolvePermission` / `resolveAskUserQuestion` / `resolveExitPlanMode` / `rewindFiles` 等执行方法。`ClaudeRuntimeAdapter` 实现该接口，内部调 ClaudeService
-- [ ] **SessionOrchestrator 改为通过 RuntimeRegistry 分发**：不再直接引用 `claudeService`，通过 `runtimeRegistry.getActiveAdapter().startSession(...)` 路由。做完后 SDK 耦合从 Orchestrator 层完全消除
-- [ ] **sdk-adapter 内部模块分线**：`permission-adapter.ts` / `hooks-builder.ts` / `env-loader.ts` / `model-alias-resolver.ts` 可上提为平台层（provider 无关）；`message-parser.ts` / `parsers/*` / `content-block-parser.ts` 留在 Claude provider 内部；`options-builder.ts` 为 Claude 专属
+- [x] **RuntimeAdapter 升级为执行接口**：新增 `startSession` / `abort` / `resolvePermission` / `resolveAskUserQuestion` / `resolveExitPlanMode` / `rewindFiles` 6 个执行方法。`ClaudeRuntimeAdapter` 实现薄委托层，内部调 ClaudeService
+- [x] **SessionOrchestrator 改为通过 RuntimeRegistry 分发**：不再直接引用 `claudeService`，通过 `runtimeRegistry.getAdapter().startSession(...)` 路由。SDK 耦合从 Orchestrator 层完全消除
+- [x] **RuntimeRegistry 外部化注册**：`setup.ts` 负责初始化，Registry 类本身零 adapter 导入
+- [ ] **sdk-adapter 内部模块分线**（可选，建议 5B 时再做）：`permission-adapter.ts` / `hooks-builder.ts` / `env-loader.ts` / `model-alias-resolver.ts` 可上提为平台层（provider 无关）；`message-parser.ts` / `parsers/*` / `content-block-parser.ts` 留在 Claude provider 内部；`options-builder.ts` 为 Claude 专属
 
 ### Phase 5B：自研 Agent 内核 + 多 Provider
 
@@ -521,13 +528,22 @@ interface RuntimeAdapter {
 - [ ] 跑通端到端后，移除 `@anthropic-ai/claude-agent-sdk` 依赖
 - [ ] 后续扩展更多 provider
 
+### Phase 5C：Agent 上下文管理与编排
+
+> 自研内核的核心价值——在合适的时间注入合适的上下文，保持上下文干净。
+
+- [ ] 上下文生命周期管理：token 预算分配、动态裁剪、优先级排序
+- [ ] 上下文注入编排：system prompt 组装、工具定义动态加载、记忆/规则按需注入
+- [ ] Agent 编排框架：多步骤任务拆解、子 agent 委托、上下文隔离与共享策略
+
 ### 工作量估算（1 人全职）
 
 | 阶段 | 预估 | 说明 |
 |------|------|------|
 | Phase 5A（架构铺路） | 1-2 周 | 对现有功能零影响，纯重构 |
-| MVP（单 provider + 基础流式 + 工具调用闭环） | 2-4 周 | 在 Phase 5A 基础上 |
-| 功能对齐（权限、中断、结构化输出等） | 6-10 周 | 累计 |
+| Phase 5B MVP（单 provider + 基础流式 + 工具调用闭环） | 2-4 周 | 在 Phase 5A 基础上 |
+| Phase 5B 功能对齐（权限、中断、结构化输出等） | 6-10 周 | 累计 |
+| Phase 5C（Agent 上下文管理与编排） | 待评估 | 5B 完成后细化 |
 | 多 provider 稳定架构 | 10-16 周 | 累计 |
 
 ### 合规与开源注意事项
@@ -539,7 +555,7 @@ interface RuntimeAdapter {
 - **范式借鉴**：agent 交互范式/流程属于 idea/process（17 U.S.C. §102(b)），不受版权保护；风险在于复制代码表达、品牌误导、OAuth 代理
 - **持续约束**：只要还调 Anthropic 服务就受其商业条款约束（含"竞品限制"条款解释风险），多 provider 是风险对冲策略
 
-## 待办：UI/UX 优化
+## 待办：UI/UX 优化（低优先级——不影响核心可靠性/可用性，滞后处理）
 
 > **说明**：渲染层代码完全在 SDK 无关区域，以下改进不受迁移影响，随时可做。
 
