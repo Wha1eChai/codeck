@@ -190,6 +190,8 @@ export class SessionOrchestrator {
       ctx.sdkSessionId = sessionManager.getSdkSessionId();
     }
 
+    // Store runtime on context for abort/resolve routing (avoids global activeRuntime race)
+    ctx.runtimeId = runtimeContext.runtime;
     runtimeRegistry.setActiveRuntime(runtimeContext.runtime);
 
     const capability = runtimeRegistry.getCapabilities(runtimeContext.runtime);
@@ -202,8 +204,8 @@ export class SessionOrchestrator {
     const resolvedSession = await sessionManager.getSession(projectPath, resolvedSessionId);
     const effectiveCwd = resolvedSession?.worktree?.worktreePath ?? projectPath;
 
-    // Use context-aware startSession for multi-session support
-    await runtimeRegistry.getAdapter().startSession(window, {
+    // Use context-aware startSession — route through per-session runtimeId
+    await runtimeRegistry.getAdapter(runtimeContext.runtime).startSession(window, {
       prompt: input.content,
       cwd: effectiveCwd,
       sessionId: resolvedSessionId,
@@ -283,7 +285,7 @@ export class SessionOrchestrator {
   abortSession(sessionId: string): void {
     const ctx = sessionContextStore.get(sessionId);
     if (ctx) {
-      runtimeRegistry.getAdapter().abort(ctx);
+      runtimeRegistry.getAdapter(ctx.runtimeId ?? undefined).abort(ctx);
     }
   }
 
@@ -299,7 +301,7 @@ export class SessionOrchestrator {
   resolvePermissionForSession(sessionId: string, response: PermissionResponse): void {
     const ctx = sessionContextStore.get(sessionId);
     if (ctx) {
-      runtimeRegistry.getAdapter().resolvePermission(ctx, response);
+      runtimeRegistry.getAdapter(ctx.runtimeId ?? undefined).resolvePermission(ctx, response);
     }
   }
 
@@ -314,7 +316,7 @@ export class SessionOrchestrator {
   resolveAskUserQuestionForSession(sessionId: string, response: AskUserQuestionResponse): void {
     const ctx = sessionContextStore.get(sessionId);
     if (ctx) {
-      runtimeRegistry.getAdapter().resolveAskUserQuestion(ctx, response);
+      runtimeRegistry.getAdapter(ctx.runtimeId ?? undefined).resolveAskUserQuestion(ctx, response);
     }
   }
 
@@ -328,7 +330,7 @@ export class SessionOrchestrator {
   resolveExitPlanModeForSession(sessionId: string, response: ExitPlanModeResponse): void {
     const ctx = sessionContextStore.get(sessionId);
     if (ctx) {
-      runtimeRegistry.getAdapter().resolveExitPlanMode(ctx, response);
+      runtimeRegistry.getAdapter(ctx.runtimeId ?? undefined).resolveExitPlanMode(ctx, response);
     }
   }
 
@@ -342,7 +344,7 @@ export class SessionOrchestrator {
   async rewindFiles(sessionId: string, userMessageId: string, dryRun?: boolean): Promise<RewindFilesResult> {
     const ctx = sessionContextStore.get(sessionId);
     if (ctx) {
-      return runtimeRegistry.getAdapter().rewindFiles(ctx, userMessageId, dryRun);
+      return runtimeRegistry.getAdapter(ctx.runtimeId ?? undefined).rewindFiles(ctx, userMessageId, dryRun);
     }
     return { canRewind: false, error: 'No active query for this session — cannot rewind.' };
   }

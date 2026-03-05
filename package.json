@@ -11,6 +11,8 @@
     "test": "pnpm -r run test",
     "test:config": "pnpm --filter @codeck/config run test",
     "test:sessions": "pnpm --filter @codeck/sessions run test",
+    "test:provider": "pnpm --filter @codeck/provider run test",
+    "test:agent-core": "pnpm --filter @codeck/agent-core run test",
     "dev": "pnpm --filter codeck run dev"
   },
   "pnpm": {
