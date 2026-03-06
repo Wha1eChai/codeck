@@ -93,6 +93,10 @@ export class AppPreferencesService {
                 ? { modelAliases: raw.modelAliases } : {}),
             ...(isValidStructuredOutput(raw.structuredOutput)
                 ? { structuredOutput: raw.structuredOutput } : {}),
+            ...(typeof raw.anthropicApiKey === 'string'
+                ? { anthropicApiKey: raw.anthropicApiKey } : {}),
+            ...(typeof raw.anthropicBaseUrl === 'string'
+                ? { anthropicBaseUrl: raw.anthropicBaseUrl } : {}),
         };
     }
 }

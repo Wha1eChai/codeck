@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from 'react'
+import React, { useRef, useState, useCallback } from 'react'
 import { Button } from '../../ui/Button'
 import { Input } from '../../ui/Input'
 import { Switch } from '../../ui/Switch'
@@ -11,7 +11,7 @@ import {
 } from '../../ui/Select'
 import { useSettingsStore } from '../../../stores/settings-store'
 import { PermissionMode, PERMISSION_MODE_OPTIONS, RuntimeProvider } from '@common/types'
-import { FolderOpen, Search } from 'lucide-react'
+import { FolderOpen, Search, Eye, EyeOff, Key } from 'lucide-react'
 import { SectionHeader, SettingsCard, StorageHint } from '../SettingsCard'
 import { useUIStore } from '../../../stores/ui-store'
 import { Sliders, FileCode } from 'lucide-react'
@@ -35,6 +35,26 @@ export const GeneralSection: React.FC = () => {
             await window.electron.notifyProjectSelected(path)
         }
     }
+
+    const [showApiKey, setShowApiKey] = useState(false)
+    const apiKeyDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const baseUrlDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    const isKernelRuntime = (settings.defaultRuntime ?? 'claude') === 'kernel'
+
+    const handleApiKeyChange = useCallback((value: string) => {
+        if (apiKeyDebounceRef.current) clearTimeout(apiKeyDebounceRef.current)
+        apiKeyDebounceRef.current = setTimeout(() => {
+            updateSettings({ anthropicApiKey: value || undefined })
+        }, 400)
+    }, [updateSettings])
+
+    const handleBaseUrlChange = useCallback((value: string) => {
+        if (baseUrlDebounceRef.current) clearTimeout(baseUrlDebounceRef.current)
+        baseUrlDebounceRef.current = setTimeout(() => {
+            updateSettings({ anthropicBaseUrl: value || undefined })
+        }, 400)
+    }, [updateSettings])
 
     const handlePathChange = useCallback((value: string) => {
         updateSettings({ defaultProjectPath: value })
@@ -108,6 +128,46 @@ export const GeneralSection: React.FC = () => {
                             </SelectContent>
                         </Select>
                     </div>
+
+                    {isKernelRuntime && (
+                        <>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Anthropic API Key</label>
+                                <div className="flex gap-2">
+                                    <Input
+                                        type={showApiKey ? 'text' : 'password'}
+                                        defaultValue={settings.anthropicApiKey || ''}
+                                        onChange={(e) => handleApiKeyChange(e.target.value)}
+                                        placeholder="sk-ant-..."
+                                        className="bg-background font-mono text-xs"
+                                    />
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={() => setShowApiKey(v => !v)}
+                                        title={showApiKey ? 'Hide API key' : 'Show API key'}
+                                    >
+                                        {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </Button>
+                                </div>
+                                <p className="text-caption text-muted-foreground">
+                                    Required for Kernel runtime. Falls back to ANTHROPIC_API_KEY env var if empty.
+                                </p>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Base URL</label>
+                                <Input
+                                    defaultValue={settings.anthropicBaseUrl || ''}
+                                    onChange={(e) => handleBaseUrlChange(e.target.value)}
+                                    placeholder="https://api.anthropic.com (default)"
+                                    className="bg-background text-xs"
+                                />
+                                <p className="text-caption text-muted-foreground">
+                                    Custom endpoint for proxies or API gateways. Leave empty for default.
+                                </p>
+                            </div>
+                        </>
+                    )}
 
                     <div className="space-y-2">
                         <label className="text-sm font-medium">Default Project Path</label>

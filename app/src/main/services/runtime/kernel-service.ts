@@ -25,6 +25,7 @@ import {
 } from '@codeck/agent-core'
 import type { PermissionCallback, PermissionGate, PermissionRequest } from '@codeck/agent-core'
 import { createAnthropicProvider } from '@codeck/provider'
+import { appPreferencesService } from '../app-preferences'
 
 export class KernelService {
   async startSession(
@@ -54,8 +55,12 @@ export class KernelService {
     try {
       sendStatus('streaming')
 
-      // 1. Resolve model
-      const provider = createAnthropicProvider()
+      // 1. Resolve model (read API key / base URL from preferences)
+      const prefs = await appPreferencesService.get()
+      const provider = createAnthropicProvider({
+        ...(prefs.anthropicApiKey ? { apiKey: prefs.anthropicApiKey } : {}),
+        ...(prefs.anthropicBaseUrl ? { baseURL: prefs.anthropicBaseUrl } : {}),
+      })
       const modelId = params.executionOptions?.model ?? 'sonnet'
       const resolved = provider.resolveModel(modelId)
 

@@ -83,6 +83,8 @@ export const updatePreferencesSchema = z.object({
     checkpointEnabled: z.boolean().optional(),
     modelAliases: z.record(z.string().min(1), z.string().min(1)).optional(),
     structuredOutput: structuredOutputConfigSchema.optional(),
+    anthropicApiKey: z.string().optional(),
+    anthropicBaseUrl: z.string().url('Invalid URL format').optional().or(z.literal('')),
 });
 
 export const sessionIdSchema = z.string().min(1, 'Session ID is required');

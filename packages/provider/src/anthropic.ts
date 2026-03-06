@@ -98,11 +98,11 @@ function resolveAlias(modelId: string): string {
   return MODEL_ALIASES[modelId] ?? modelId
 }
 
-export function createAnthropicProvider(config?: { apiKey?: string }): ProviderFactory {
-  const apiKey = config?.apiKey
-  const anthropic = createAnthropic(
-    apiKey !== undefined ? { apiKey } : {},
-  )
+export function createAnthropicProvider(config?: { apiKey?: string; baseURL?: string }): ProviderFactory {
+  const anthropic = createAnthropic({
+    ...(config?.apiKey !== undefined ? { apiKey: config.apiKey } : {}),
+    ...(config?.baseURL ? { baseURL: config.baseURL } : {}),
+  })
 
   const allModelRefs: readonly ModelRef[] = Object.keys(MODEL_CATALOG).map(
     (modelId) => ({

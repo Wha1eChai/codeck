@@ -18,4 +18,8 @@ export interface AppPreferences {
   readonly modelAliases?: Readonly<Record<string, string>>
   /** Structured output configuration (JSON Schema). */
   readonly structuredOutput?: StructuredOutputConfig
+  /** Anthropic API key for kernel runtime. */
+  readonly anthropicApiKey?: string
+  /** Custom base URL for Anthropic-compatible API (e.g. proxy or gateway). */
+  readonly anthropicBaseUrl?: string
 }
