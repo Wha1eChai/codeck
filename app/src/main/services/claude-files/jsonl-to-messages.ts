@@ -94,6 +94,8 @@ export function mapJsonlEntryToMessages(
           role: entryRole || 'assistant',
           type: 'text',
           content: extractLegacyText(entry),
+          ...(Array.isArray(entry.images) ? { images: entry.images as string[] } : {}),
+          ...(typeof entry.userSubtype === 'string' ? { userSubtype: entry.userSubtype as Message['userSubtype'] } : {}),
           timestamp: extractTimestamp(entry),
         },
       ];

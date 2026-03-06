@@ -27,6 +27,7 @@ export interface SendMessageInput {
   permissionMode?: PermissionMode;
   executionOptions?: ExecutionOptions;
   hookSettings?: HookSettings;
+  images?: readonly string[];
 }
 
 /**
@@ -169,7 +170,9 @@ export class SessionOrchestrator {
 
     if (!targetSessionId) {
       const newSession = await sessionManager.createSession({
-        name: input.content.slice(0, 50),
+        name: input.content.trim()
+          ? input.content.slice(0, 50)
+          : (input.images && input.images.length > 0 ? `[Image${input.images.length > 1 ? 's' : ''}]` : 'New Session'),
         projectPath,
         runtime: runtimeContext.runtime,
         permissionMode: runtimeContext.permissionMode,
@@ -204,6 +207,21 @@ export class SessionOrchestrator {
     const resolvedSession = await sessionManager.getSession(projectPath, resolvedSessionId);
     const effectiveCwd = resolvedSession?.worktree?.worktreePath ?? projectPath;
 
+    // Kernel runtime has no external SDK writing JSONL — we must persist messages ourselves
+    const isKernelRuntime = runtimeContext.runtime === 'kernel';
+    if (isKernelRuntime) {
+      const userMessage: Message = {
+        id: `user_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+        sessionId: resolvedSessionId,
+        role: 'user',
+        type: 'text',
+        content: input.content,
+        ...(input.images && input.images.length > 0 ? { images: input.images } : {}),
+        timestamp: Date.now(),
+      };
+      await sessionManager.appendMessage(projectPath, resolvedSessionId, userMessage);
+    }
+
     // Use context-aware startSession — route through per-session runtimeId
     await runtimeRegistry.getAdapter(runtimeContext.runtime).startSession(window, {
       prompt: input.content,
@@ -212,6 +230,7 @@ export class SessionOrchestrator {
       permissionMode: runtimeContext.permissionMode,
       executionOptions: input.executionOptions,
       hookSettings: input.hookSettings,
+      images: input.images,
       onMetadata: async (metadata) => {
         if (!metadata || typeof metadata !== 'object') return;
         const sdkSessionId = (metadata as { sessionId?: unknown }).sessionId;
@@ -220,8 +239,16 @@ export class SessionOrchestrator {
         sessionManager.markSessionPersisted(projectPath, resolvedSessionId);
         await sessionManager.persistRuntimeSessionId(projectPath, resolvedSessionId, sdkSessionId);
       },
-      onMessage: () => {
+      onMessage: async (message) => {
         sessionManager.markSessionPersisted(projectPath, resolvedSessionId);
+        // Kernel runtime: persist each agent output message to JSONL
+        if (isKernelRuntime && message) {
+          try {
+            await sessionManager.appendMessage(projectPath, resolvedSessionId, message);
+          } catch {
+            // Ignore persistence errors — don't break the agent loop
+          }
+        }
       },
       onStatus: (state) => {
         sessionManager.updateSdkState(state);

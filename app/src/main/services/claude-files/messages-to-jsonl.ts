@@ -15,6 +15,8 @@ export function mapMessageToJsonl(message: Message): Record<string, unknown> {
         ...base,
         type: message.role === 'user' ? 'user' : 'assistant',
         content: message.content,
+        ...(message.images && message.images.length > 0 ? { images: message.images } : {}),
+        ...(message.userSubtype && message.userSubtype !== 'real' ? { userSubtype: message.userSubtype } : {}),
       };
     case 'thinking':
       return {

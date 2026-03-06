@@ -39,7 +39,7 @@ describe('useClaude', () => {
 
     // Check IPC was called
     expect(mockElectron.sendMessage).toHaveBeenCalledWith(
-      'sess-1', 'Hello world', undefined, undefined, undefined,
+      'sess-1', 'Hello world', undefined, undefined, undefined, undefined,
     )
   })
 
@@ -61,7 +61,7 @@ describe('useClaude', () => {
     })
 
     expect(mockElectron.sendMessage).toHaveBeenCalledWith(
-      'sess-1', 'test', 'plan', { model: 'opus' }, { autoAllowReadOnly: true, blockedCommands: [] },
+      'sess-1', 'test', 'plan', { model: 'opus' }, { autoAllowReadOnly: true, blockedCommands: [] }, undefined,
     )
   })
 

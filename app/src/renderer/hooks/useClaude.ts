@@ -61,6 +61,7 @@ export function useClaude(sessionId: string | null) {
     permissionMode?: PermissionMode,
     executionOptions?: ExecutionOptions,
     hookSettings?: HookSettings,
+    images?: string[],
   ) => {
     if (!sessionId) return
 
@@ -71,11 +72,12 @@ export function useClaude(sessionId: string | null) {
       role: 'user',
       type: 'text',
       content,
+      images,
       timestamp: Date.now(),
     })
 
     try {
-      await window.electron.sendMessage(sessionId, content, permissionMode, executionOptions, hookSettings)
+      await window.electron.sendMessage(sessionId, content, permissionMode, executionOptions, hookSettings, images)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       syncStatus({ sessionId, status: 'error', error: message })

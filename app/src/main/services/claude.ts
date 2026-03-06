@@ -42,6 +42,8 @@ export interface StartSessionParams {
   executionOptions?: ExecutionOptions;
   /** Phase 2: SDK hooks settings (auto-allow, blocked commands) */
   hookSettings?: HookSettings;
+  /** Image data URLs for multimodal input */
+  images?: readonly string[];
   onMessage?: (message: Message) => Promise<void> | void;
   onMetadata?: (metadata: SessionMetadata) => Promise<void> | void;
   onStatus?: (state: SessionState) => Promise<void> | void;

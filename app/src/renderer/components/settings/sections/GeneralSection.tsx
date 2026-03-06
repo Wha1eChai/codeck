@@ -18,6 +18,7 @@ import { Sliders, FileCode } from 'lucide-react'
 
 const RUNTIME_OPTIONS: { value: RuntimeProvider; label: string }[] = [
     { value: 'claude', label: 'Claude (Default)' },
+    { value: 'kernel', label: 'Kernel (Self-hosted)' },
     { value: 'codex', label: 'Codex' },
     { value: 'opencode', label: 'OpenCode' },
 ]

@@ -73,6 +73,17 @@ describe('session-store', () => {
     expect(useSessionStore.getState().projectPath).toBe('/new/path')
   })
 
+  it('setProjectPath — clears metadata to prevent cross-project pollution', () => {
+    const { setSessionMetadata, setProjectPath } = useSessionStore.getState()
+    setSessionMetadata('s1', { sessionId: 's1', slashCommands: ['compact'] })
+    expect(useSessionStore.getState().globalMetadata).not.toBeNull()
+
+    setProjectPath('/different/project')
+    const state = useSessionStore.getState()
+    expect(state.globalMetadata).toBeNull()
+    expect(state.sessionMetadataMap).toEqual({})
+  })
+
   // ── syncStatus ──
 
   it('syncStatus — updates focused session status', () => {

@@ -12,7 +12,7 @@ import type { UsageCommand, UsageReport } from './usage'
 
 export interface ElectronAPI {
   // Claude 交互
-  sendMessage: (sessionId: string, content: string, permissionMode?: PermissionMode, executionOptions?: ExecutionOptions, hookSettings?: HookSettings) => Promise<void>
+  sendMessage: (sessionId: string, content: string, permissionMode?: PermissionMode, executionOptions?: ExecutionOptions, hookSettings?: HookSettings, images?: string[]) => Promise<void>
   abort: (sessionId: string) => Promise<void>
   respondPermission: (response: PermissionResponse) => Promise<void>
   respondAskUserQuestion: (response: AskUserQuestionResponse) => Promise<void>

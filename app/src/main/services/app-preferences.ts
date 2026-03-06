@@ -81,7 +81,7 @@ export class AppPreferencesService {
                 ? { defaultPermissionMode: raw.defaultPermissionMode } : {}),
             ...(typeof raw.defaultProjectPath === 'string'
                 ? { defaultProjectPath: raw.defaultProjectPath } : {}),
-            ...(raw.defaultRuntime === 'claude' || raw.defaultRuntime === 'codex' || raw.defaultRuntime === 'opencode'
+            ...(raw.defaultRuntime === 'claude' || raw.defaultRuntime === 'codex' || raw.defaultRuntime === 'opencode' || raw.defaultRuntime === 'kernel'
                 ? { defaultRuntime: raw.defaultRuntime } : {}),
             ...(typeof raw.checkpointEnabled === 'boolean'
                 ? { checkpointEnabled: raw.checkpointEnabled } : {}),

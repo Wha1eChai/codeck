@@ -1,5 +1,5 @@
 import { streamText } from 'ai'
-import type { LanguageModel, CoreMessage, CoreToolMessage } from 'ai'
+import type { LanguageModel, CoreMessage, CoreToolMessage, UserContent } from 'ai'
 import type { AgentEvent, StepUsage, TotalUsage } from './types.js'
 import type { ToolRegistry } from '../tools/registry.js'
 import type { ToolContext } from '../tools/types.js'
@@ -44,9 +44,19 @@ function extractUsage(usage: Record<string, unknown>): StepUsage {
 
 export async function* startAgentLoop(
   prompt: string,
-  options: AgentLoopOptions,
+  options: AgentLoopOptions & { readonly images?: readonly string[] },
 ): AsyncGenerator<AgentEvent> {
-  yield* runAgentLoop([{ role: 'user' as const, content: prompt }], options)
+  const images = options.images
+  let content: UserContent
+  if (images && images.length > 0) {
+    content = [
+      { type: 'text' as const, text: prompt },
+      ...images.map(dataUrl => ({ type: 'image' as const, image: dataUrl })),
+    ]
+  } else {
+    content = prompt
+  }
+  yield* runAgentLoop([{ role: 'user' as const, content }], options)
 }
 
 export async function* runAgentLoop(

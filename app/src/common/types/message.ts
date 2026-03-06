@@ -33,6 +33,12 @@ export interface Message {
   // usage
   readonly usage?: TokenUsage
 
+  // multimodal
+  readonly images?: readonly string[]
+
+  // user message classification (set at parse time, avoids content string heuristics)
+  readonly userSubtype?: 'real' | 'interrupted' | 'hidden' | 'system-injection'
+
   // stream
   readonly isStreamDelta?: boolean
   readonly isReplay?: boolean

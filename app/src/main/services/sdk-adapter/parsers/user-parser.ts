@@ -84,6 +84,7 @@ export function parseUser(
               role: 'user',
               type: 'text',
               content: textContent,
+              userSubtype: classifyUserContent(textContent),
               timestamp: Date.now(),
             },
           ],
@@ -104,6 +105,7 @@ export function parseUser(
           role: 'user',
           type: 'text',
           content: rawContent,
+          userSubtype: classifyUserContent(rawContent),
           timestamp: Date.now(),
         },
       ],
@@ -116,4 +118,15 @@ export function parseUser(
   }
 
   return { messages: [] }
+}
+
+function classifyUserContent(content: string): Message['userSubtype'] {
+  if (content.includes('[Request interrupted by user]')) return 'interrupted'
+  if (content.includes('<system-reminder>')) return 'hidden'
+  if (
+    content.startsWith('<command-message>') ||
+    content.startsWith('<command-name>') ||
+    content.startsWith('Base directory for this skill:')
+  ) return 'system-injection'
+  return 'real'
 }

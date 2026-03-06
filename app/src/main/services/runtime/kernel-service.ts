@@ -128,6 +128,7 @@ export class KernelService {
         permissionGate,
         maxSteps: params.executionOptions?.maxTurns ?? 100,
         abortSignal: ctx.abortController.signal,
+        images: params.images,
       })
 
       for await (const event of eventStream) {

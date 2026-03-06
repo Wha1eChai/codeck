@@ -59,7 +59,11 @@ export const useSessionStore = create<SessionStore>((set) => ({
 
   setSessions: (sessions) => set({ sessions }),
 
-  setProjectPath: (path) => set({ projectPath: path }),
+  setProjectPath: (path) => set({
+    projectPath: path,
+    globalMetadata: null,
+    sessionMetadataMap: EMPTY_METADATA_MAP,
+  }),
 
   setCurrentSession: (id) => set({
     currentSessionId: id,

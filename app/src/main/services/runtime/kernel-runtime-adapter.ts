@@ -22,7 +22,7 @@ const KERNEL_CAPABILITIES: RuntimeCapabilityReport = {
     modelSelection: true,
     embeddedTerminal: false,
   },
-  supportedPermissionModes: ['default', 'dontAsk'],
+  supportedPermissionModes: ['default', 'dontAsk', 'bypassPermissions'],
   notes: [
     'Self-hosted agent kernel using Vercel AI SDK',
     'No SDK dependency — direct API calls',

@@ -96,6 +96,10 @@ function isAssistantContentMessage(msg: Message): boolean {
 }
 
 function classifyUserMessage(msg: Message): UserGroupSubtype {
+  // Prefer structured field set at parse time
+  if (msg.userSubtype) return msg.userSubtype
+
+  // Fallback: string heuristics for legacy JSONL history without userSubtype
   const content = typeof msg.content === 'string' ? msg.content : ''
 
   if (content.includes('[Request interrupted by user]')) return 'interrupted'

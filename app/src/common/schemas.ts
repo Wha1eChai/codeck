@@ -45,10 +45,11 @@ export const hookSettingsSchema = z.object({
 
 export const sendMessageSchema = z.object({
     sessionId: z.string(),
-    content: z.string().min(1, 'Message content is required').max(100000, 'Message too long'),
+    content: z.string().max(100000, 'Message too long'),
     permissionMode: permissionModeSchema.optional(),
     executionOptions: executionOptionsSchema.optional(),
     hookSettings: hookSettingsSchema.optional(),
+    images: z.array(z.string()).optional(),
 });
 
 export const createSessionSchema = z.object({

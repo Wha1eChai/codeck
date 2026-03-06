@@ -15,6 +15,18 @@ export const TextMessage: React.FC<TextMessageProps> = React.memo(({ message }) 
     <div data-message-id={message.id}>
       <MessageRow avatar={<MessageAvatar role="user" />}>
         <MessageBubble>
+          {message.images && message.images.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {message.images.map((src, i) => (
+                <img
+                  key={i}
+                  src={src}
+                  alt={`attachment ${i + 1}`}
+                  className="max-h-48 max-w-64 rounded-lg border border-border/50 object-contain"
+                />
+              ))}
+            </div>
+          )}
           <div className="text-sm leading-relaxed [&_p]:mb-2 [&_p:last-child]:mb-0 [&_pre]:text-xs">
             <MessageMarkdown content={content} />
           </div>

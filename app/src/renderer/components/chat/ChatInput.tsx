@@ -106,9 +106,13 @@ export const ChatInput: React.FC = () => {
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault()
-    if (!input.trim() || isBusy) return
+    const hasContent = input.trim() || imageAttachments.length > 0
+    if (!hasContent || isBusy) return
 
     const content = input
+    const images = imageAttachments.length > 0
+      ? imageAttachments.map(a => a.dataUrl)
+      : undefined
     setInput('')
     setShowSlashMenu(false)
     setImageAttachments([])
@@ -128,7 +132,10 @@ export const ChatInput: React.FC = () => {
 
     // Auto-rename "New Session" to first message content
     if (session?.name === 'New Session') {
-      updateSession(sessionId, { name: content.slice(0, 50) })
+      const title = content.trim()
+        ? content.slice(0, 50)
+        : (images ? `[Image${images.length > 1 ? 's' : ''}]` : 'New Session')
+      updateSession(sessionId, { name: title })
     }
 
     // Pass executionOptions and hookSettings from settings store
@@ -139,6 +146,7 @@ export const ChatInput: React.FC = () => {
       session?.permissionMode,
       hasExecOptions ? executionOptions : undefined,
       hasHookSettings ? hookSettings : undefined,
+      images,
     )
   }
 
@@ -149,11 +157,14 @@ export const ChatInput: React.FC = () => {
     setImageAttachments(prev => prev.filter(a => a.id !== id))
   }, [])
 
+  // Image support is currently kernel-only
+  const effectiveRuntime = currentSession?.runtime ?? useSettingsStore.getState().settings.defaultRuntime ?? 'claude'
+  const supportsImages = effectiveRuntime === 'kernel'
+
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
     const items = e.clipboardData?.items
     if (!items) return
 
-    // Detect image files for preview
     const imageFiles: File[] = []
     let hasNonImageFile = false
     for (let i = 0; i < items.length; i++) {
@@ -169,6 +180,11 @@ export const ChatInput: React.FC = () => {
 
     if (imageFiles.length > 0) {
       e.preventDefault()
+      if (!supportsImages) {
+        setPasteWarning(true)
+        setTimeout(() => setPasteWarning(false), 2000)
+        return
+      }
       for (const file of imageFiles) {
         const reader = new FileReader()
         reader.onload = () => {
@@ -184,15 +200,14 @@ export const ChatInput: React.FC = () => {
       return
     }
 
-    // Non-image files: block with warning
     if (hasNonImageFile) {
       e.preventDefault()
       setPasteWarning(true)
       setTimeout(() => setPasteWarning(false), 2000)
       return
     }
-    // Plain text paste: let default behavior proceed; auto-resize triggers via input state
-  }, [])
+    // Plain text paste: let default behavior proceed
+  }, [supportsImages])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // IME composing guard: prevent Enter from triggering actions during CJK input
@@ -256,7 +271,7 @@ export const ChatInput: React.FC = () => {
               </div>
             ))}
             <span className="text-[10px] text-muted-foreground/60 shrink-0">
-              Image sending coming soon
+              {imageAttachments.length} image{imageAttachments.length > 1 ? 's' : ''} attached
             </span>
           </div>
         )}
@@ -278,7 +293,7 @@ export const ChatInput: React.FC = () => {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
-            placeholder={pasteWarning ? "Image/file paste not yet supported" : isStreaming ? "Claude is thinking..." : "Message Claude... (/ commands, @ agents)"}
+            placeholder={pasteWarning ? (supportsImages ? "File paste not supported" : "Image paste requires Kernel runtime") : isStreaming ? "Claude is thinking..." : "Message Claude... (/ commands, @ agents)"}
             className="flex-1 max-h-[300px] min-h-[40px] bg-transparent border-0 resize-none focus:ring-0 focus:outline-none py-2 px-1 text-sm leading-relaxed placeholder:text-muted-foreground/50"
             rows={1}
             disabled={isBusy}
@@ -299,7 +314,7 @@ export const ChatInput: React.FC = () => {
               size="icon"
               className="h-8 w-8 shrink-0 rounded-lg mb-1 transition-transform active:scale-95"
               onClick={() => handleSubmit()}
-              disabled={!input.trim() || isBusy}
+              disabled={(!input.trim() && imageAttachments.length === 0) || isBusy}
             >
               <SendHorizontal className="h-4 w-4" />
             </Button>

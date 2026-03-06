@@ -144,8 +144,10 @@ describe('ipc-handlers', () => {
     const sendHandler = handlers.get(RENDERER_TO_MAIN.SEND_MESSAGE);
     if (!sendHandler) throw new Error('send handler is not registered');
 
-    await expect(sendHandler({}, 'session-1', '', 'default')).rejects.toThrow(
-      'Message content is required',
+    // Content exceeding max length should be rejected
+    const tooLong = 'x'.repeat(100001);
+    await expect(sendHandler({}, 'session-1', tooLong, 'default')).rejects.toThrow(
+      'Message too long',
     );
     expect(sessionOrchestrator.sendMessage).not.toHaveBeenCalled();
   });

@@ -19,12 +19,13 @@ export function registerClaudeHandlers(getMainWindow: () => BrowserWindow | null
   createMultiArgWindowHandler(RENDERER_TO_MAIN.SEND_MESSAGE, {
     schema: sendMessageSchema,
     window: getMainWindow,
-    mapArgs: (sessionId, content, permissionMode, executionOptions, hookSettings) => ({
+    mapArgs: (sessionId, content, permissionMode, executionOptions, hookSettings, images) => ({
       sessionId,
       content,
       permissionMode,
       executionOptions,
       hookSettings,
+      images,
     }),
     handle: (win, validated) => sessionOrchestrator.sendMessage(win, {
       sessionId: validated.sessionId,
@@ -32,6 +33,7 @@ export function registerClaudeHandlers(getMainWindow: () => BrowserWindow | null
       permissionMode: validated.permissionMode,
       executionOptions: validated.executionOptions,
       hookSettings: validated.hookSettings,
+      images: validated.images,
     }),
   });
 

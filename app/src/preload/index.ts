@@ -34,8 +34,8 @@ import type { MultiSessionManagerState } from "@common/multi-session-types"
 const api: ElectronAPI = {
   // ── Claude 交互 ──
 
-  sendMessage: (sessionId: string, content: string, permissionMode?: string, executionOptions?: ExecutionOptions, hookSettings?: HookSettings) =>
-    ipcRenderer.invoke(RENDERER_TO_MAIN.SEND_MESSAGE, sessionId, content, permissionMode, executionOptions, hookSettings),
+  sendMessage: (sessionId: string, content: string, permissionMode?: string, executionOptions?: ExecutionOptions, hookSettings?: HookSettings, images?: string[]) =>
+    ipcRenderer.invoke(RENDERER_TO_MAIN.SEND_MESSAGE, sessionId, content, permissionMode, executionOptions, hookSettings, images),
 
   abort: (sessionId: string) =>
     ipcRenderer.invoke(RENDERER_TO_MAIN.ABORT, sessionId),
