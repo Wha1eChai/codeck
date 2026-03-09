@@ -6,10 +6,28 @@ export interface ToolResult {
   readonly isError?: boolean
 }
 
+export interface TeamBridge {
+  spawnChild(params: {
+    role: string
+    prompt: string
+    useWorktree?: boolean
+    model?: string
+  }): Promise<{ sessionId: string }>
+
+  sendToChild(sessionId: string, message: string): Promise<void>
+
+  getChildStatus(sessionId: string): Promise<{
+    status: 'idle' | 'streaming' | 'error' | 'not_found'
+    lastMessage?: string
+    error?: string
+  }>
+}
+
 export interface ToolContext {
   readonly sessionId: string
   readonly cwd: string
   readonly abortSignal: AbortSignal
+  readonly teamBridge?: TeamBridge
 }
 
 export interface ToolDefinition<TParams extends z.ZodType = z.ZodType> {

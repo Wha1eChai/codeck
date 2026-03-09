@@ -1,4 +1,4 @@
-export type { ToolDefinition, ToolResult, ToolContext } from './types.js'
+export type { ToolDefinition, ToolResult, ToolContext, TeamBridge } from './types.js'
 export type { ToolRegistry } from './registry.js'
 export { createToolRegistry } from './registry.js'
 
@@ -12,6 +12,8 @@ import { grepTool } from './grep.js'
 
 export { createTaskTool, TASK_TOOL_NAME } from './task.js'
 export type { TaskToolOptions } from './task.js'
+
+export { createTeamTools, TEAM_TOOL_NAMES } from './team.js'
 
 /**
  * Create a ToolRegistry pre-loaded with all 6 core tools:

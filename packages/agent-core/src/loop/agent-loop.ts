@@ -9,6 +9,7 @@ import { createDoomDetector } from './doom-detector.js'
 import { pruneMessages as pruneMessagesForBudget, createContextBudget } from '../context/context-manager.js'
 import { createTaskTool } from '../tools/task.js'
 import type { TaskToolOptions } from '../tools/task.js'
+import { createTeamTools } from '../tools/team.js'
 import { createToolRegistry } from '../tools/registry.js'
 
 export interface AgentLoopOptions {
@@ -30,6 +31,8 @@ export interface AgentLoopOptions {
   readonly enableSubAgent?: boolean
   /** Maximum sub-agent recursion depth. Default: 1 (no nested sub-agents). */
   readonly subAgentDepth?: number
+  /** Enable Team tools (SpawnSession, SendMessage, GetSessionStatus). Default: false. */
+  readonly enableTeamTools?: boolean
 }
 
 const DEFAULT_MAX_STEPS = 100
@@ -102,16 +105,31 @@ export async function* runAgentLoop(
     enablePromptCaching = false,
     enableSubAgent = false,
     subAgentDepth = 1,
+    enableTeamTools = false,
   } = options
 
   // Sub-agent support: clone registry and register Task tool
-  const effectiveTools = enableSubAgent && subAgentDepth > 0
+  let effectiveTools = enableSubAgent && subAgentDepth > 0
     ? cloneRegistryWithTask(tools, {
         model, parentSystemPrompt: systemPrompt, tools, permissionGate, abortSignal,
         contextWindow, maxOutputTokens: maxOutput, enablePromptCaching,
         remainingDepth: subAgentDepth - 1,
       })
     : tools
+
+  // Team tools: register SpawnSession, SendMessage, GetSessionStatus
+  if (enableTeamTools) {
+    if (effectiveTools === tools) {
+      const clone = createToolRegistry()
+      for (const tool of tools.getAll()) {
+        clone.register(tool)
+      }
+      effectiveTools = clone
+    }
+    for (const teamTool of createTeamTools()) {
+      effectiveTools.register(teamTool)
+    }
+  }
 
   const contextBudget = contextWindow
     ? createContextBudget(contextWindow, maxOutput, systemPrompt)

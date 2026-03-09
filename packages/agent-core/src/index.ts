@@ -1,9 +1,10 @@
-export type { ToolDefinition, ToolResult, ToolContext } from './tools/types.js'
+export type { ToolDefinition, ToolResult, ToolContext, TeamBridge } from './tools/types.js'
 export type { ToolRegistry } from './tools/registry.js'
 export { createToolRegistry } from './tools/registry.js'
 export { createDefaultToolRegistry } from './tools/index.js'
 export { createTaskTool, TASK_TOOL_NAME } from './tools/index.js'
 export type { TaskToolOptions } from './tools/index.js'
+export { createTeamTools, TEAM_TOOL_NAMES } from './tools/index.js'
 
 export type { SystemPromptOptions, ClaudeMdSource, AssembleSystemPromptOptions } from './prompt/index.js'
 export { buildEnvironmentBlock, assembleSystemPrompt } from './prompt/index.js'
