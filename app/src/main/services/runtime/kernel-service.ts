@@ -92,7 +92,14 @@ export class KernelService {
         model: resolved.ref.modelId,
         date: new Date().toISOString().split('T')[0]!,
         permissionMode: params.permissionMode,
+        maxTokens: 30_000,
       });
+
+      // Context optimization — derive from model capabilities + user preferences
+      const enableContextOpt = prefs.enableContextOptimization !== false;
+      const contextWindow = enableContextOpt ? resolved.capabilities.contextWindow : undefined;
+      const maxOutputTokens = resolved.capabilities.maxOutputTokens;
+      const enablePromptCaching = prefs.enablePromptCaching !== false;
 
       const metadata: SessionMetadata = {
         sessionId,
@@ -124,6 +131,8 @@ export class KernelService {
             permissionGate,
             maxSteps: params.executionOptions?.maxTurns ?? 100,
             abortSignal: ctx.abortController.signal,
+            ...(contextWindow ? { contextWindow, maxOutputTokens } : {}),
+            enablePromptCaching,
           })
         : startAgentLoop(params.prompt, {
             model: resolved.languageModel,
@@ -138,6 +147,8 @@ export class KernelService {
             maxSteps: params.executionOptions?.maxTurns ?? 100,
             abortSignal: ctx.abortController.signal,
             images: params.images,
+            ...(contextWindow ? { contextWindow, maxOutputTokens } : {}),
+            enablePromptCaching,
           });
 
       for await (const event of eventStream) {
