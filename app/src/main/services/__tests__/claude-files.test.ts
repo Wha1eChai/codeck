@@ -402,5 +402,25 @@ describe('ClaudeFilesService', () => {
         sdk_session_id: 'sdk-session-xyz',
       })
     })
+
+    it('should append kernel runtime metadata for canonical transcripts', async () => {
+      vi.mocked(fs.appendFile).mockResolvedValue(undefined)
+
+      await service.appendSessionRuntime('/project/path', validSessionId, {
+        runtime: 'kernel',
+        model: 'claude-sonnet-4-20250514',
+        permissionMode: 'plan',
+      })
+
+      const [, data] = vi.mocked(fs.appendFile).mock.calls[0] as [string, string, string]
+      const parsed = JSON.parse((data as string).trim())
+      expect(parsed).toMatchObject({
+        type: 'session_runtime',
+        session_id: validSessionId,
+        runtime_provider: 'kernel',
+        model: 'claude-sonnet-4-20250514',
+        permission_mode: 'plan',
+      })
+    })
   })
 })

@@ -11,6 +11,7 @@ function createMockSessionContext(overrides?: Partial<SessionContext>): SessionC
   return {
     sessionId: 'test-session',
     projectPath: '/tmp/project',
+    runtimeId: 'kernel',
     abortController: null,
     permissionResolver: null,
     askUserQuestionResolver: null,
@@ -43,8 +44,7 @@ describe('KernelRuntimeAdapter', () => {
       expect(caps.supports.permissionPrompt).toBe(true)
       expect(caps.supports.streamDelta).toBe(true)
       expect(caps.supports.modelSelection).toBe(true)
-      // Not yet supported
-      expect(caps.supports.resume).toBe(false)
+      expect(caps.supports.resume).toBe(true)
       expect(caps.supports.checkpointing).toBe(false)
       expect(caps.supports.hooks).toBe(false)
     })
@@ -52,6 +52,7 @@ describe('KernelRuntimeAdapter', () => {
     it('reports supported permission modes', () => {
       const caps = adapter.getCapabilities()
       expect(caps.supportedPermissionModes).toContain('default')
+      expect(caps.supportedPermissionModes).toContain('plan')
       expect(caps.supportedPermissionModes).toContain('dontAsk')
     })
   })
@@ -85,20 +86,22 @@ describe('KernelRuntimeAdapter', () => {
   })
 
   describe('resolveAskUserQuestion', () => {
-    it('does not throw (no-op)', () => {
+    it('delegates to KernelService.resolveAskUserQuestion', () => {
+      const resolveSpy = vi.spyOn(kernelService, 'resolveAskUserQuestion')
       const ctx = createMockSessionContext()
-      expect(() => {
-        adapter.resolveAskUserQuestion(ctx, { requestId: 'r1', answers: {}, cancelled: false })
-      }).not.toThrow()
+      const response = { requestId: 'r1', answers: {}, cancelled: false }
+      adapter.resolveAskUserQuestion(ctx, response)
+      expect(resolveSpy).toHaveBeenCalledWith(ctx, response)
     })
   })
 
   describe('resolveExitPlanMode', () => {
-    it('does not throw (no-op)', () => {
+    it('delegates to KernelService.resolveExitPlanMode', () => {
+      const resolveSpy = vi.spyOn(kernelService, 'resolveExitPlanMode')
       const ctx = createMockSessionContext()
-      expect(() => {
-        adapter.resolveExitPlanMode(ctx, { requestId: 'r1', allowed: true })
-      }).not.toThrow()
+      const response = { requestId: 'r1', allowed: true }
+      adapter.resolveExitPlanMode(ctx, response)
+      expect(resolveSpy).toHaveBeenCalledWith(ctx, response)
     })
   })
 })

@@ -32,6 +32,18 @@ describe('extractSessionMetadata', () => {
       expect(metadata.sdkSessionId).toBe('sdk-runtime-001');
     });
 
+    it('should not treat kernel runtime markers as SDK session IDs', async () => {
+      const jsonlContent = [
+        '{"type":"session_meta","runtime":"kernel"}',
+        '{"type":"session_runtime","session_id":"app-session-123","runtime_provider":"kernel"}',
+      ].join('\n');
+
+      const metadata = await extractSessionMetadata(mockReadFile(jsonlContent), '/test/session.jsonl');
+
+      expect(metadata.sdkSessionId).toBeUndefined();
+      expect(metadata.runtime).toBe('kernel');
+    });
+
     it('should extract SDK session ID even when system/init appears after user message', async () => {
       const jsonlContent = [
         '{"type": "session_meta", "name": "Late Init"}',
@@ -124,6 +136,15 @@ describe('extractSessionMetadata', () => {
       expect(metadata.runtime).toBe('codex');
     });
 
+    it('should extract runtime and model from session_runtime marker', async () => {
+      const jsonlContent = '{"type":"session_runtime","runtime_provider":"kernel","model":"claude-sonnet-4-20250514"}';
+
+      const metadata = await extractSessionMetadata(mockReadFile(jsonlContent), '/test/session.jsonl');
+
+      expect(metadata.runtime).toBe('kernel');
+      expect(metadata.model).toBe('claude-sonnet-4-20250514');
+    });
+
     it('should extract name from first user message', async () => {
       const jsonlContent = '{"type": "user", "content": "Help me with auth"}';
 
@@ -171,6 +192,7 @@ describe('extractSessionMetadata', () => {
         name: 'Full Session',
         permissionMode: 'acceptEdits',
         runtime: 'claude',
+        model: 'claude-opus-4',
         sdkSessionId: 'combined-sdk-id',
       });
     });

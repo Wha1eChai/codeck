@@ -11,6 +11,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import type { AppPreferences, StructuredOutputConfig } from '@common/types';
 import { DEFAULT_APP_PREFERENCES } from '@common/defaults';
+import { isRuntimeAvailable } from '@common/runtime-catalog';
 
 export class AppPreferencesService {
     private get filePath(): string {
@@ -81,7 +82,7 @@ export class AppPreferencesService {
                 ? { defaultPermissionMode: raw.defaultPermissionMode } : {}),
             ...(typeof raw.defaultProjectPath === 'string'
                 ? { defaultProjectPath: raw.defaultProjectPath } : {}),
-            ...(raw.defaultRuntime === 'claude' || raw.defaultRuntime === 'codex' || raw.defaultRuntime === 'opencode' || raw.defaultRuntime === 'kernel'
+            ...(isRuntimeAvailable(raw.defaultRuntime)
                 ? { defaultRuntime: raw.defaultRuntime } : {}),
             ...(typeof raw.checkpointEnabled === 'boolean'
                 ? { checkpointEnabled: raw.checkpointEnabled } : {}),

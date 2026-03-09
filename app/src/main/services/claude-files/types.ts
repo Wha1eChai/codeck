@@ -17,6 +17,7 @@ export interface SessionFileMetadata {
   name?: string;
   permissionMode?: PermissionMode;
   runtime?: RuntimeProvider;
+  model?: string;
   /** SDK session ID from system/init message (used for resume) */
   sdkSessionId?: string;
 }

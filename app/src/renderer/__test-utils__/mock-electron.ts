@@ -132,6 +132,6 @@ export function installMockElectron(): MockElectronAPI {
  */
 export function uninstallMockElectron(): void {
   if (typeof globalThis.window === 'object' && globalThis.window) {
-    delete (globalThis.window as Record<string, unknown>).electron
+    delete (globalThis.window as unknown as Record<string, unknown>).electron
   }
 }

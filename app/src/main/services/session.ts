@@ -307,6 +307,16 @@ export class SessionManager {
     await claudeFilesService.appendMessage(projectPath, sessionId, message);
   }
 
+  async persistDraftSession(projectPath: string, sessionId: string): Promise<void> {
+    const draft = this.getDraftSession(projectPath, sessionId);
+    if (!draft) {
+      return;
+    }
+
+    await claudeFilesService.persistSession(draft);
+    this.removeDraftSession(projectPath, sessionId);
+  }
+
   async persistRuntimeSessionId(
     projectPath: string,
     sessionId: string,
@@ -317,6 +327,14 @@ export class SessionManager {
     }
 
     this.updateActiveSessionSdkId(sessionId, sdkSessionId);
+  }
+
+  async persistRuntimeMetadata(
+    projectPath: string,
+    sessionId: string,
+    metadata: Parameters<typeof claudeFilesService.appendSessionRuntime>[2],
+  ): Promise<void> {
+    await claudeFilesService.appendSessionRuntime(projectPath, sessionId, metadata);
   }
 
   markSessionPersisted(projectPath: string, sessionId: string): void {

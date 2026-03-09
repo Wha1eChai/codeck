@@ -17,13 +17,14 @@
   },
   "dependencies": {
     "@codeck/provider": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.27.1",
     "ai": "^4.3",
-    "zod": "^3.25",
-    "fast-glob": "^3.3"
+    "fast-glob": "^3.3",
+    "zod": "^3.25"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
-    "vitest": "^3.1",
-    "typescript": "^5.7"
+    "typescript": "^5.7",
+    "vitest": "^3.1"
   }
 }

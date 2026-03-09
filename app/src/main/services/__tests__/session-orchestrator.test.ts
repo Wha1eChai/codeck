@@ -31,8 +31,11 @@ vi.mock('../session', () => ({
     getSessionMessages: vi.fn(),
     getSession: vi.fn(),
     getActiveSession: vi.fn(),
+    appendMessage: vi.fn(),
     setSdkSessionId: vi.fn(),
     markSessionPersisted: vi.fn(),
+    persistDraftSession: vi.fn(),
+    persistRuntimeMetadata: vi.fn(),
     updateSdkState: vi.fn(),
     unregisterActiveSession: vi.fn(),
     persistRuntimeSessionId: vi.fn(),
@@ -135,6 +138,7 @@ describe('SessionOrchestrator', () => {
     vi.mocked(sessionContextStore.getOrCreate).mockReturnValue({
       sessionId: 'session-1',
       projectPath: '/project',
+      runtimeId: 'claude',
       abortController: null,
       permissionResolver: null,
       askUserQuestionResolver: null,
@@ -229,6 +233,96 @@ describe('SessionOrchestrator', () => {
         prompt: 'create me',
       }),
       expect.anything(),
+    );
+  });
+
+  it('persists kernel session headers, runtime metadata, and skips stream deltas', async () => {
+    vi.mocked(runtimeRegistry.listRuntimes).mockReturnValue(['claude', 'kernel']);
+    vi.mocked(sessionManager.getSession).mockResolvedValue({
+      id: 'session-1',
+      name: 'Kernel Session',
+      projectPath: '/project',
+      runtime: 'kernel',
+      permissionMode: 'plan',
+      createdAt: 1,
+      updatedAt: 1,
+    });
+    vi.mocked(runtimeContextService.buildContext).mockResolvedValue({
+      runtime: 'kernel',
+      projectPath: '/project',
+      sessionId: 'session-1',
+      permissionMode: 'plan',
+      settings: {
+        theme: 'system',
+        defaultPermissionMode: 'default',
+        defaultRuntime: 'claude',
+      },
+      sources: {
+        runtime: 'session',
+        permissionMode: 'request',
+      },
+    });
+
+    mockAdapter.startSession.mockImplementationOnce(async (_window, params) => {
+      await params.onMetadata?.({
+        sessionId: 'session-1',
+        model: 'claude-sonnet-4-20250514',
+        permissionMode: 'plan',
+        cwd: '/project',
+        tools: ['Read'],
+      });
+      await params.onMessage?.({
+        id: 'delta-1',
+        sessionId: 'session-1',
+        role: 'assistant',
+        type: 'text',
+        content: 'partial',
+        timestamp: 1,
+        isStreamDelta: true,
+      });
+      await params.onMessage?.({
+        id: 'final-1',
+        sessionId: 'session-1',
+        role: 'assistant',
+        type: 'text',
+        content: 'final',
+        timestamp: 2,
+      });
+    });
+
+    await orchestrator.sendMessage({} as any, {
+      sessionId: 'session-1',
+      content: 'hello kernel',
+      permissionMode: 'plan',
+    });
+
+    expect(sessionManager.persistDraftSession).toHaveBeenCalledWith('/project', 'session-1');
+    expect(sessionManager.appendMessage).toHaveBeenCalledWith(
+      '/project',
+      'session-1',
+      expect.objectContaining({
+        role: 'user',
+        type: 'text',
+        content: 'hello kernel',
+      }),
+    );
+    expect(sessionManager.persistRuntimeMetadata).toHaveBeenCalledWith(
+      '/project',
+      'session-1',
+      expect.objectContaining({
+        runtime: 'kernel',
+        model: 'claude-sonnet-4-20250514',
+        permissionMode: 'plan',
+      }),
+    );
+    expect(sessionManager.appendMessage).toHaveBeenCalledTimes(2);
+    expect(sessionManager.appendMessage).toHaveBeenLastCalledWith(
+      '/project',
+      'session-1',
+      expect.objectContaining({
+        id: 'final-1',
+        content: 'final',
+      }),
     );
   });
 

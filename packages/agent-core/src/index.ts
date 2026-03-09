@@ -20,3 +20,6 @@ export { createPermissionGate, createPermissionMemoryStore, assessToolRisk } fro
 export type { MessageLike, MessageRole, MessageType, TokenUsageLike } from './mapper/index.js'
 export type { EventToMessageMapper, EventToMessageMapperOptions } from './mapper/index.js'
 export { createEventToMessageMapper } from './mapper/index.js'
+
+export type { McpConnection, McpToolDefinition } from './mcp/index.js'
+export { connectMcpServer, bridgeMcpTools } from './mcp/index.js'

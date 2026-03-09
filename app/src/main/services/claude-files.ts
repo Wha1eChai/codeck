@@ -3,17 +3,26 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import crypto from 'node:crypto';
-import type { Session, CreateSessionInput, Message } from '@common/types';
+import type { Session, CreateSessionInput, Message, PermissionMode, RuntimeProvider } from '@common/types';
 import {
   createSessionJsonlMapper,
   extractSessionMetadata,
   parseSessionDetails,
   mapMessageToJsonl,
 } from './claude-files/session-parser';
-import type { ProjectInfo, SessionParseResult, RawJsonlEntry } from './claude-files/types';
+import type { ProjectInfo, SessionFileMetadata, SessionParseResult, RawJsonlEntry } from './claude-files/types';
 
 // Re-export types for backward compatibility
 export type { ProjectInfo, SessionParseResult, RawJsonlEntry };
+
+export interface SessionRuntimeMetadataInput {
+  readonly sdkSessionId?: string;
+  readonly runtime?: RuntimeProvider;
+  readonly model?: string;
+  readonly permissionMode?: PermissionMode;
+  readonly cwd?: string;
+  readonly tools?: readonly string[];
+}
 
 const PROJECT_METADATA_KEY = 'ccuiProjectMeta';
 
@@ -405,25 +414,7 @@ export class ClaudeFilesService {
     const now = Date.now();
     const runtime = input.runtime || 'claude';
 
-    await this.saveProjectMetadata(input.projectPath);
-
-    const sessionDir = this.getPreferredSessionDir(input.projectPath);
-    await fs.mkdir(sessionDir, { recursive: true });
-
-    const filePath = this.getSessionFilePathInDir(sessionDir, id);
-    const header = {
-      type: 'session_meta',
-      session_id: id,
-      name: input.name,
-      project_path: input.projectPath,
-      runtime,
-      permission_mode: input.permissionMode,
-      created_at: now,
-      timestamp: now,
-    };
-    await fs.writeFile(filePath, JSON.stringify(header) + '\n', 'utf-8');
-
-    return {
+    const session: Session = {
       id,
       name: input.name,
       projectPath: input.projectPath,
@@ -432,6 +423,46 @@ export class ClaudeFilesService {
       createdAt: now,
       updatedAt: now,
     };
+
+    await this.persistSession(session);
+
+    return session;
+  }
+
+  /**
+   * Persist a specific session header without generating a new session ID.
+   * Used when draft sessions need to become canonical before the first message is written.
+   */
+  async persistSession(session: Session): Promise<void> {
+    await this.saveProjectMetadata(session.projectPath);
+
+    const sessionDir = this.getPreferredSessionDir(session.projectPath);
+    await fs.mkdir(sessionDir, { recursive: true });
+
+    const filePath = this.getSessionFilePathInDir(sessionDir, session.id);
+    try {
+      await fs.access(filePath);
+      return;
+    } catch (error) {
+      const isNotFound =
+        error instanceof Error && (error as NodeJS.ErrnoException).code === 'ENOENT';
+      if (!isNotFound) {
+        throw error;
+      }
+    }
+
+    const createdAt = session.createdAt || Date.now();
+    const header = {
+      type: 'session_meta',
+      session_id: session.id,
+      name: session.name,
+      project_path: session.projectPath,
+      runtime: session.runtime,
+      permission_mode: session.permissionMode,
+      created_at: createdAt,
+      timestamp: createdAt,
+    };
+    await fs.writeFile(filePath, JSON.stringify(header) + '\n', 'utf-8');
   }
 
   async deleteSession(projectPath: string, sessionId: string): Promise<void> {
@@ -507,18 +538,29 @@ export class ClaudeFilesService {
   async appendSessionRuntime(
     projectPath: string,
     sessionId: string,
-    sdkSessionId: string,
+    input: string | SessionRuntimeMetadataInput,
   ): Promise<void> {
     const filePath = this.getSessionFilePath(projectPath, sessionId);
+    const metadata = typeof input === 'string' ? { sdkSessionId: input } : input;
     const entry = {
       type: 'session_runtime',
       session_id: sessionId,
-      sdk_session_id: sdkSessionId,
+      ...(metadata.sdkSessionId ? { sdk_session_id: metadata.sdkSessionId } : {}),
+      ...(metadata.runtime ? { runtime_provider: metadata.runtime } : {}),
+      ...(metadata.model ? { model: metadata.model } : {}),
+      ...(metadata.permissionMode ? { permission_mode: metadata.permissionMode } : {}),
+      ...(metadata.cwd ? { cwd: metadata.cwd } : {}),
+      ...(metadata.tools && metadata.tools.length > 0 ? { tools: metadata.tools } : {}),
       timestamp: Date.now(),
     };
 
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.appendFile(filePath, JSON.stringify(entry) + '\n', 'utf-8');
+  }
+
+  async getSessionMetadata(projectPath: string, sessionId: string): Promise<SessionFileMetadata> {
+    const filePath = this.getSessionFilePath(projectPath, sessionId);
+    return extractSessionMetadata((p, e) => fs.readFile(p, e), filePath);
   }
 }
 

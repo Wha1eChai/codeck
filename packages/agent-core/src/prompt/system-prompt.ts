@@ -48,6 +48,17 @@ function wrapSection(label: string, content: string): string {
   return `<claude-md>\n# ${label}\n${content}\n</claude-md>`
 }
 
+function buildPlanModeInstructions(): string {
+  return [
+    '<plan-mode>',
+    'You are in Plan Mode.',
+    'Explain the intended steps before executing tools.',
+    'Do not assume tool execution is approved until the user explicitly approves the plan.',
+    'If a tool invocation is denied, incorporate the feedback and continue planning instead of forcing execution.',
+    '</plan-mode>',
+  ].join('\n')
+}
+
 export async function assembleSystemPrompt(
   options: AssembleSystemPromptOptions,
 ): Promise<string> {
@@ -95,6 +106,10 @@ export async function assembleSystemPrompt(
   // 5. Custom instructions
   if (options.customInstructions !== undefined && options.customInstructions.trim().length > 0) {
     sections.push(options.customInstructions.trim())
+  }
+
+  if (options.permissionMode === 'plan') {
+    sections.push(buildPlanModeInstructions())
   }
 
   return sections.join('\n\n')

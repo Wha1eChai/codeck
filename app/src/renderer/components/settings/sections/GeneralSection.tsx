@@ -11,17 +11,11 @@ import {
 } from '../../ui/Select'
 import { useSettingsStore } from '../../../stores/settings-store'
 import { PermissionMode, PERMISSION_MODE_OPTIONS, RuntimeProvider } from '@common/types'
+import { RUNTIME_CATALOG } from '@common/runtime-catalog'
 import { FolderOpen, Search, Eye, EyeOff, Key } from 'lucide-react'
 import { SectionHeader, SettingsCard, StorageHint } from '../SettingsCard'
 import { useUIStore } from '../../../stores/ui-store'
 import { Sliders, FileCode } from 'lucide-react'
-
-const RUNTIME_OPTIONS: { value: RuntimeProvider; label: string }[] = [
-    { value: 'claude', label: 'Claude (Default)' },
-    { value: 'kernel', label: 'Kernel (Self-hosted)' },
-    { value: 'codex', label: 'Codex' },
-    { value: 'opencode', label: 'OpenCode' },
-]
 
 export const GeneralSection: React.FC = () => {
     const settings = useSettingsStore(s => s.settings)
@@ -122,8 +116,10 @@ export const GeneralSection: React.FC = () => {
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                {RUNTIME_OPTIONS.map(opt => (
-                                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                                {RUNTIME_CATALOG.map(opt => (
+                                    <SelectItem key={opt.value} value={opt.value} disabled={!opt.available}>
+                                        {opt.label}
+                                    </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>

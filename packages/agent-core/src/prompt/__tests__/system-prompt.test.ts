@@ -248,4 +248,17 @@ describe('assembleSystemPrompt', () => {
 
     expect(result).not.toContain('User Instructions')
   })
+
+  it('should append plan mode instructions when permissionMode=plan', async () => {
+    const result = await assembleSystemPrompt({
+      ...BASE_OPTIONS,
+      cwd: projectDir,
+      homedir: tempHome,
+      permissionMode: 'plan',
+    })
+
+    expect(result).toContain('<plan-mode>')
+    expect(result).toContain('You are in Plan Mode.')
+    expect(result).toContain('Do not assume tool execution is approved')
+  })
 })

@@ -210,6 +210,7 @@ export class SessionOrchestrator {
     // Kernel runtime has no external SDK writing JSONL — we must persist messages ourselves
     const isKernelRuntime = runtimeContext.runtime === 'kernel';
     if (isKernelRuntime) {
+      await sessionManager.persistDraftSession(projectPath, resolvedSessionId);
       const userMessage: Message = {
         id: `user_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
         sessionId: resolvedSessionId,
@@ -233,6 +234,21 @@ export class SessionOrchestrator {
       images: input.images,
       onMetadata: async (metadata) => {
         if (!metadata || typeof metadata !== 'object') return;
+        if (isKernelRuntime) {
+          await sessionManager.persistRuntimeMetadata(projectPath, resolvedSessionId, {
+            runtime: 'kernel',
+            model: typeof metadata.model === 'string' ? metadata.model : undefined,
+            permissionMode:
+              typeof metadata.permissionMode === 'string'
+                ? (metadata.permissionMode as PermissionMode)
+                : runtimeContext.permissionMode,
+            cwd: typeof metadata.cwd === 'string' ? metadata.cwd : effectiveCwd,
+            tools: Array.isArray(metadata.tools)
+              ? metadata.tools.filter((tool): tool is string => typeof tool === 'string')
+              : undefined,
+          });
+          return;
+        }
         const sdkSessionId = (metadata as { sessionId?: unknown }).sessionId;
         if (typeof sdkSessionId !== 'string' || !sdkSessionId) return;
         sessionManager.setSdkSessionId(sdkSessionId);
@@ -242,7 +258,7 @@ export class SessionOrchestrator {
       onMessage: async (message) => {
         sessionManager.markSessionPersisted(projectPath, resolvedSessionId);
         // Kernel runtime: persist each agent output message to JSONL
-        if (isKernelRuntime && message) {
+        if (isKernelRuntime && message && !message.isStreamDelta) {
           try {
             await sessionManager.appendMessage(projectPath, resolvedSessionId, message);
           } catch {

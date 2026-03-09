@@ -63,6 +63,29 @@ export async function extractSessionMetadata(
           continue;
         }
 
+        if (entry.type === 'session_runtime') {
+          if (!metadata.permissionMode) {
+            metadata.permissionMode = parsePermissionMode(entry.permission_mode ?? entry.permissionMode);
+          }
+          if (!metadata.runtime) {
+            metadata.runtime = parseRuntimeProvider(entry.runtime_provider ?? entry.runtime);
+          }
+          if (!metadata.model && typeof entry.model === 'string' && entry.model) {
+            metadata.model = entry.model;
+          }
+          continue;
+        }
+
+        if (
+          entry.type === 'system' &&
+          entry.subtype === 'init' &&
+          !metadata.model &&
+          typeof entry.model === 'string' &&
+          entry.model
+        ) {
+          metadata.model = entry.model;
+        }
+
         if (!metadata.permissionMode) {
           metadata.permissionMode = parsePermissionMode(entry.permissionMode ?? entry.permission_mode);
         }
@@ -168,8 +191,9 @@ function inferSessionName(entry: RawJsonlEntry): string | null {
 
 function extractSdkSessionId(entry: RawJsonlEntry): string | null {
   if (entry.type === 'session_runtime') {
-    const fromRuntime = entry.sdk_session_id ?? entry.session_id;
-    return typeof fromRuntime === 'string' && fromRuntime ? fromRuntime : null;
+    return typeof entry.sdk_session_id === 'string' && entry.sdk_session_id
+      ? entry.sdk_session_id
+      : null;
   }
 
   if (entry.type === 'system' && entry.subtype === 'init') {

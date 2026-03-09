@@ -13,7 +13,7 @@ import { KernelService } from './kernel-service'
 const KERNEL_CAPABILITIES: RuntimeCapabilityReport = {
   runtime: 'kernel' as RuntimeId,
   supports: {
-    resume: false,
+    resume: true,
     permissionPrompt: true,
     streamDelta: true,
     nativeFileHistory: false,
@@ -22,11 +22,12 @@ const KERNEL_CAPABILITIES: RuntimeCapabilityReport = {
     modelSelection: true,
     embeddedTerminal: false,
   },
-  supportedPermissionModes: ['default', 'dontAsk', 'bypassPermissions'],
+  supportedPermissionModes: ['default', 'plan', 'dontAsk', 'bypassPermissions'],
   notes: [
     'Self-hosted agent kernel using Vercel AI SDK',
     'No SDK dependency — direct API calls',
-    'Resume, checkpointing, and hooks not yet supported',
+    'Resume supported via local transcript reconstruction',
+    'Checkpointing and hooks are still not supported',
   ],
 }
 
@@ -56,17 +57,17 @@ export class KernelRuntimeAdapter implements RuntimeAdapter {
   }
 
   resolveAskUserQuestion(
-    _ctx: SessionContext,
-    _response: AskUserQuestionResponse,
+    ctx: SessionContext,
+    response: AskUserQuestionResponse,
   ): void {
-    // Not yet supported in kernel runtime
+    this.kernelService.resolveAskUserQuestion(ctx, response)
   }
 
   resolveExitPlanMode(
-    _ctx: SessionContext,
-    _response: ExitPlanModeResponse,
+    ctx: SessionContext,
+    response: ExitPlanModeResponse,
   ): void {
-    // Not yet supported in kernel runtime
+    this.kernelService.resolveExitPlanMode(ctx, response)
   }
 
   async rewindFiles(

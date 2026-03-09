@@ -90,6 +90,16 @@ describe('AppPreferencesService', () => {
             });
         });
 
+        it('should fall back to claude when stored runtime is not available', async () => {
+            vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify({
+                defaultRuntime: 'codex',
+            }));
+
+            const prefs = await service.get();
+
+            expect(prefs.defaultRuntime).toBe('claude');
+        });
+
         it('should sanitise valid modelAliases from file', async () => {
             vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify({
                 modelAliases: { sonnet: 'claude-sonnet-custom', opus: 'claude-opus-custom' },
