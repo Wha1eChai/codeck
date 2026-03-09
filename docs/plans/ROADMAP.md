@@ -143,15 +143,27 @@ It is not a Claude Code GUI wrapper — it is a platform that orchestrates multi
 
 > Goal: Support both sub-agents (lightweight, in-loop) and agent teams (full session isolation).
 
+#### Phase 1: Sub-Agent Tool (In-Loop Fork) — ✅ Complete
+
+**Completed:**
+- ~~`Task` tool in `@codeck/agent-core` tool registry~~ ✅ `createTaskTool()` factory
+- ~~Sub-agent runs isolated agent loop with constrained tools and limited context~~ ✅ `filterTools()` + bounded `maxSteps`
+- ~~Returns summary to parent loop~~ ✅ via `ToolResult.metadata.childEvents`
+- ~~Parent loop continues with sub-agent result as tool_result~~ ✅ `child_events` AgentEvent + mapper
+- ~~`parentToolUseId` field in Message type is actively used~~ ✅ KernelService tags child messages
+- ~~Resume filters sub-agent messages~~ ✅ `reconstructCoreMessages()` excludes `parentToolUseId`
+
+**Key files:**
+- `packages/agent-core/src/tools/task.ts` — Task tool factory
+- `packages/agent-core/src/loop/agent-loop.ts` — `enableSubAgent` + registry cloning + child event yielding
+- `packages/agent-core/src/loop/types.ts` — `child_events` AgentEvent variant
+- `packages/agent-core/src/mapper/types.ts` — `parentToolUseId` on MessageLike
+- `app/src/main/services/runtime/kernel-service.ts` — child_events handler + IPC forwarding
+- `app/src/main/services/claude-files/transcript-to-core-messages.ts` — resume filtering
+
+#### Phase 2: Agent Teams (Session-Level) — Not Started
+
 **Scope:**
-
-**Sub-agent (in-loop fork):**
-- New tool `Agent` / `Task` in `@codeck/agent-core` tool registry
-- Sub-agent runs isolated agent loop with constrained tools and limited context
-- Returns summary to parent loop (1-2k tokens max)
-- Parent loop continues with sub-agent result as tool_result
-
-**Agent team (session-level):**
 - Meta-session concept: a session that orchestrates child sessions
 - `SessionOrchestrator` extended to support parent → child session relationships
 - Inter-session messaging (parent can send instructions, child reports back)
@@ -159,18 +171,14 @@ It is not a Claude Code GUI wrapper — it is a platform that orchestrates multi
 - Each child session gets its own worktree (optional)
 
 **Exit criteria:**
-- Kernel runtime can spawn a sub-agent tool call that executes and returns
 - A "team session" can orchestrate 2+ child sessions with role assignment
 - SessionPanel shows parent-child relationships
-- `parentToolUseId` field in Message type is actively used
 
 **Key files:**
-- `packages/agent-core/src/tools/agent.ts` (new — sub-agent tool)
 - `app/src/main/services/session-orchestrator.ts` — team session routing
-- `app/src/common/types.ts` — Message.parentToolUseId (already exists)
 - `packages/sessions/src/analysis/subagent-linker.ts` (already exists — extend for active use)
 
-**Dependencies:** M1 + M2 + M3
+**Dependencies:** M4 Phase 1
 
 ---
 
