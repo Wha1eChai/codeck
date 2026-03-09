@@ -7,6 +7,29 @@ const EMPTY_SESSION_STATES: Readonly<Record<string, ActiveSessionState>> = {}
 const EMPTY_TABS: readonly SessionTab[] = []
 const EMPTY_METADATA_MAP: Readonly<Record<string, SessionMetadata>> = {}
 
+/**
+ * Build a tree structure from a flat list of session tabs.
+ * Root sessions have no parentSessionId; children are grouped under their parent.
+ */
+export function buildSessionTree(
+  tabs: readonly SessionTab[],
+): { roots: readonly SessionTab[]; childrenOf: ReadonlyMap<string, readonly SessionTab[]> } {
+  const childrenOf = new Map<string, SessionTab[]>()
+  const roots: SessionTab[] = []
+
+  for (const tab of tabs) {
+    if (tab.parentSessionId) {
+      const siblings = childrenOf.get(tab.parentSessionId) ?? []
+      siblings.push(tab)
+      childrenOf.set(tab.parentSessionId, siblings)
+    } else {
+      roots.push(tab)
+    }
+  }
+
+  return { roots, childrenOf }
+}
+
 interface SessionStore {
   sessions: Session[]
   currentSessionId: string | null
@@ -135,6 +158,8 @@ export const useSessionStore = create<SessionStore>((set) => ({
           sessionId,
           name: session?.name ?? sessionId.slice(0, 8),
           status: activeState.status,
+          parentSessionId: activeState.parentSessionId ?? session?.parentSessionId,
+          role: activeState.role ?? session?.role,
         })
       }
     }
