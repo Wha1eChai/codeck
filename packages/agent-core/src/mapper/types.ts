@@ -43,4 +43,7 @@ export interface MessageLike {
 
   // stream
   readonly isStreamDelta?: boolean
+
+  // sub-agent
+  readonly parentToolUseId?: string
 }

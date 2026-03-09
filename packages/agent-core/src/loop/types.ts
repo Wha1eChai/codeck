@@ -27,4 +27,5 @@ export type AgentEvent =
   | { readonly type: 'tool_result'; readonly toolCallId: string; readonly toolName: string; readonly result: string; readonly isError: boolean }
   | { readonly type: 'step_end'; readonly step: number; readonly finishReason: string; readonly usage: StepUsage }
   | { readonly type: 'error'; readonly error: string }
+  | { readonly type: 'child_events'; readonly toolCallId: string; readonly events: readonly AgentEvent[] }
   | { readonly type: 'done'; readonly totalUsage: TotalUsage }

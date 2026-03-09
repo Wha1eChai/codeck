@@ -201,6 +201,11 @@ export function createEventToMessageMapper(
         }
       }
 
+      case 'child_events': {
+        // Handled by KernelService, not the mapper
+        return undefined
+      }
+
       case 'done': {
         // Don't emit a usage message — step_end already emits per-step usage.
         // Emitting totalUsage here would cause double-counting in the frontend.
