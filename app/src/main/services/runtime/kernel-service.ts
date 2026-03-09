@@ -350,7 +350,7 @@ export class KernelService {
     return reconstructCoreMessages(transcript) as Parameters<typeof runAgentLoop>[0];
   }
 
-  private async connectMcpTools(cwd: string, tools: ReturnType<typeof createDefaultToolRegistry>) {
+  private async connectMcpTools(cwd: string, tools: ReturnType<typeof createDefaultToolRegistry>): Promise<McpConnection[]> {
     const entries = await configReader.getMcpServers(cwd).catch(() => []);
     const connections: McpConnection[] = [];
 
@@ -359,18 +359,22 @@ export class KernelService {
         continue;
       }
 
-      const connection = await connectMcpServer(entry.name, entry.config);
-      connections.push(connection);
+      try {
+        const connection = await connectMcpServer(entry.name, entry.config);
+        connections.push(connection);
 
-      const bridged = bridgeMcpTools(connection, await connection.listTools());
-      for (const tool of bridged) {
-        const name = tools.get(tool.name) ? `${entry.name}.${tool.name}` : tool.name;
-        tools.register({
-          ...tool,
-          name,
-          description:
-            name === tool.name ? tool.description : `${tool.description} [${entry.name}]`,
-        });
+        const bridged = bridgeMcpTools(connection, await connection.listTools());
+        for (const tool of bridged) {
+          const name = tools.get(tool.name) ? `${entry.name}.${tool.name}` : tool.name;
+          tools.register({
+            ...tool,
+            name,
+            description:
+              name === tool.name ? tool.description : `${tool.description} [${entry.name}]`,
+          });
+        }
+      } catch {
+        // One misconfigured MCP server should not block the entire session
       }
     }
 

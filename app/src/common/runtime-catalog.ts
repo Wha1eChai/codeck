@@ -11,8 +11,12 @@ export const RUNTIME_CATALOG: readonly RuntimeCatalogEntry[] = [
   { value: 'kernel', label: 'Kernel (Self-hosted)', available: true },
   { value: 'codex', label: 'Codex (Coming Soon)', available: false },
   { value: 'opencode', label: 'OpenCode (Coming Soon)', available: false },
-] as const
+]
+
+const AVAILABLE_RUNTIMES = new Set(
+  RUNTIME_CATALOG.filter(entry => entry.available).map(entry => entry.value),
+)
 
 export function isRuntimeAvailable(runtime: unknown): runtime is RuntimeProvider {
-  return runtime === 'claude' || runtime === 'kernel'
+  return typeof runtime === 'string' && AVAILABLE_RUNTIMES.has(runtime as RuntimeProvider)
 }

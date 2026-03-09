@@ -24,10 +24,20 @@ function compactTranscript(messages: readonly Message[]): Message[] {
   return compacted;
 }
 
-type CoreLikeMessage = {
-  role: 'user' | 'assistant' | 'tool';
-  content: unknown;
-};
+type UserContent = string | Array<{ type: 'text'; text: string } | { type: 'image'; image: string }>;
+
+/**
+ * Structural subset of Vercel AI SDK's CoreMessage.
+ *
+ * We intentionally avoid importing CoreMessage directly because its deeply
+ * nested discriminated unions make it impractical to construct from external
+ * data. The actual API call validates the message structure, so any mismatch
+ * surfaces as an API error rather than silent corruption.
+ */
+type CoreLikeMessage =
+  | { role: 'user'; content: UserContent }
+  | { role: 'assistant'; content: AssistantBlock[] }
+  | { role: 'tool'; content: ToolResultBlock[] };
 
 function toUserContent(message: Message): string | Array<{ type: 'text'; text: string } | { type: 'image'; image: string }> {
   if (message.images && message.images.length > 0) {
