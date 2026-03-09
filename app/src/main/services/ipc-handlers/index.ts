@@ -33,6 +33,19 @@ export function registerIpcHandlers(windowGetter: () => BrowserWindow | null) {
       if (prevStatus === 'streaming' && state.status === 'idle') {
         anySessionEnded = true;
       }
+
+      // Child session completion/error notification to parent
+      if (prevStatus === 'streaming' && (state.status === 'idle' || state.status === 'error')) {
+        const parentId = sessionManager.getParentSessionId(sessionId);
+        if (parentId && win && !win.isDestroyed()) {
+          win.webContents.send(MAIN_TO_RENDERER.CHILD_SESSION_STATUS, {
+            parentSessionId: parentId,
+            childSessionId: sessionId,
+            status: state.status === 'idle' ? 'completed' : 'error',
+            ...(state.status === 'error' && state.error ? { error: state.error } : {}),
+          });
+        }
+      }
     }
 
     if (anySessionEnded) {
