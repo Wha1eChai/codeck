@@ -162,8 +162,17 @@ export class KernelService {
             sessionId,
             idGenerator: () => crypto.randomUUID(),
           });
+          // P2-fix: Aggregate child usage from step_end events
+          const childUsage = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 };
           for (const childEvent of event.events) {
-            if (childEvent.type === 'step_end' || childEvent.type === 'done') continue;
+            if (childEvent.type === 'step_end') {
+              childUsage.inputTokens += childEvent.usage.inputTokens;
+              childUsage.outputTokens += childEvent.usage.outputTokens;
+              childUsage.cacheReadTokens += childEvent.usage.cacheReadTokens ?? 0;
+              childUsage.cacheWriteTokens += childEvent.usage.cacheWriteTokens ?? 0;
+              continue;
+            }
+            if (childEvent.type === 'done') continue;
             const childMsg = childMapper.map(childEvent);
             if (!childMsg) continue;
             const tagged: Message = { ...childMsg, parentToolUseId: event.toolCallId } as Message;
@@ -171,6 +180,32 @@ export class KernelService {
             if (params.onMessage) {
               try {
                 await params.onMessage(tagged);
+              } catch {
+                // Ignore persistence errors.
+              }
+            }
+          }
+          // Emit aggregated child usage as a synthetic usage message
+          if (childUsage.inputTokens > 0 || childUsage.outputTokens > 0) {
+            const usageMsg: Message = {
+              id: crypto.randomUUID(),
+              sessionId,
+              role: 'system',
+              type: 'usage',
+              content: '',
+              timestamp: Date.now(),
+              parentToolUseId: event.toolCallId,
+              usage: {
+                inputTokens: childUsage.inputTokens,
+                outputTokens: childUsage.outputTokens,
+                ...(childUsage.cacheReadTokens > 0 ? { cacheReadTokens: childUsage.cacheReadTokens } : {}),
+                ...(childUsage.cacheWriteTokens > 0 ? { cacheWriteTokens: childUsage.cacheWriteTokens } : {}),
+              },
+            } as Message;
+            sendMessage(usageMsg);
+            if (params.onMessage) {
+              try {
+                await params.onMessage(usageMsg);
               } catch {
                 // Ignore persistence errors.
               }

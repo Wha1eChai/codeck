@@ -35,11 +35,22 @@ export interface TaskToolOptions {
   readonly remainingDepth: number
 }
 
-const CHILD_SYSTEM_PROMPT_PREFIX = `You are a focused sub-agent. Complete the assigned task concisely.
+const CHILD_ROLE_PREFIX = `You are a focused sub-agent. Complete the assigned task concisely.
 Do not ask questions — work with the information provided.
 When done, respond with a brief summary of what you accomplished.
 
 `
+
+function buildChildSystemPrompt(parentSystemPrompt: string, context?: string): string {
+  // Inherit parent system prompt (CLAUDE.md, environment, rules) and prepend sub-agent role.
+  // Optional user-provided context is appended after the role prefix.
+  const parts = [CHILD_ROLE_PREFIX]
+  if (context) {
+    parts.push(context + '\n\n')
+  }
+  parts.push(parentSystemPrompt)
+  return parts.join('')
+}
 
 function filterTools(parentTools: ToolRegistry, allowedNames?: readonly string[]): ToolRegistry {
   const filtered = createToolRegistry()
@@ -66,9 +77,7 @@ export function createTaskTool(options: TaskToolOptions): ToolDefinition<typeof 
     ): Promise<ToolResult> {
       const childTools = filterTools(options.tools, params.allowedTools)
       const childMaxSteps = params.maxSteps ?? 15
-      const childSystemPrompt = params.context
-        ? CHILD_SYSTEM_PROMPT_PREFIX + params.context
-        : CHILD_SYSTEM_PROMPT_PREFIX
+      const childSystemPrompt = buildChildSystemPrompt(options.parentSystemPrompt, params.context)
 
       const childEvents: AgentEvent[] = []
       let lastText = ''
@@ -95,6 +104,18 @@ export function createTaskTool(options: TaskToolOptions): ToolDefinition<typeof 
       } catch (err) {
         return {
           output: `Sub-agent error: ${(err as Error).message}`,
+          isError: true,
+          metadata: { childEvents },
+        }
+      }
+
+      // P1-fix1: Detect error events from child agent loop (abort, stream error, model error).
+      // These are yielded as events, not thrown, so we must explicitly check.
+      const errorEvents = childEvents.filter((e): e is AgentEvent & { type: 'error' } => e.type === 'error')
+      if (errorEvents.length > 0) {
+        const errorMessage = errorEvents.map(e => e.error).join('; ')
+        return {
+          output: `Sub-agent error: ${errorMessage}`,
           isError: true,
           metadata: { childEvents },
         }
