@@ -276,6 +276,21 @@ describe('EventToMessageMapper', () => {
     })
   })
 
+  describe('child_events', () => {
+    it('returns undefined for child_events (handled by KernelService)', () => {
+      const result = mapper.map({
+        type: 'child_events',
+        toolCallId: 'tool_123',
+        events: [
+          { type: 'text_start' },
+          { type: 'text_delta', text: 'hello' },
+          { type: 'text_end', text: 'hello' },
+        ],
+      })
+      expect(result).toBeUndefined()
+    })
+  })
+
   describe('full conversation flow', () => {
     it('maps a complete text-only exchange', () => {
       const events: AgentEvent[] = [
