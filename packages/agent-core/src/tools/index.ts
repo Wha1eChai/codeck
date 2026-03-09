@@ -10,6 +10,9 @@ import { bashTool } from './bash.js'
 import { globTool } from './glob.js'
 import { grepTool } from './grep.js'
 
+export { createTaskTool, TASK_TOOL_NAME } from './task.js'
+export type { TaskToolOptions } from './task.js'
+
 /**
  * Create a ToolRegistry pre-loaded with all 6 core tools:
  * Read, Write, Edit, Bash, Glob, Grep
