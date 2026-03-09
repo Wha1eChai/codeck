@@ -8,336 +8,97 @@
 
 ## Overview
 
-The self-hosted kernel (`@codeck/agent-core` + `@codeck/provider`) can currently:
+The self-hosted kernel (`@codeck/agent-core` + `@codeck/provider`) now supports:
 - Start new sessions with streaming
 - Execute 6 core tools (Bash, Read, Write, Edit, Glob, Grep)
 - Handle permission prompts via IPC
 - Select models (sonnet/opus/haiku) with API Key / Base URL config
+- **Resume sessions** via transcript reconstruction (`transcript-to-core-messages.ts`)
+- **Plan mode** with ExitPlanMode approval gate
+- **MCP server connection** (stdio transport, auto-connect from `~/.claude/.claude.json`)
+- **AskUserQuestion / ExitPlanMode** IPC flows
+- **Runtime truthfulness** — unavailable runtimes disabled in UI + preferences validation
 
-It cannot:
-- Resume sessions (conversation is lost on app restart)
-- Run in plan mode
-- Connect to MCP servers or use skills
-- Respond to AskUserQuestion / ExitPlanMode flows
-- Checkpoint or rewind
+Remaining gaps (not in M1 scope):
+- Checkpointing / rewind
+- Hooks integration
+- Native file history
 
-This plan closes the most critical gaps in priority order.
+**WS-1 through WS-5 are complete.** This phase now focuses on WS-6 (integration tests).
 
 ---
 
 ## Work Streams
 
-### WS-1: Runtime Truthfulness Fix (Quick Win)
+### WS-1: Runtime Truthfulness Fix (Quick Win) — COMPLETE
 
-> Priority: Immediate — this is a user-facing bug today
-> Effort: ~2 hours
-> Dependencies: None
+> Status: ✅ Done (commit 8054e8f, refined in 951fd00)
 
-**Problem:**
-`GeneralSection.tsx` exposes 4 runtime options (claude, kernel, codex, opencode) but only
-claude and kernel are registered in `setup.ts`. Selecting codex/opencode causes a silent
-error when starting a session (`assertRuntimeRegistered()` throws).
-
-**Tasks:**
-
-#### Task 1.1: Disable unregistered runtimes in settings UI
-
-**File:** `app/src/renderer/components/settings/sections/GeneralSection.tsx`
-
-**Change:** Add `disabled` property to `RUNTIME_OPTIONS` and gate on registered runtimes.
-
-```typescript
-// Before:
-const RUNTIME_OPTIONS: { value: RuntimeProvider; label: string }[] = [
-    { value: 'claude', label: 'Claude (Default)' },
-    { value: 'kernel', label: 'Kernel (Self-hosted)' },
-    { value: 'codex', label: 'Codex' },
-    { value: 'opencode', label: 'OpenCode' },
-]
-
-// After:
-const RUNTIME_OPTIONS: { value: RuntimeProvider; label: string; available: boolean }[] = [
-    { value: 'claude', label: 'Claude (Default)', available: true },
-    { value: 'kernel', label: 'Kernel (Self-hosted)', available: true },
-    { value: 'codex', label: 'Codex (Coming Soon)', available: false },
-    { value: 'opencode', label: 'OpenCode (Coming Soon)', available: false },
-]
-```
-
-In the Select component, render unavailable options with `disabled` attribute and
-a visual indicator (muted text color, no pointer events).
-
-**Acceptance criteria:**
-- [ ] Codex and OpenCode show as grayed-out "Coming Soon" in dropdown
-- [ ] User cannot select codex/opencode as default runtime
-- [ ] If a user's saved preference is codex/opencode, fall back to 'claude' at load time
-- [ ] No changes to `RuntimeId` or `RuntimeProvider` types (keep for future use)
-
-#### Task 1.2: Add fallback validation in preferences loading
-
-**File:** `app/src/main/services/app-preferences.ts`
-
-**Change:** In the `sanitise()` function (or equivalent validation), if `defaultRuntime`
-is not in the set of actually-registered runtimes, reset to `'claude'`.
-
-**Acceptance criteria:**
-- [ ] `appPreferencesService.get()` never returns an unregistered runtime
-- [ ] Existing preferences files with `"defaultRuntime": "codex"` are silently corrected
+**Implemented:**
+- [x] `RUNTIME_CATALOG` in `app/src/common/runtime-catalog.ts` — shared catalog with `available` flag
+- [x] `isRuntimeAvailable()` derives from catalog via Set (not hardcoded)
+- [x] `GeneralSection.tsx` uses catalog, disables unavailable runtimes
+- [x] `app-preferences.ts` `sanitise()` validates against `isRuntimeAvailable()`
+- [x] Codex/OpenCode show as grayed-out "Coming Soon"
 
 ---
 
-### WS-2: Kernel Transcript Canonicalization
+### WS-2: Kernel Transcript Canonicalization — COMPLETE
 
-> Priority: High — existing persistence works, but transcript shape is not yet canonical for robust resume/runtime detection
-> Effort: ~1 week
-> Dependencies: None
+> Status: ✅ Done (commit 8054e8f)
 
-**Problem:**
-Kernel sessions are already persisted via `SessionOrchestrator -> SessionManager -> ClaudeFilesService`,
-but the transcript is incomplete as a durable runtime record:
-- there is no guaranteed session header before the first appended user message
-- runtime/model metadata is not written in a canonical way
-- resume would currently rely on reconstructing `CoreMessage[]` from a lossy flat message log
-
-**Architecture decision:**
-Do not introduce a parallel persistence layer in `@codeck/agent-core`.
-Instead:
-- reuse the existing `ClaudeFilesService` / `SessionManager.appendMessage()` path
-- add canonical header/meta records for kernel sessions
-- evolve the transcript format only where needed to make resume feasible
-
-**Tasks:**
-
-#### Task 2.1: Ensure kernel sessions write a canonical header through existing persistence
-
-**Files:** `app/src/main/services/session-orchestrator.ts`, `app/src/main/services/claude-files.ts`
-
-**Change:**
-- before the first kernel user message is appended, ensure the session file exists
-- write a `session_meta` record compatible with current `extractSessionMetadata()`
-- keep using the existing append path for subsequent messages
-
-**Acceptance criteria:**
-- [ ] First line of every new kernel session is a canonical header record
-- [ ] `claudeFilesService.listSessions()` recognizes kernel sessions as `runtime: "kernel"`
-- [ ] No new writer abstraction is added to `@codeck/agent-core`
-
-#### Task 2.2: Add runtime/session metadata records needed for history and resume
-
-**Files:** `app/src/main/services/claude-files.ts`, `app/src/main/services/claude-files/messages-to-jsonl.ts`
-
-**Change:**
-- add a kernel-specific metadata record (`session_runtime` or equivalent) when the runtime/model is known
-- preserve compatibility with existing readers/indexers instead of inventing a second file layout
-- document which records are authoritative for `runtime`, `model`, and future resume
-
-**Acceptance criteria:**
-- [ ] After a kernel session, a `.jsonl` file exists at the expected path
-- [ ] File content remains readable by current `ClaudeFilesService` and `@codeck/sessions`
-- [ ] History browser can display kernel sessions alongside SDK sessions
-- [ ] Runtime/model metadata is available without scanning arbitrary assistant text
-- [ ] Existing `params.onMessage` callback still works (persistence remains additive)
-
-#### Task 2.3: Verify transcript compatibility with the existing history/index stack
-
-**Files:** `app/src/main/services/session-orchestrator.ts`, `packages/sessions/src/server/sync/incremental.ts`
-
-**Change:**
-- run the existing list/sync flow against kernel-created sessions
-- fix any parsing assumptions that still treat kernel sessions as Claude SDK sessions
-- only add `system/init` if it materially improves compatibility beyond `session_meta` + runtime metadata
-
-**Acceptance criteria:**
-- [ ] Kernel sessions appear correctly in session list/history without ad-hoc fallbacks
-- [ ] The indexer does not require a parallel kernel-only parser path
-- [ ] Any added metadata records are documented in this plan before resume work begins
+**Implemented:**
+- [x] `session_meta` header written via `persistDraftSession()` before first user message
+- [x] `session_runtime` metadata written via `persistRuntimeMetadata()` on `onMetadata` callback
+- [x] Kernel sessions recognized by `listSessions()` as `runtime: "kernel"`
+- [x] No new writer in `@codeck/agent-core` — reuses existing `ClaudeFilesService` path
+- [x] `session-parser.ts` extracts metadata from both `session_meta` and `session_runtime` records
 
 ---
 
-### WS-3: Session Resume for Kernel
+### WS-3: Session Resume for Kernel — COMPLETE
 
-> Priority: High — most impactful user-facing gap
-> Effort: ~1.5 weeks
-> Dependencies: WS-2 (canonical transcript must exist first)
+> Status: ✅ Done (commit 8054e8f)
 
-**Problem:**
-Claude runtime supports resume via SDK's `sessionId` parameter.
-Kernel runtime has no equivalent — once the process ends, context is gone.
-The current flat JSONL transcript may not be lossless enough to rebuild `CoreMessage[]`
-without a validation pass first.
+**Implemented:**
+- [x] `transcript-to-core-messages.ts` reconstructs `CoreLikeMessage[]` from flat `Message[]`
+- [x] `loadResumeMessages()` in `kernel-service.ts` checks metadata.runtime === 'kernel', reads transcript
+- [x] Resume calls `runAgentLoop(resumeMessages, options)` instead of `startAgentLoop(prompt, options)`
+- [x] Orchestrator persists new user message before calling `startSession()`, so resume transcript is complete
+- [x] `KERNEL_CAPABILITIES.supports.resume = true`
+- [x] Unit tests cover compaction and tool-call reconstruction
 
-**Architecture decision:**
-Resume will use the persisted transcript as source of truth, but only after a round-trip spike
-proves that the stored records can reconstruct a coherent `CoreMessage[]` history.
-The reader/reconstruction logic should live near `claude-files`, not in generic agent-core.
-
-**Tasks:**
-
-#### Task 3.1: Build a round-trip spike for kernel transcript reconstruction
-
-**Files:** `app/src/main/services/claude-files/*`, tests alongside the implementation
-
-**Change:**
-- take a representative kernel transcript
-- reconstruct `CoreMessage[]`
-- feed it back into `runAgentLoop()` in a test harness
-- document which message types are lossless and which require richer persistence
-
-**Acceptance criteria:**
-- [ ] Round-trip test proves whether the current transcript is sufficient
-- [ ] Any lossy cases are identified before production resume code is written
-- [ ] The chosen reconstruction boundary is documented in this plan
-
-#### Task 3.2: Add resume path to KernelService.startSession()
-
-**File:** `app/src/main/services/runtime/kernel-service.ts`
-
-**Change:** When `params.sessionId` is provided and a JSONL file exists for that session:
-
-1. Read history via the reconstruction utility defined in WS-3.1
-2. Append new user message to the history
-3. Call `runAgentLoop(historyMessages, options)` instead of `startAgentLoop(prompt, options)`
-4. Continue writing to the same JSONL file (append mode)
-
-When `params.sessionId` is provided but no JSONL file exists (e.g., it was an SDK session):
-- Fall back to starting a fresh session
-- Log a warning
-
-**Acceptance criteria:**
-- [ ] Resume a kernel session: send message → close app → reopen → send another message → conversation continues coherently
-- [ ] Model uses conversation history for context (not just the latest message)
-- [ ] JSONL file grows continuously across resume cycles
-- [ ] SDK sessions cannot be resumed on kernel runtime (graceful fallback)
-
-#### Task 3.3: Update kernel capability report
-
-**File:** `app/src/main/services/runtime/kernel-runtime-adapter.ts`
-
-**Change:** Set `resume: true` in `KERNEL_CAPABILITIES.supports`.
-
-**Acceptance criteria:**
-- [ ] `getCapabilities().supports.resume === true`
-- [ ] Any UI that gates on resume capability now shows kernel as capable
+**Known limitations (acceptable for M1):**
+- Thinking messages are dropped during reconstruction (correct — API doesn't accept them back)
+- `planApproved` resets on resume (closure variable; acceptable since plan gate re-prompts)
 
 ---
 
-### WS-4: Plan Mode for Kernel
+### WS-4: Plan Mode for Kernel — COMPLETE
 
-> Priority: Medium — needed for parity with SDK path
-> Effort: ~1 week
-> Dependencies: WS-2
+> Status: ✅ Done (commit 8054e8f)
 
-**Problem:**
-Plan mode means the model outputs thinking + tool_use but no text blocks.
-The kernel's agent loop doesn't distinguish permission modes beyond
-"bypass" vs "interactive". Plan mode requires:
-1. Model is instructed to plan before acting (system prompt modification)
-2. Tool execution may require explicit user approval (ExitPlanMode flow)
-
-**Tasks:**
-
-#### Task 4.1: Add plan mode system prompt instructions
-
-**File:** `packages/agent-core/src/prompt/system-prompt.ts`
-
-**Change:** When `permissionMode === 'plan'`, append plan-mode instructions to system prompt:
-```
-You are in Plan Mode. Before executing any tool, explain your plan using thinking/reasoning.
-Present your plan to the user and wait for approval before proceeding with tool calls.
-```
-
-**Acceptance criteria:**
-- [ ] Plan mode system prompt differs from default mode
-- [ ] Model produces thinking blocks explaining its plan
-- [ ] Unit test verifies plan mode instructions are included
-
-#### Task 4.2: Implement ExitPlanMode flow in KernelService
-
-**File:** `app/src/main/services/runtime/kernel-service.ts`
-
-**Change:** Add a mechanism for the agent loop to pause and request plan approval:
-- When in plan mode and a tool call is about to execute, emit a plan approval request
-  via IPC (similar to permission request)
-- Wait for `resolveExitPlanMode()` response
-- If approved, execute the tool; if rejected, inform model of rejection
-
-**File:** `app/src/main/services/runtime/kernel-runtime-adapter.ts`
-
-**Change:** Implement `resolveExitPlanMode()` to forward to KernelService.
-
-**Acceptance criteria:**
-- [ ] Plan mode shows approval dialog before tool execution
-- [ ] User can approve or reject the plan
-- [ ] Rejection feeds back to the model as context
-- [ ] `supportedPermissionModes` includes `'plan'`
+**Implemented:**
+- [x] `system-prompt.ts` appends `<plan-mode>` instructions when `permissionMode === 'plan'`
+- [x] Plan gate decorator wraps base permission gate in `kernel-service.ts`
+- [x] First tool call triggers `ExitPlanModeRequest` IPC; user approves → `planApproved = true`
+- [x] Rejection returns reason to model as tool result context
+- [x] `supportedPermissionModes` includes `'plan'`
+- [x] `resolveExitPlanMode()` delegates from adapter to KernelService
 
 ---
 
-### WS-5: MCP Server Integration for Kernel
+### WS-5: MCP Server Integration for Kernel — COMPLETE
 
-> Priority: Medium — enables tool ecosystem
-> Effort: ~2 weeks
-> Dependencies: WS-2
+> Status: ✅ Done (commit 8054e8f, hardened in 951fd00)
 
-**Problem:**
-Claude runtime gets MCP tools for free via the SDK. Kernel runtime only has 6 built-in tools today.
-MCP (Model Context Protocol) servers provide additional tools via stdio or HTTP transport.
-
-**Tasks:**
-
-#### Task 5.1: MCP client implementation
-
-**File to create:** `packages/agent-core/src/mcp/client.ts`
-
-**Spec:**
-```typescript
-export interface McpConnection {
-  readonly serverName: string
-  listTools(): Promise<McpToolDefinition[]>
-  callTool(name: string, args: Record<string, unknown>): Promise<string>
-  close(): Promise<void>
-}
-
-/** Connect to an MCP server via stdio transport. */
-export function connectMcpServer(config: McpServerConfig): Promise<McpConnection>
-```
-
-Use the `@modelcontextprotocol/sdk` package (official MCP TypeScript SDK).
-
-**Acceptance criteria:**
-- [ ] Can connect to a stdio-based MCP server
-- [ ] Can list available tools
-- [ ] Can call a tool and get results
-- [ ] Connection errors are handled gracefully
-- [ ] Connection is properly closed on session end
-
-#### Task 5.2: Bridge MCP tools into ToolRegistry
-
-**File:** `packages/agent-core/src/mcp/mcp-tool-bridge.ts`
-
-**Change:** Convert `McpToolDefinition[]` into `ToolDefinition[]` compatible with
-the existing `ToolRegistry`. Each MCP tool becomes a regular tool that the agent loop
-can call.
-
-**Acceptance criteria:**
-- [ ] MCP tools appear alongside built-in tools in the registry
-- [ ] Tool descriptions and parameter schemas are preserved
-- [ ] MCP tool calls go through the permission gate like built-in tools
-
-#### Task 5.3: Load MCP config and connect in KernelService
-
-**File:** `app/src/main/services/runtime/kernel-service.ts`
-
-**Change:** At session start:
-1. Read MCP server configs from `@codeck/config` (via `config-bridge.ts`)
-2. Connect to each configured MCP server
-3. Bridge MCP tools into the tool registry
-4. Clean up connections in the `finally` block
-
-**Acceptance criteria:**
-- [ ] MCP servers configured in `~/.claude/.claude.json` are connected
-- [ ] MCP tools are available to the kernel agent loop
-- [ ] MCP connections are closed when session ends or is aborted
+**Implemented:**
+- [x] `packages/agent-core/src/mcp/client.ts` — stdio transport via `@modelcontextprotocol/sdk`
+- [x] `packages/agent-core/src/mcp/mcp-tool-bridge.ts` — JSON Schema → Zod + `ToolDefinition[]`
+- [x] `kernel-service.ts` `connectMcpTools()` — reads `~/.claude/.claude.json`, auto-connects
+- [x] MCP connections cleaned up in `finally` block on session end/abort
+- [x] Name collision handled: duplicate tool names prefixed as `${serverName}.${toolName}`
+- [x] Each server connection isolated with try/catch (one bad server doesn't block session)
 
 ---
 
@@ -386,29 +147,16 @@ can call.
 
 ---
 
-## Execution Order
+## Execution Status
 
 ```
-Week 1:   WS-1 (runtime truthfulness — immediate)
-          WS-2.1 + WS-2.2 + WS-2.3 (JSONL persistence — foundation)
-
-Week 2-3: WS-3.1 + WS-3.2 + WS-3.3 (session resume)
-          WS-6.1 (integration tests, scenarios 1-3)
-
-Week 4:   WS-4.1 + WS-4.2 (plan mode)
-          WS-6.1 (integration test scenario 4)
-
-Week 5-6: WS-5.1 + WS-5.2 + WS-5.3 (MCP integration)
-
-Week 7:   WS-6.1 (remaining scenarios) + WS-6.2 (multi-session test)
-
-Week 8:   Buffer / bug fixes / documentation
+WS-1: ✅ Complete (runtime truthfulness)
+WS-2: ✅ Complete (transcript canonicalization)
+WS-3: ✅ Complete (session resume)
+WS-4: ✅ Complete (plan mode)
+WS-5: ✅ Complete (MCP integration)
+WS-6: 🔲 In progress (integration tests)
 ```
-
-**Parallelism opportunities:**
-- WS-1 is fully independent — can be done anytime
-- WS-4 and WS-5 are independent of each other (both depend on WS-2)
-- WS-6 can start as soon as WS-2 is done (early scenarios don't need resume)
 
 ---
 
@@ -445,10 +193,10 @@ Tasks across independent work streams can run in parallel.
 
 ## Definition of Done (M1 Complete)
 
-- [ ] All WS-1 through WS-5 tasks completed
+- [x] All WS-1 through WS-5 tasks completed
 - [ ] All WS-6 integration tests pass
-- [ ] `KERNEL_CAPABILITIES` report updated to reflect new capabilities
-- [ ] `pnpm test` passes (all unit tests)
-- [ ] `pnpm --filter codeck typecheck` passes
+- [x] `KERNEL_CAPABILITIES` report updated to reflect new capabilities
+- [x] `pnpm test` passes (all 658 unit tests)
+- [x] `pnpm --filter codeck typecheck` passes
 - [ ] CLAUDE.md updated with any new conventions or gotchas discovered
 - [ ] ROADMAP.md M1 status updated to "Complete"

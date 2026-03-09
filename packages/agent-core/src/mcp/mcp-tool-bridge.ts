@@ -2,12 +2,30 @@ import { z } from 'zod';
 import type { ToolDefinition } from '../tools/types.js';
 import type { McpConnection, McpToolDefinition } from './client.js';
 
+function wrapNullable(base: z.ZodTypeAny, schema: Record<string, unknown>): z.ZodTypeAny {
+  return schema.nullable === true ? base.nullable() : base;
+}
+
 function toZodSchema(schema: unknown): z.ZodTypeAny {
   if (!schema || typeof schema !== 'object') {
     return z.record(z.string(), z.unknown());
   }
 
   const jsonSchema = schema as Record<string, unknown>;
+
+  // Handle oneOf / anyOf (union of sub-schemas)
+  const unionKeyword = jsonSchema.oneOf ?? jsonSchema.anyOf;
+  if (Array.isArray(unionKeyword) && unionKeyword.length > 0) {
+    const variants = unionKeyword.map((sub) => toZodSchema(sub)) as z.ZodTypeAny[];
+    if (variants.length === 1) {
+      return wrapNullable(variants[0]!, jsonSchema);
+    }
+    return wrapNullable(
+      z.union(variants as [z.ZodTypeAny, z.ZodTypeAny, ...z.ZodTypeAny[]]),
+      jsonSchema,
+    );
+  }
+
   const type = jsonSchema.type;
 
   if (Array.isArray(type)) {
@@ -21,19 +39,25 @@ function toZodSchema(schema: unknown): z.ZodTypeAny {
   }
 
   switch (type) {
-    case 'string':
-      return z.string();
+    case 'string': {
+      const base = Array.isArray(jsonSchema.enum)
+        ? z.enum(jsonSchema.enum as [string, ...string[]])
+        : z.string();
+      return wrapNullable(base, jsonSchema);
+    }
     case 'number':
-      return z.number();
+      return wrapNullable(z.number(), jsonSchema);
     case 'integer':
-      return z.number().int();
+      return wrapNullable(z.number().int(), jsonSchema);
     case 'boolean':
-      return z.boolean();
+      return wrapNullable(z.boolean(), jsonSchema);
+    case 'null':
+      return z.null();
     case 'array':
-      return z.array(toZodSchema(jsonSchema.items));
+      return wrapNullable(z.array(toZodSchema(jsonSchema.items)), jsonSchema);
     case 'object':
     default:
-      return toObjectSchema(jsonSchema);
+      return wrapNullable(toObjectSchema(jsonSchema), jsonSchema);
   }
 }
 

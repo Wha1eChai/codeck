@@ -50,13 +50,13 @@ It is not a Claude Code GUI wrapper — it is a platform that orchestrates multi
 | Model selection | Yes | Yes | — |
 | 6 core tools | Yes | Yes | — |
 | API Key / Base URL | N/A (SDK manages) | Yes | — |
-| Resume session | Yes | **No** | Critical |
-| Plan mode | Yes | **No** | High |
-| Hooks | Yes | **No** | High |
-| MCP / Skills | Yes | **No** | High |
+| Resume session | Yes | Yes | — |
+| Plan mode | Yes | Yes | — |
+| MCP (stdio) | Yes | Yes | — |
+| ExitPlanMode | Yes | Yes | — |
+| AskUserQuestion | Yes | Yes (IPC gate) | — |
+| Hooks | Yes | **No** | Medium |
 | Checkpointing | Yes | **No** | Medium |
-| AskUserQuestion | Yes | **No** | Medium |
-| ExitPlanMode | Yes | **No** | Medium |
 | Rewind files | Yes | **No** | Medium |
 | Native file history | Yes | **No** | Low |
 | Embedded terminal | Yes | **No** | Low |
@@ -65,32 +65,27 @@ It is not a Claude Code GUI wrapper — it is a platform that orchestrates multi
 
 ## Milestones
 
-### M1: Kernel Viability (Phase 5B Part 2) — Target: 8 weeks
+### M1: Kernel Viability (Phase 5B Part 2) — Status: Nearly Complete
 
 > Goal: Make kernel a credible daily-driver alternative to Claude runtime for basic workflows.
 
-**Scope:**
-- Resume session support (conversation history reload + continuation)
-- Kernel transcript canonicalization using the existing `claude-files` persistence path
-  (add header/meta records and a resume-compatible transcript format instead of creating a parallel writer)
-- Plan mode (thinking + tool_use without text output)
-- AskUserQuestion / ExitPlanMode interactive flows
-- MCP server connection (at least `stdio` transport)
-- End-to-end integration tests (real API, kernel path)
-- Runtime truthfulness: disable unregistered runtimes in UI
+**Scope (all implemented):**
+- ~~Resume session support~~ ✅ via transcript reconstruction (`transcript-to-core-messages.ts`)
+- ~~Kernel transcript canonicalization~~ ✅ `session_meta` + `session_runtime` JSONL headers
+- ~~Plan mode~~ ✅ system prompt + ExitPlanMode decorator gate
+- ~~AskUserQuestion / ExitPlanMode interactive flows~~ ✅ IPC gates in KernelService
+- ~~MCP server connection (stdio transport)~~ ✅ `@codeck/agent-core/src/mcp/`
+- ~~Runtime truthfulness~~ ✅ `RUNTIME_CATALOG` + UI disabling + preferences validation
 
-**Exit criteria:**
-- User can start a kernel session, close the app, reopen, and resume
-- Kernel sessions are recognized correctly by history/session listing as `runtime: "kernel"`
-- User can connect an MCP server and use its tools in kernel mode
-- Selecting codex/opencode in settings shows "Coming soon" instead of being silently broken
-- At least 5 integration test scenarios pass on kernel path
+**Remaining:**
+- Integration tests (WS-6) — real API validation of kernel path
 
 **Key files:**
 - `packages/agent-core/src/loop/agent-loop.ts` — resume entry point
-- `app/src/main/services/runtime/kernel-service.ts` — orchestration
+- `app/src/main/services/runtime/kernel-service.ts` — orchestration (resume + MCP + plan mode)
 - `app/src/main/services/runtime/kernel-runtime-adapter.ts` — capability report
-- `app/src/renderer/components/settings/sections/GeneralSection.tsx` — UI gating
+- `app/src/main/services/claude-files/transcript-to-core-messages.ts` — resume reconstruction
+- `app/src/common/runtime-catalog.ts` — shared availability catalog
 
 ---
 

@@ -82,7 +82,7 @@ app/src/
 │   └── services/                # 后台服务
 │       ├── claude.ts            # SDK 封装 (query/resume/abort)
 │       ├── claude-files.ts      # ~/.claude/ 文件读写
-│       ├── claude-files/        # JSONL 解析子模块（session-parser / types）
+│       ├── claude-files/        # JSONL 解析子模块（session-parser / types / transcript-to-core-messages）
 │       ├── session-orchestrator.ts  # 统一入口（多 session 并行路由）
 │       ├── session.ts           # 会话状态管理（单 session + 多 session Map）
 │       ├── session-context.ts   # Per-session 运行时上下文（SessionContextStore）
@@ -462,6 +462,15 @@ updateSettings: async (partial) => {
 - `encodeProjectPath()` 内部调用 `path.resolve()`，Windows 路径（`C:\foo`）在 Linux CI 上被当作相对路径，走 URL-encode 分支而非 Windows 驱动器分支
 - 用 `it.skipIf(process.platform !== 'win32')` 隔离 Windows 专属测试，并补充对应的 Unix 平台测试，保证两端各自覆盖
 
+### Kernel 运行时踩坑
+
+- **Kernel 会话持久化时序**：Orchestrator 在 `startSession()` 之前写 JSONL（`session-orchestrator.ts:212-224`），resume 路径的 `loadResumeMessages()` 已包含新用户消息，不要重复 append
+- **`CoreLikeMessage` 不直接 import `CoreMessage`**：AI SDK 的 `CoreMessage` 是深嵌套判别联合，构造困难。用结构子集 `CoreLikeMessage`（自有 discriminated union），API 调用时验证结构
+- **`isRuntimeAvailable()` 必须从 `RUNTIME_CATALOG` 派生**：不能硬编码可用运行时列表，新增运行时只需修改 catalog 的 `available` 标志
+- **MCP server 连接必须单独 try/catch**：一个坏 server 不能阻塞整个 kernel session，`connectMcpTools()` 隔离每个 server
+- **`toZodSchema()` 支持范围**：string/number/integer/boolean/null/array/object + enum + nullable + oneOf/anyOf。不支持 allOf/\$ref/pattern 等高级 JSON Schema 特性（MCP 工具极少用到）
+- **Plan mode `planApproved` 是闭包变量**：resume 后会重置为 `false`，用户需重新批准。这是已知行为，不是 bug
+
 ### CI 预检（推送前必跑）
 
 - 根目录 `pnpm test` **不等价于 CI**——它不跑 `@codeck/config typecheck`，本地全绿不代表 CI 全绿
@@ -489,13 +498,66 @@ interface RuntimeAdapter {
 - `claude`（默认）— `ClaudeRuntimeAdapter` → `ClaudeService` → Agent SDK `query()`
 - `kernel` — `KernelRuntimeAdapter` → `KernelService` → `@codeck/agent-core` + `@codeck/provider`
 
+## Kernel 运行时架构
+
+### Kernel 会话生命周期
+
+```
+SessionOrchestrator.sendMessage()
+  ├─ isKernelRuntime → persistDraftSession() + appendMessage(userMsg)  ← 先写 JSONL
+  └─ KernelService.startSession()
+       ├─ createAnthropicProvider(apiKey?, baseURL?)
+       ├─ createDefaultToolRegistry() + connectMcpTools()
+       ├─ createPermissionGate() (with plan mode wrapper if needed)
+       ├─ assembleSystemPrompt(cwd, platform, model, date, permissionMode)
+       ├─ loadResumeMessages() → reconstructCoreMessages() or null
+       └─ runAgentLoop(resumeMessages) or startAgentLoop(prompt)
+            ↓ events → createEventToMessageMapper() → IPC → Renderer
+```
+
+**关键约定**：Orchestrator 在调用 `adapter.startSession()` **之前**已将用户消息写入 JSONL。因此 `loadResumeMessages()` 读取 transcript 时新用户消息已在其中，resume 路径无需再次 append prompt。
+
+### Kernel Session Resume
+
+- 重建逻辑：`transcript-to-core-messages.ts` 的 `reconstructCoreMessages()`
+- 输入：flat `Message[]` from JSONL → 输出：`CoreLikeMessage[]`（discriminated union）
+- Thinking 消息在重建时被丢弃（正确行为——API 不接受 thinking 回传）
+- `planApproved` 闭包变量在 resume 后重置（可接受——plan gate 会重新提示）
+
+### Kernel MCP 集成
+
+```
+KernelService.connectMcpTools(cwd, tools)
+  → configReader.getMcpServers(cwd)       // 读 ~/.claude/.claude.json
+  → connectMcpServer(name, config)         // @modelcontextprotocol/sdk stdio
+  → bridgeMcpTools(connection, mcpTools)   // MCP tools → ToolDefinition[]
+  → tools.register(...)                    // 名称冲突时前缀 serverName
+  → try/catch 隔离每个 server              // 一个坏 server 不阻塞会话
+```
+
+### Runtime Truthfulness
+
+- `RUNTIME_CATALOG` (`app/src/common/runtime-catalog.ts`)：共享运行时目录，带 `available` 标志
+- `isRuntimeAvailable()` 从 catalog 的 `available: true` 项派生，不硬编码
+- `GeneralSection.tsx` 用 catalog 渲染下拉，不可用项显示为禁用 "Coming Soon"
+- `app-preferences.ts` 的 `sanitise()` 用 `isRuntimeAvailable()` 验证，无效值静默回退到 `'claude'`
+
+### Integration Tests（Kernel 路径）
+
+- 位置：`app/src/__integration__/kernel-runtime.test.ts` + `multi-session-kernel.test.ts`
+- 需要 `ANTHROPIC_API_KEY` 环境变量 + 网络
+- 运行：`pnpm --filter codeck test:integration`
+- 不被 `pnpm test` 执行（vitest.config.ts 排除 `__integration__/`）
+- 使用 haiku 模型节省成本
+- 6 个场景：basic conversation / tool execution / permission / resume / abort / model selection
+
 ## 开发阶段
 
 - Phase 1（已完成）— 核心对话：项目选择、会话管理、流式聊天、权限审批
 - Phase 2（已完成）— 体验增强：Diff 视图、文件管理器、Token 仪表盘、Checkpoint 时间轴、会话历史、消息分组渲染
 - Phase 3（已完成）— 差异化：Settings 页面化、Plugin/Agent/MCP/Hook/Memory 管理 UI、主题切换
 - Phase 4（已完成）— 多 Session 并行：Activity Bar + SessionPanel 侧边栏重设计、Tab Bar 多标签、SessionContext 并发后端、Git Worktree 隔离
-- **Phase 5（进行中）— SDK 解耦 + 自研 Agent 内核**：5A 架构铺路 ✅ → 5B-Part1 内核基础 ✅ → 5B-Part2 功能对齐 → 5C 上下文编排
+- **Phase 5（进行中）— SDK 解耦 + 自研 Agent 内核**：5A 架构铺路 ✅ → 5B-Part1 内核基础 ✅ → 5B-Part2 功能对齐（M1 近完成） → 5C 上下文编排
 - 远期：远程 WebUI、国际化、可执行版发布
 
 ### 多 Session 架构
