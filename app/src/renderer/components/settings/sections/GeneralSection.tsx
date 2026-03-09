@@ -162,6 +162,29 @@ export const GeneralSection: React.FC = () => {
                                     Custom endpoint for proxies or API gateways. Leave empty for default.
                                 </p>
                             </div>
+                            <div className="pt-2 border-t border-border space-y-3">
+                                <p className="text-sm font-medium">Context Optimization</p>
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                        <label className="text-sm text-foreground">Context Window Management</label>
+                                        <p className="text-caption text-muted-foreground">Auto-prune old messages when approaching context limit.</p>
+                                    </div>
+                                    <Switch
+                                        checked={settings.enableContextOptimization !== false}
+                                        onCheckedChange={(c) => updateSettings({ enableContextOptimization: c })}
+                                    />
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                        <label className="text-sm text-foreground">Prompt Caching</label>
+                                        <p className="text-caption text-muted-foreground">Cache system prompt to reduce costs on multi-turn conversations.</p>
+                                    </div>
+                                    <Switch
+                                        checked={settings.enablePromptCaching !== false}
+                                        onCheckedChange={(c) => updateSettings({ enablePromptCaching: c })}
+                                    />
+                                </div>
+                            </div>
                         </>
                     )}
 
