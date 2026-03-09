@@ -111,25 +111,9 @@ export function parseCliMessage(raw: string, sessionId: string): CliParseResult 
     }
 
     case 'user': {
-      const content = typeof parsed.message.content === 'string'
-        ? parsed.message.content
-        : parsed.message.content
-            .filter((b): b is { type: 'text'; text: string } => b.type === 'text')
-            .map((b) => b.text)
-            .join('\n')
-
-      if (content.length === 0) return { messages: [] }
-
-      return {
-        messages: [{
-          id: generateId(),
-          sessionId,
-          role: 'user',
-          type: 'text',
-          content,
-          timestamp: Date.now(),
-        }],
-      }
+      // Skip user echo — orchestrator pre-writes user messages for non-native runtimes.
+      // Re-emitting would cause duplicate messages in both UI and JSONL.
+      return { messages: [] }
     }
 
     case 'result': {

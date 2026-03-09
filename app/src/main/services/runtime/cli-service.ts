@@ -1,8 +1,10 @@
 /**
- * CLI Service — orchestrates CLI subprocess lifecycle for structured IO runtimes.
+ * CLI Service — orchestrates Claude CLI subprocess for stream-json output.
+ *
+ * This service targets Claude Code CLI specifically (`claude -p ... --output-format stream-json`).
+ * Codex/OpenCode use ACP (JSON-RPC 2.0 over stdio) and will need a separate AcpService.
  *
  * Manages: CliProcessManager → CliMessageParser → IPC callbacks.
- * Follows the same service pattern as KernelService (thin orchestrator, no SDK dependency).
  */
 import type { BrowserWindow } from 'electron'
 import crypto from 'crypto'
@@ -18,34 +20,24 @@ import { createLogger } from '../logger'
 
 const logger = createLogger('cli-service')
 
-export interface CliServiceConfig {
-  /** CLI type identifier (e.g. 'codex', 'opencode'). */
-  readonly cliType: string
-  /** Build CLI spawn args from session params. */
-  readonly buildArgs: (params: StartSessionParams) => readonly string[]
-  /** CLI-specific output format flag (e.g. '--output-format stream-json'). Default: none. */
-  readonly outputFormatArgs?: readonly string[]
-}
+/**
+ * Build Claude CLI args for a session.
+ * Protocol: `claude -p "prompt" --output-format stream-json [--cwd dir] [--resume id] [--model m]`
+ */
+function buildClaudeCliArgs(params: StartSessionParams): string[] {
+  const args: string[] = ['-p', params.prompt, '--output-format', 'stream-json']
 
-const DEFAULT_CODEX_CONFIG: CliServiceConfig = {
-  cliType: 'codex',
-  buildArgs: (params) => {
-    const args: string[] = ['-p', params.prompt]
-    if (params.cwd) args.push('--cwd', params.cwd)
-    return args
-  },
-}
+  if (params.cwd) args.push('--cwd', params.cwd)
 
-const CLI_CONFIGS: Record<string, CliServiceConfig> = {
-  codex: DEFAULT_CODEX_CONFIG,
-  opencode: {
-    cliType: 'opencode',
-    buildArgs: (params) => {
-      const args: string[] = ['-p', params.prompt]
-      if (params.cwd) args.push('--cwd', params.cwd)
-      return args
-    },
-  },
+  if (params.permissionMode === 'bypassPermissions' || params.permissionMode === 'dontAsk') {
+    args.push('-f')
+  }
+
+  if (params.executionOptions?.model) {
+    args.push('--model', params.executionOptions.model)
+  }
+
+  return args
 }
 
 export class CliService {
@@ -92,15 +84,11 @@ export class CliService {
         )
       }
 
-      // Build spawn config
-      const config = CLI_CONFIGS[this.cliType] ?? DEFAULT_CODEX_CONFIG
-      const baseArgs = config.buildArgs(params)
-      const outputArgs = config.outputFormatArgs ?? []
-
+      // Build spawn config with Claude CLI args
       const spawnConfig: CliSpawnConfig = {
         cliPath,
         cwd: params.cwd,
-        args: [...baseArgs, ...outputArgs],
+        args: buildClaudeCliArgs(params),
       }
 
       // Spawn subprocess

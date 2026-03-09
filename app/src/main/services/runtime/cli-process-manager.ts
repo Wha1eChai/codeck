@@ -34,7 +34,6 @@ export class CliProcessManager {
       cwd: config.cwd,
       env: { ...process.env, ...(config.env ?? {}) },
       stdio: ['pipe', 'pipe', 'pipe'],
-      shell: true,
       windowsHide: true,
     })
 
@@ -91,7 +90,6 @@ export class CliProcessManager {
     return new Promise((resolve) => {
       const proc = spawn(cliPath, ['--version'], {
         stdio: ['ignore', 'pipe', 'pipe'],
-        shell: true,
         windowsHide: true,
         timeout: 10_000,
       })

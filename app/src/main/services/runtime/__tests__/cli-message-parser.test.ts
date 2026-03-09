@@ -147,22 +147,17 @@ describe('parseCliMessage', () => {
     })
   })
 
-  describe('user messages', () => {
-    it('parses string content', () => {
+  describe('user messages (echo skip)', () => {
+    it('skips user echo — orchestrator pre-writes user messages', () => {
       const raw = JSON.stringify({
         type: 'user',
         message: { content: 'Hello Claude' },
       })
       const result = parseCliMessage(raw, SESSION_ID)!
-      expect(result.messages).toHaveLength(1)
-      expect(result.messages[0]).toMatchObject({
-        role: 'user',
-        type: 'text',
-        content: 'Hello Claude',
-      })
+      expect(result.messages).toHaveLength(0)
     })
 
-    it('parses array content (text blocks)', () => {
+    it('skips user echo with array content', () => {
       const raw = JSON.stringify({
         type: 'user',
         message: {
@@ -173,11 +168,10 @@ describe('parseCliMessage', () => {
         },
       })
       const result = parseCliMessage(raw, SESSION_ID)!
-      expect(result.messages).toHaveLength(1)
-      expect(result.messages[0]!.content).toBe('Line 1\nLine 2')
+      expect(result.messages).toHaveLength(0)
     })
 
-    it('returns empty messages for empty content', () => {
+    it('skips user echo with empty content', () => {
       const raw = JSON.stringify({
         type: 'user',
         message: { content: '' },
