@@ -261,4 +261,84 @@ describe('assembleSystemPrompt', () => {
     expect(result).toContain('You are in Plan Mode.')
     expect(result).toContain('Do not assume tool execution is approved')
   })
+
+  describe('maxTokens budget', () => {
+    it('should include all sections when budget is large enough', async () => {
+      const claudeDir = join(tempHome, '.claude')
+      await mkdir(claudeDir, { recursive: true })
+      await writeFile(join(claudeDir, 'CLAUDE.md'), 'Global instructions')
+      await writeFile(join(projectDir, 'CLAUDE.md'), 'Project instructions')
+
+      const result = await assembleSystemPrompt({
+        ...BASE_OPTIONS,
+        cwd: projectDir,
+        homedir: tempHome,
+        maxTokens: 100_000,
+      })
+
+      expect(result).toContain('Global instructions')
+      expect(result).toContain('Project instructions')
+    })
+
+    it('should always include environment block (critical priority)', async () => {
+      const result = await assembleSystemPrompt({
+        ...BASE_OPTIONS,
+        cwd: projectDir,
+        homedir: tempHome,
+        maxTokens: 50, // very tight budget
+      })
+
+      expect(result).toContain('<environment>')
+    })
+
+    it('should drop low-priority sections first under budget pressure', async () => {
+      const claudeDir = join(tempHome, '.claude')
+      await mkdir(claudeDir, { recursive: true })
+      await writeFile(join(claudeDir, 'CLAUDE.md'), 'X'.repeat(2000)) // low priority, large
+
+      await writeFile(join(projectDir, 'CLAUDE.md'), 'Project instructions') // high priority, small
+
+      // Budget enough for env + project CLAUDE.md, but not user global
+      const result = await assembleSystemPrompt({
+        ...BASE_OPTIONS,
+        cwd: projectDir,
+        homedir: tempHome,
+        maxTokens: 200,
+      })
+
+      expect(result).toContain('<environment>')
+      expect(result).toContain('Project instructions')
+      expect(result).not.toContain('X'.repeat(100)) // user global dropped
+    })
+
+    it('should keep plan mode instructions even under tight budget', async () => {
+      const result = await assembleSystemPrompt({
+        ...BASE_OPTIONS,
+        cwd: projectDir,
+        homedir: tempHome,
+        permissionMode: 'plan',
+        maxTokens: 100,
+      })
+
+      expect(result).toContain('<plan-mode>')
+      expect(result).toContain('<environment>')
+    })
+
+    it('should include all when maxTokens is not specified', async () => {
+      const claudeDir = join(tempHome, '.claude')
+      await mkdir(claudeDir, { recursive: true })
+      await writeFile(join(claudeDir, 'CLAUDE.md'), 'X'.repeat(50000))
+      await writeFile(join(projectDir, 'CLAUDE.md'), 'Y'.repeat(50000))
+
+      const result = await assembleSystemPrompt({
+        ...BASE_OPTIONS,
+        cwd: projectDir,
+        homedir: tempHome,
+      })
+
+      // Both should be included regardless of size
+      expect(result).toContain('X'.repeat(100))
+      expect(result).toContain('Y'.repeat(100))
+    })
+  })
 })

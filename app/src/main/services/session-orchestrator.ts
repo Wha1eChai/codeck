@@ -207,9 +207,9 @@ export class SessionOrchestrator {
     const resolvedSession = await sessionManager.getSession(projectPath, resolvedSessionId);
     const effectiveCwd = resolvedSession?.worktree?.worktreePath ?? projectPath;
 
-    // Kernel runtime has no external SDK writing JSONL — we must persist messages ourselves
-    const isKernelRuntime = runtimeContext.runtime === 'kernel';
-    if (isKernelRuntime) {
+    // Runtimes without native file history need us to persist messages (kernel, CLI runtimes)
+    const needsExternalPersistence = !capability.supports.nativeFileHistory;
+    if (needsExternalPersistence) {
       await sessionManager.persistDraftSession(projectPath, resolvedSessionId);
       const userMessage: Message = {
         id: `user_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
@@ -234,9 +234,9 @@ export class SessionOrchestrator {
       images: input.images,
       onMetadata: async (metadata) => {
         if (!metadata || typeof metadata !== 'object') return;
-        if (isKernelRuntime) {
+        if (needsExternalPersistence) {
           await sessionManager.persistRuntimeMetadata(projectPath, resolvedSessionId, {
-            runtime: 'kernel',
+            runtime: runtimeContext.runtime,
             model: typeof metadata.model === 'string' ? metadata.model : undefined,
             permissionMode:
               typeof metadata.permissionMode === 'string'
@@ -257,8 +257,8 @@ export class SessionOrchestrator {
       },
       onMessage: async (message) => {
         sessionManager.markSessionPersisted(projectPath, resolvedSessionId);
-        // Kernel runtime: persist each agent output message to JSONL
-        if (isKernelRuntime && message && !message.isStreamDelta) {
+        // Non-native runtimes: persist each output message to JSONL
+        if (needsExternalPersistence && message && !message.isStreamDelta) {
           try {
             await sessionManager.appendMessage(projectPath, resolvedSessionId, message);
           } catch {

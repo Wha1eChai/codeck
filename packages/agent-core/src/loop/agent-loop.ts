@@ -6,6 +6,7 @@ import type { ToolContext } from '../tools/types.js'
 import type { PermissionGate } from '../permission/gate.js'
 import type { PermissionResponse } from '../permission/types.js'
 import { createDoomDetector } from './doom-detector.js'
+import { pruneMessages as pruneMessagesForBudget, createContextBudget } from '../context/context-manager.js'
 
 export interface AgentLoopOptions {
   readonly model: LanguageModel
@@ -16,6 +17,12 @@ export interface AgentLoopOptions {
   readonly maxSteps?: number
   readonly abortSignal?: AbortSignal
   readonly providerOptions?: Record<string, unknown>
+  /** Context window size in tokens. When set, enables automatic message pruning. */
+  readonly contextWindow?: number
+  /** Max output tokens reserved for pruning budget. Defaults to 64000. */
+  readonly maxOutputTokens?: number
+  /** Enable Anthropic prompt caching on system prompt. Defaults to false. */
+  readonly enablePromptCaching?: boolean
 }
 
 const DEFAULT_MAX_STEPS = 100
@@ -72,7 +79,24 @@ export async function* runAgentLoop(
     maxSteps = DEFAULT_MAX_STEPS,
     abortSignal,
     providerOptions,
+    contextWindow,
+    maxOutputTokens: maxOutput = 64_000,
+    enablePromptCaching = false,
   } = options
+
+  const contextBudget = contextWindow
+    ? createContextBudget(contextWindow, maxOutput, systemPrompt)
+    : undefined
+
+  // When prompt caching is enabled, deliver system prompt as a cached system message
+  // instead of the `system` parameter, so Anthropic can cache it across turns.
+  const cachedSystemMessage: CoreMessage | undefined = enablePromptCaching
+    ? {
+        role: 'system' as const,
+        content: systemPrompt,
+        providerOptions: { anthropic: { cacheControl: { type: 'ephemeral' } } },
+      } as CoreMessage
+    : undefined
 
   const messages: CoreMessage[] = [...initialMessages]
   const doomDetector = createDoomDetector()
@@ -86,11 +110,22 @@ export async function* runAgentLoop(
 
     const aiSdkTools = tools.toAISDKTools(toolContext)
 
+    // Prune messages to fit context window when budget is configured
+    const prunedMessages = contextBudget
+      ? pruneMessagesForBudget(messages, contextBudget)
+      : messages
+
+    // When prompt caching is enabled, prepend cached system message to messages
+    // and omit the `system` parameter so Anthropic caches the system prompt.
+    const effectiveMessages = cachedSystemMessage
+      ? [cachedSystemMessage, ...prunedMessages]
+      : prunedMessages
+
     // Cast needed: exactOptionalPropertyTypes conflicts with AI SDK's spread-based API
     const result = streamText({
       model,
-      system: systemPrompt,
-      messages,
+      ...(cachedSystemMessage ? {} : { system: systemPrompt }),
+      messages: effectiveMessages,
       tools: aiSdkTools,
       maxSteps: 1,
       ...(abortSignal ? { abortSignal } : {}),
