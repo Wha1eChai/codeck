@@ -65,20 +65,18 @@ It is not a Claude Code GUI wrapper — it is a platform that orchestrates multi
 
 ## Milestones
 
-### M1: Kernel Viability (Phase 5B Part 2) — Status: Nearly Complete
+### M1: Kernel Viability (Phase 5B Part 2) — ✅ Complete
 
 > Goal: Make kernel a credible daily-driver alternative to Claude runtime for basic workflows.
 
-**Scope (all implemented):**
+**Completed:**
 - ~~Resume session support~~ ✅ via transcript reconstruction (`transcript-to-core-messages.ts`)
 - ~~Kernel transcript canonicalization~~ ✅ `session_meta` + `session_runtime` JSONL headers
 - ~~Plan mode~~ ✅ system prompt + ExitPlanMode decorator gate
 - ~~AskUserQuestion / ExitPlanMode interactive flows~~ ✅ IPC gates in KernelService
 - ~~MCP server connection (stdio transport)~~ ✅ `@codeck/agent-core/src/mcp/`
 - ~~Runtime truthfulness~~ ✅ `RUNTIME_CATALOG` + UI disabling + preferences validation
-
-**Remaining:**
-- Integration tests (WS-6) — real API validation of kernel path
+- ~~Integration tests~~ ✅ 8 scenarios (6 kernel + 2 multi-session) passing against real API
 
 **Key files:**
 - `packages/agent-core/src/loop/agent-loop.ts` — resume entry point

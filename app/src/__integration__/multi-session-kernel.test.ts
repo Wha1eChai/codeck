@@ -19,10 +19,15 @@ import type { Message } from '@common/types';
 import crypto from 'crypto';
 
 const API_KEY = process.env.ANTHROPIC_API_KEY;
+const BASE_URL = process.env.ANTHROPIC_BASE_URL;
+const MODEL_ID = process.env.INTEGRATION_TEST_MODEL || 'haiku';
 const hasApiKey = Boolean(API_KEY);
 
 function createProvider() {
-  return createAnthropicProvider({ apiKey: API_KEY! });
+  return createAnthropicProvider({
+    apiKey: API_KEY!,
+    ...(BASE_URL ? { baseURL: BASE_URL } : {}),
+  });
 }
 
 function createSessionId(): string {
@@ -46,13 +51,13 @@ describe.skipIf(!hasApiKey)('Multi-Session Kernel Integration', () => {
     systemPrompt = await assembleSystemPrompt({
       cwd: process.cwd(),
       platform: process.platform,
-      model: 'claude-haiku-4-5-20251001',
+      model: MODEL_ID,
       date: new Date().toISOString().split('T')[0]!,
     });
   });
 
   it('concurrent sessions produce independent results', async () => {
-    const resolved = provider.resolveModel('haiku');
+    const resolved = provider.resolveModel(MODEL_ID);
     const tools = createDefaultToolRegistry();
 
     const sessionA = createSessionId();
@@ -94,8 +99,8 @@ describe.skipIf(!hasApiKey)('Multi-Session Kernel Integration', () => {
     const mapperA = createEventToMessageMapper({ sessionId: sessionA, idGenerator: () => crypto.randomUUID() });
     const mapperB = createEventToMessageMapper({ sessionId: sessionB, idGenerator: () => crypto.randomUUID() });
 
-    const msgsA: Message[] = eventsA.map((e) => mapperA.map(e)).filter((m): m is Message => m !== null);
-    const msgsB: Message[] = eventsB.map((e) => mapperB.map(e)).filter((m): m is Message => m !== null);
+    const msgsA: Message[] = eventsA.map((e) => mapperA.map(e)).filter((m): m is Message => m != null);
+    const msgsB: Message[] = eventsB.map((e) => mapperB.map(e)).filter((m): m is Message => m != null);
 
     // Messages should carry their respective session IDs
     for (const msg of msgsA) expect(msg.sessionId).toBe(sessionA);
@@ -103,7 +108,7 @@ describe.skipIf(!hasApiKey)('Multi-Session Kernel Integration', () => {
   }, 60_000);
 
   it('aborting one session does not affect the other', async () => {
-    const resolved = provider.resolveModel('haiku');
+    const resolved = provider.resolveModel(MODEL_ID);
 
     const sessionA = createSessionId();
     const sessionB = createSessionId();

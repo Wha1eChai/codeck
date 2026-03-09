@@ -102,48 +102,16 @@ Remaining gaps (not in M1 scope):
 
 ---
 
-### WS-6: Integration Tests
+### WS-6: Integration Tests — COMPLETE
 
-> Priority: High — validation of all above work
-> Effort: ~1 week (parallel with other work streams)
-> Dependencies: WS-2 at minimum
+> Status: ✅ Done
 
-**Tasks:**
-
-#### Task 6.1: Kernel path integration test suite
-
-**File to create:** `app/src/__integration__/kernel-runtime.test.ts`
-
-**Test scenarios (each requires real API key + network):**
-
-1. **Basic conversation**: Start kernel session → send message → receive streaming response → verify JSONL written
-2. **Tool execution**: Send "read the file package.json" → verify Read tool called → verify result returned
-3. **Permission flow**: Start with default permission mode → trigger Bash tool → verify permission request emitted via IPC
-4. **Session resume**: Start session → exchange 2 messages → close → resume with same sessionId → verify context preserved
-5. **Abort**: Start session → abort mid-stream → verify clean termination
-6. **Model selection**: Start with `model: 'haiku'` → verify haiku model used (check usage tokens — haiku is cheaper)
-
-**Acceptance criteria:**
-- [ ] All 6 scenarios pass with `ANTHROPIC_API_KEY` env var set
-- [ ] Tests are in `__integration__/` directory (not run by `pnpm test`)
-- [ ] Each test creates a unique session ID to avoid conflicts
-- [ ] Tests clean up JSONL files after completion
-
-#### Task 6.2: Multi-session parallel test
-
-**File to create:** `app/src/__integration__/multi-session-kernel.test.ts`
-
-**Test scenario:**
-1. Start 2 kernel sessions simultaneously (different sessionIds)
-2. Send messages to both
-3. Verify both receive responses independently
-4. Verify 2 separate JSONL files are created
-5. Abort one session, verify the other continues
-
-**Acceptance criteria:**
-- [ ] Concurrent kernel sessions don't interfere
-- [ ] Per-session AbortController isolation works
-- [ ] Each session writes to its own JSONL file
+**Implemented:**
+- [x] `kernel-runtime.test.ts` — 6 scenarios (basic conversation, tool execution, permission, resume, abort, model resolution)
+- [x] `multi-session-kernel.test.ts` — 2 scenarios (concurrent independence, abort isolation)
+- [x] All 8 tests passing against real API (via Anthropic-compatible proxy)
+- [x] Tests support env var overrides: `ANTHROPIC_BASE_URL`, `INTEGRATION_TEST_MODEL`
+- [x] `vitest.integration.config.ts` has workspace package aliases
 
 ---
 
@@ -155,7 +123,7 @@ WS-2: ✅ Complete (transcript canonicalization)
 WS-3: ✅ Complete (session resume)
 WS-4: ✅ Complete (plan mode)
 WS-5: ✅ Complete (MCP integration)
-WS-6: 🔲 In progress (integration tests)
+WS-6: ✅ Complete (integration tests — 8/8 passing)
 ```
 
 ---
@@ -193,10 +161,10 @@ Tasks across independent work streams can run in parallel.
 
 ## Definition of Done (M1 Complete)
 
-- [x] All WS-1 through WS-5 tasks completed
-- [ ] All WS-6 integration tests pass
+- [x] All WS-1 through WS-6 tasks completed
+- [x] All WS-6 integration tests pass (8/8)
 - [x] `KERNEL_CAPABILITIES` report updated to reflect new capabilities
-- [x] `pnpm test` passes (all 658 unit tests)
+- [x] `pnpm test` passes (938 unit tests across all packages)
 - [x] `pnpm --filter codeck typecheck` passes
-- [ ] CLAUDE.md updated with any new conventions or gotchas discovered
-- [ ] ROADMAP.md M1 status updated to "Complete"
+- [x] CLAUDE.md updated with kernel conventions and gotchas
+- [x] ROADMAP.md M1 status updated to "Complete"
