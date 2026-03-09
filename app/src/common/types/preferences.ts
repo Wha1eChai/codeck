@@ -28,4 +28,6 @@ export interface AppPreferences {
   readonly enableContextOptimization?: boolean
   /** Enable Anthropic prompt caching on system prompt. Default: true. */
   readonly enablePromptCaching?: boolean
+  /** Enable agent team tools (SpawnSession, SendMessage, GetSessionStatus). Default: false. */
+  readonly enableAgentTeams?: boolean
 }

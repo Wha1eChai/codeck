@@ -36,6 +36,7 @@ export class CliRuntimeAdapter implements RuntimeAdapter {
         hooks: false,
         modelSelection: false,
         embeddedTerminal: false,
+        teamTools: false,
       },
       supportedPermissionModes: ['bypassPermissions'],
       notes: [`CLI runtime via ${this.id} subprocess`],

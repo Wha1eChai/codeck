@@ -4,6 +4,8 @@ import { execSync } from "child_process"
 import { electronApp, optimizer, is } from "@electron-toolkit/utils"
 import { registerIpcHandlers } from "./services/ipc-handlers"
 import { startSessionsServer, stopSessionsServer, SESSIONS_SERVER_PORT } from "./services/sessions-server"
+import { initTeamBridgeDeps } from "./services/runtime"
+import { sessionOrchestrator } from "./services/session-orchestrator"
 import { createLogger } from "./services/logger"
 
 const logger = createLogger('app')
@@ -95,6 +97,11 @@ app.whenReady().then(async () => {
 
   // Register IPC handlers with a getter to always resolve the current window
   registerIpcHandlers(() => mainWindow)
+
+  // Wire team bridge deps into KernelService (deferred to break circular import)
+  initTeamBridgeDeps({
+    sendMessage: (window, input) => sessionOrchestrator.sendMessage(window, input),
+  })
 
   createWindow()
 

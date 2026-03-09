@@ -21,6 +21,7 @@ const KERNEL_CAPABILITIES: RuntimeCapabilityReport = {
     hooks: false,
     modelSelection: true,
     embeddedTerminal: false,
+    teamTools: true,
   },
   supportedPermissionModes: ['default', 'plan', 'dontAsk', 'bypassPermissions'],
   notes: [
@@ -28,6 +29,7 @@ const KERNEL_CAPABILITIES: RuntimeCapabilityReport = {
     'No SDK dependency — direct API calls',
     'Resume supported via local transcript reconstruction',
     'Checkpointing and hooks are still not supported',
+    'Team tools (SpawnSession, SendMessage, GetSessionStatus) supported when enabled',
   ],
 }
 

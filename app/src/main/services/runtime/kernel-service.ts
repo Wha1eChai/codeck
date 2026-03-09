@@ -6,6 +6,7 @@ import type {
   ExitPlanModeRequest,
   ExitPlanModeResponse,
   Message,
+  PermissionMode,
   PermissionResponse,
   SessionState,
 } from '@common/types';
@@ -31,9 +32,24 @@ import type {
   PermissionCallback,
   PermissionGate,
   PermissionRequest,
+  TeamBridge,
 } from '@codeck/agent-core';
 import { createAnthropicProvider } from '@codeck/provider';
 import { appPreferencesService } from '../app-preferences';
+import { sessionManager } from '../session';
+
+/**
+ * Abstraction to break the circular dependency between KernelService and SessionOrchestrator.
+ * setup.ts injects the concrete implementation after both are constructed.
+ */
+export interface TeamBridgeDeps {
+  sendMessage(window: BrowserWindow, input: {
+    sessionId: string
+    content: string
+    permissionMode?: PermissionMode
+    executionOptions?: StartSessionParams['executionOptions']
+  }): Promise<void>
+}
 
 function createAutoApproveGate(): PermissionGate {
   return {
@@ -45,6 +61,17 @@ function createAutoApproveGate(): PermissionGate {
 }
 
 export class KernelService {
+  private _teamBridgeDeps: TeamBridgeDeps | null = null;
+
+  /**
+   * Inject team bridge dependencies. Called once from setup.ts after the
+   * orchestrator and session manager are constructed, breaking the circular
+   * import between KernelService ↔ SessionOrchestrator.
+   */
+  setTeamBridgeDeps(deps: TeamBridgeDeps): void {
+    this._teamBridgeDeps = deps;
+  }
+
   async startSession(
     window: BrowserWindow,
     params: StartSessionParams,
@@ -100,6 +127,12 @@ export class KernelService {
       const contextWindow = enableContextOpt ? resolved.capabilities.contextWindow : undefined;
       const maxOutputTokens = resolved.capabilities.maxOutputTokens;
       const enablePromptCaching = prefs.enablePromptCaching !== false;
+      const enableTeamTools = prefs.enableAgentTeams === true && this._teamBridgeDeps !== null;
+
+      // Team bridge — connects agent-core team tools to real session orchestrator
+      const teamBridge = enableTeamTools
+        ? this.createTeamBridge(window, sessionId, ctx.projectPath, params)
+        : undefined;
 
       const metadata: SessionMetadata = {
         sessionId,
@@ -117,33 +150,33 @@ export class KernelService {
         idGenerator: () => crypto.randomUUID(),
       });
 
+      const toolContext = {
+        sessionId,
+        cwd: params.cwd,
+        abortSignal: ctx.abortController.signal,
+        ...(teamBridge ? { teamBridge } : {}),
+      };
+
       const resumeMessages = await this.loadResumeMessages(ctx.projectPath, sessionId);
       const eventStream = resumeMessages
         ? runAgentLoop(resumeMessages, {
             model: resolved.languageModel,
             systemPrompt,
             tools,
-            toolContext: {
-              sessionId,
-              cwd: params.cwd,
-              abortSignal: ctx.abortController.signal,
-            },
+            toolContext,
             permissionGate,
             maxSteps: params.executionOptions?.maxTurns ?? 100,
             abortSignal: ctx.abortController.signal,
             ...(contextWindow ? { contextWindow, maxOutputTokens } : {}),
             enablePromptCaching,
             enableSubAgent: true,
+            enableTeamTools,
           })
         : startAgentLoop(params.prompt, {
             model: resolved.languageModel,
             systemPrompt,
             tools,
-            toolContext: {
-              sessionId,
-              cwd: params.cwd,
-              abortSignal: ctx.abortController.signal,
-            },
+            toolContext,
             permissionGate,
             maxSteps: params.executionOptions?.maxTurns ?? 100,
             abortSignal: ctx.abortController.signal,
@@ -151,6 +184,7 @@ export class KernelService {
             ...(contextWindow ? { contextWindow, maxOutputTokens } : {}),
             enablePromptCaching,
             enableSubAgent: true,
+            enableTeamTools,
           });
 
       for await (const event of eventStream) {
@@ -405,6 +439,104 @@ export class KernelService {
     });
   }
 
+  private createTeamBridge(
+    window: BrowserWindow,
+    parentSessionId: string,
+    projectPath: string,
+    params: StartSessionParams,
+  ): TeamBridge {
+    const deps = this._teamBridgeDeps!;
+
+    return {
+      spawnChild: async ({ role, prompt, useWorktree, model }) => {
+        const childSession = await sessionManager.createSession({
+          name: `[${role}] ${prompt.slice(0, 40)}`,
+          projectPath,
+          runtime: 'kernel',
+          permissionMode: params.permissionMode,
+          useWorktree,
+          parentSessionId,
+          role,
+          isTeamSession: true,
+        });
+
+        // Fire-and-forget: start the child session asynchronously
+        deps.sendMessage(window, {
+          sessionId: childSession.id,
+          content: prompt,
+          permissionMode: params.permissionMode,
+          executionOptions: model ? { ...params.executionOptions, model } : params.executionOptions,
+        }).catch(() => {
+          // Child session errors are surfaced via getChildStatus, not here
+        });
+
+        return { sessionId: childSession.id };
+      },
+
+      sendToChild: async (childSessionId, message) => {
+        // Validate parent-child relationship
+        const childIds = sessionManager.getChildSessionIds(parentSessionId);
+        if (!childIds.includes(childSessionId)) {
+          throw new Error(
+            `Session "${childSessionId}" is not a child of "${parentSessionId}"`,
+          );
+        }
+
+        await deps.sendMessage(window, {
+          sessionId: childSessionId,
+          content: message,
+          permissionMode: params.permissionMode,
+          executionOptions: params.executionOptions,
+        });
+      },
+
+      getChildStatus: async (childSessionId) => {
+        // Validate parent-child relationship
+        const childIds = sessionManager.getChildSessionIds(parentSessionId);
+        if (!childIds.includes(childSessionId)) {
+          return { status: 'not_found' as const };
+        }
+
+        const activeState = sessionManager.getActiveSession(childSessionId);
+        if (!activeState) {
+          return { status: 'not_found' as const };
+        }
+
+        // Map SessionManager status to TeamBridge status
+        const statusMap: Record<string, 'idle' | 'streaming' | 'error'> = {
+          idle: 'idle',
+          streaming: 'streaming',
+          waiting_permission: 'streaming',
+          error: 'error',
+        };
+        const status = statusMap[activeState.status] ?? 'idle';
+
+        // Read the last assistant message from the child session
+        let lastMessage: string | undefined;
+        try {
+          const messages = await sessionManager.getSessionMessages(
+            projectPath,
+            childSessionId,
+          );
+          const lastAssistant = messages
+            .filter((m) => m.role === 'assistant' && m.type === 'text' && m.content)
+            .at(-1);
+          if (lastAssistant) {
+            lastMessage = lastAssistant.content;
+          }
+        } catch {
+          // Ignore read errors — status is still valid
+        }
+
+        return {
+          status,
+          ...(lastMessage ? { lastMessage } : {}),
+          ...(activeState.error ? { error: activeState.error } : {}),
+        };
+      },
+    };
+  }
+
   private async loadResumeMessages(projectPath: string, sessionId: string): Promise<
     Parameters<typeof runAgentLoop>[0] | null
   > {
@@ -452,5 +584,3 @@ export class KernelService {
     return connections;
   }
 }
-
-export const kernelService = new KernelService();

@@ -20,6 +20,7 @@ const CLAUDE_CAPABILITIES: RuntimeCapabilityReport = {
     hooks: true,
     modelSelection: true,
     embeddedTerminal: true,
+    teamTools: false,
   },
   supportedPermissionModes: [
     'default',

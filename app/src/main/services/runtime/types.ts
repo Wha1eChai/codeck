@@ -23,6 +23,8 @@ export interface RuntimeCapabilityReport {
     hooks: boolean;
     modelSelection: boolean;
     embeddedTerminal: boolean;
+    // Phase 5 capabilities
+    teamTools: boolean;
   };
   supportedPermissionModes: PermissionMode[];
   notes?: string[];
