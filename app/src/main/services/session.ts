@@ -25,6 +25,10 @@ export class SessionManager {
   private draftSessions: Map<string, Session> = new Map();
   private worktreeInfoMap: Map<string, WorktreeInfo> = new Map();
 
+  // Parent-child session hierarchy
+  private parentChildMap = new Map<string, Set<string>>();  // parentId → childIds
+  private childParentMap = new Map<string, string>();        // childId → parentId
+
   // ── State Access ──
 
   getCurrentSessionId(): string | null {
@@ -88,6 +92,32 @@ export class SessionManager {
       const remaining = Array.from(this.activeSessions.keys());
       this.focusedSessionId = remaining.length > 0 ? remaining[remaining.length - 1] : null;
     }
+
+    // Clean up parent-child hierarchy
+    // If this session is a parent, remove all child references
+    const children = this.parentChildMap.get(sessionId);
+    if (children) {
+      for (const childId of children) {
+        this.childParentMap.delete(childId);
+      }
+      this.parentChildMap.delete(sessionId);
+    }
+    // If this session is a child, remove from parent's children set
+    const parentId = this.childParentMap.get(sessionId);
+    if (parentId) {
+      const parentChildren = this.parentChildMap.get(parentId);
+      if (parentChildren) {
+        const updatedChildren = new Set(parentChildren);
+        updatedChildren.delete(sessionId);
+        if (updatedChildren.size === 0) {
+          this.parentChildMap.delete(parentId);
+        } else {
+          this.parentChildMap.set(parentId, updatedChildren);
+        }
+      }
+      this.childParentMap.delete(sessionId);
+    }
+
     this.notifyMulti();
   }
 
@@ -176,6 +206,9 @@ export class SessionManager {
       permissionMode: input.permissionMode,
       createdAt: now,
       updatedAt: now,
+      ...(input.parentSessionId ? { parentSessionId: input.parentSessionId } : {}),
+      ...(input.role ? { role: input.role } : {}),
+      ...(input.isTeamSession ? { isTeamSession: input.isTeamSession } : {}),
     };
 
     await claudeFilesService.saveProjectMetadata(input.projectPath);
@@ -183,6 +216,11 @@ export class SessionManager {
 
     // Register in multi-session tracking
     this.registerActiveSession(session.id, input.projectPath);
+
+    // Track parent-child relationship if this is a child session
+    if (input.parentSessionId) {
+      this.registerChildSession(input.parentSessionId, session.id);
+    }
 
     this.focusedSessionId = session.id;
     this.notifyMulti();
@@ -368,6 +406,25 @@ export class SessionManager {
 
   removeSessionWorktree(projectPath: string, sessionId: string): void {
     this.worktreeInfoMap.delete(this.draftKey(projectPath, sessionId));
+  }
+
+  // ── Parent-Child Session Hierarchy ──
+
+  registerChildSession(parentId: string, childId: string): void {
+    const children = this.parentChildMap.get(parentId) ?? new Set<string>();
+    const updatedChildren = new Set(children);
+    updatedChildren.add(childId);
+    this.parentChildMap.set(parentId, updatedChildren);
+    this.childParentMap.set(childId, parentId);
+  }
+
+  getChildSessionIds(parentId: string): string[] {
+    const children = this.parentChildMap.get(parentId);
+    return children ? Array.from(children) : [];
+  }
+
+  getParentSessionId(childId: string): string | null {
+    return this.childParentMap.get(childId) ?? null;
   }
 }
 

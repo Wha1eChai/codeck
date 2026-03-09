@@ -195,4 +195,125 @@ describe('SessionManager', () => {
     expect(activeSession?.status).toBe('waiting_permission');
     expect(activeSession?.error).toBeNull();
   });
+
+  describe('parent-child tracking', () => {
+    beforeEach(() => {
+      vi.mocked(claudeFilesService.saveProjectMetadata).mockResolvedValue(undefined);
+    });
+
+    it('registers a child session under a parent', () => {
+      manager.registerChildSession('parent-1', 'child-1');
+      manager.registerChildSession('parent-1', 'child-2');
+
+      const children = manager.getChildSessionIds('parent-1');
+      expect(children).toContain('child-1');
+      expect(children).toContain('child-2');
+      expect(children).toHaveLength(2);
+    });
+
+    it('returns empty array for session with no children', () => {
+      const children = manager.getChildSessionIds('no-children');
+      expect(children).toEqual([]);
+    });
+
+    it('returns parent session ID for a child', () => {
+      manager.registerChildSession('parent-1', 'child-1');
+
+      expect(manager.getParentSessionId('child-1')).toBe('parent-1');
+    });
+
+    it('returns null for root session', () => {
+      expect(manager.getParentSessionId('root-session')).toBeNull();
+    });
+
+    it('unregistering parent cleans up child references', async () => {
+      const parent = await manager.createSession({
+        name: 'Parent',
+        projectPath: '/project/path',
+        runtime: 'claude',
+        permissionMode: 'default',
+      });
+
+      const child = await manager.createSession({
+        name: 'Child',
+        projectPath: '/project/path',
+        runtime: 'claude',
+        permissionMode: 'default',
+        parentSessionId: parent.id,
+        role: 'researcher',
+      });
+
+      // Verify relationship was established via createSession
+      expect(manager.getChildSessionIds(parent.id)).toContain(child.id);
+      expect(manager.getParentSessionId(child.id)).toBe(parent.id);
+
+      // Unregister parent
+      manager.unregisterActiveSession(parent.id);
+
+      // Child's parent reference should be cleaned up
+      expect(manager.getParentSessionId(child.id)).toBeNull();
+      expect(manager.getChildSessionIds(parent.id)).toEqual([]);
+    });
+
+    it('unregistering child cleans up parent reference', async () => {
+      const parent = await manager.createSession({
+        name: 'Parent',
+        projectPath: '/project/path',
+        runtime: 'claude',
+        permissionMode: 'default',
+      });
+
+      const child = await manager.createSession({
+        name: 'Child',
+        projectPath: '/project/path',
+        runtime: 'claude',
+        permissionMode: 'default',
+        parentSessionId: parent.id,
+      });
+
+      // Unregister child
+      manager.unregisterActiveSession(child.id);
+
+      // Parent should no longer list the child
+      expect(manager.getChildSessionIds(parent.id)).toEqual([]);
+      // Child's parent reference should be gone
+      expect(manager.getParentSessionId(child.id)).toBeNull();
+    });
+
+    it('createSession includes optional hierarchy fields in the session object', async () => {
+      const parent = await manager.createSession({
+        name: 'Parent',
+        projectPath: '/project/path',
+        runtime: 'claude',
+        permissionMode: 'default',
+      });
+
+      const child = await manager.createSession({
+        name: 'Child',
+        projectPath: '/project/path',
+        runtime: 'claude',
+        permissionMode: 'default',
+        parentSessionId: parent.id,
+        role: 'researcher',
+        isTeamSession: true,
+      });
+
+      expect(child.parentSessionId).toBe(parent.id);
+      expect(child.role).toBe('researcher');
+      expect(child.isTeamSession).toBe(true);
+    });
+
+    it('createSession omits hierarchy fields when not provided', async () => {
+      const session = await manager.createSession({
+        name: 'Regular Session',
+        projectPath: '/project/path',
+        runtime: 'claude',
+        permissionMode: 'default',
+      });
+
+      expect(session).not.toHaveProperty('parentSessionId');
+      expect(session).not.toHaveProperty('role');
+      expect(session).not.toHaveProperty('isTeamSession');
+    });
+  });
 });

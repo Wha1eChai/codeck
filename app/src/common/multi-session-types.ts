@@ -11,6 +11,8 @@ export interface ActiveSessionState {
   readonly sdkSessionId: string | null
   readonly status: SessionStatus
   readonly error: string | null
+  readonly parentSessionId?: string | null
+  readonly role?: string | null
 }
 
 /** Backend state for multi-session management, pushed to renderer. */
@@ -29,4 +31,6 @@ export interface SessionTab {
   readonly name: string
   readonly status: SessionStatus
   readonly isHistoryPreview?: boolean
+  readonly parentSessionId?: string | null
+  readonly role?: string | null
 }

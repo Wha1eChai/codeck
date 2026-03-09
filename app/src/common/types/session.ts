@@ -12,6 +12,9 @@ export interface Session {
   readonly createdAt: number
   readonly updatedAt: number
   readonly worktree?: WorktreeInfo
+  readonly parentSessionId?: string
+  readonly role?: string
+  readonly isTeamSession?: boolean
 }
 
 export interface CreateSessionInput {
@@ -21,6 +24,9 @@ export interface CreateSessionInput {
   readonly permissionMode: PermissionMode
   /** Create session in an isolated git worktree. */
   readonly useWorktree?: boolean
+  readonly parentSessionId?: string
+  readonly role?: string
+  readonly isTeamSession?: boolean
 }
 
 // ── 会话状态 ──
