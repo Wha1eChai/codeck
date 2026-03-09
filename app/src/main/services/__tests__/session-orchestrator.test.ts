@@ -238,6 +238,11 @@ describe('SessionOrchestrator', () => {
 
   it('persists kernel session headers, runtime metadata, and skips stream deltas', async () => {
     vi.mocked(runtimeRegistry.listRuntimes).mockReturnValue(['claude', 'kernel']);
+    vi.mocked(runtimeRegistry.getCapabilities).mockReturnValue({
+      ...CLAUDE_CAPABILITY,
+      runtime: 'kernel',
+      supports: { ...CLAUDE_CAPABILITY.supports, nativeFileHistory: false },
+    });
     vi.mocked(sessionManager.getSession).mockResolvedValue({
       id: 'session-1',
       name: 'Kernel Session',

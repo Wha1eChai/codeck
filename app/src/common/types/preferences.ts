@@ -22,4 +22,6 @@ export interface AppPreferences {
   readonly anthropicApiKey?: string
   /** Custom base URL for Anthropic-compatible API (e.g. proxy or gateway). */
   readonly anthropicBaseUrl?: string
+  /** CLI tool paths for CLI runtimes (e.g. { codex: '/usr/bin/codex' }). */
+  readonly cliPaths?: Readonly<Record<string, string>>
 }

@@ -9,8 +9,8 @@ export interface RuntimeCatalogEntry {
 export const RUNTIME_CATALOG: readonly RuntimeCatalogEntry[] = [
   { value: 'claude', label: 'Claude (Default)', available: true },
   { value: 'kernel', label: 'Kernel (Self-hosted)', available: true },
-  { value: 'codex', label: 'Codex (Coming Soon)', available: false },
-  { value: 'opencode', label: 'OpenCode (Coming Soon)', available: false },
+  { value: 'codex', label: 'Codex (CLI)', available: true },
+  { value: 'opencode', label: 'OpenCode (CLI)', available: true },
 ]
 
 const AVAILABLE_RUNTIMES = new Set(
