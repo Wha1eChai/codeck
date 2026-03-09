@@ -133,6 +133,7 @@ export class KernelService {
             abortSignal: ctx.abortController.signal,
             ...(contextWindow ? { contextWindow, maxOutputTokens } : {}),
             enablePromptCaching,
+            enableSubAgent: true,
           })
         : startAgentLoop(params.prompt, {
             model: resolved.languageModel,
@@ -149,10 +150,34 @@ export class KernelService {
             images: params.images,
             ...(contextWindow ? { contextWindow, maxOutputTokens } : {}),
             enablePromptCaching,
+            enableSubAgent: true,
           });
 
       for await (const event of eventStream) {
         if (window.isDestroyed()) break;
+
+        // Handle sub-agent child events batch
+        if (event.type === 'child_events') {
+          const childMapper = createEventToMessageMapper({
+            sessionId,
+            idGenerator: () => crypto.randomUUID(),
+          });
+          for (const childEvent of event.events) {
+            if (childEvent.type === 'step_end' || childEvent.type === 'done') continue;
+            const childMsg = childMapper.map(childEvent);
+            if (!childMsg) continue;
+            const tagged: Message = { ...childMsg, parentToolUseId: event.toolCallId } as Message;
+            sendMessage(tagged);
+            if (params.onMessage) {
+              try {
+                await params.onMessage(tagged);
+              } catch {
+                // Ignore persistence errors.
+              }
+            }
+          }
+          continue;
+        }
 
         const message = mapper.map(event);
         if (!message) {
