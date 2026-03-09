@@ -64,6 +64,9 @@ type ToolResultBlock = {
 
 export function reconstructCoreMessages(messages: readonly Message[]): CoreLikeMessage[] {
   const compacted = compactTranscript(messages);
+  // Filter out sub-agent messages — they are internal to the Task tool execution.
+  // The parent's tool_result already contains the summary.
+  const topLevel = compacted.filter((m) => !m.parentToolUseId);
   const coreMessages: CoreLikeMessage[] = [];
 
   let pendingAssistant: AssistantBlock[] = [];
@@ -91,7 +94,7 @@ export function reconstructCoreMessages(messages: readonly Message[]): CoreLikeM
     pendingToolResults = [];
   };
 
-  for (const message of compacted) {
+  for (const message of topLevel) {
     if (message.role === 'user' && message.type === 'text') {
       flushAssistant();
       flushToolResults();
