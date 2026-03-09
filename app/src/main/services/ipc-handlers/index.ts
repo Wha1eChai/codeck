@@ -13,6 +13,7 @@ import { registerSettingsHandlers } from './settings-handlers';
 import { registerConfigHandlers } from './config-handlers';
 import { registerFileHandlers } from './file-handlers';
 import { registerWorktreeHandlers } from './worktree-handlers';
+import { registerTeamHandlers } from './team-handlers';
 
 export function registerIpcHandlers(windowGetter: () => BrowserWindow | null) {
   const getMainWindow = windowGetter;
@@ -65,4 +66,5 @@ export function registerIpcHandlers(windowGetter: () => BrowserWindow | null) {
   registerConfigHandlers();
   registerFileHandlers(getMainWindow);
   registerWorktreeHandlers();
+  registerTeamHandlers(getMainWindow);
 }

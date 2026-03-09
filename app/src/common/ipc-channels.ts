@@ -24,6 +24,8 @@ export const MAIN_TO_RENDERER = {
   SYNC_COMPLETED: "history:sync-completed",
   /** SDK system/init 会话元数据推送 */
   SESSION_METADATA: "session:metadata",
+  /** Team session: child status changed */
+  CHILD_SESSION_STATUS: "team:child-status",
 } as const
 
 /** 渲染进程 → 主进程（invoke 调用） */
@@ -125,6 +127,13 @@ export const RENDERER_TO_MAIN = {
   MERGE_WORKTREE: "worktree:merge",
   REMOVE_WORKTREE: "worktree:remove",
   GET_WORKTREE_DIFF: "worktree:get-diff",
+
+  /** Team session: create child session */
+  CREATE_CHILD_SESSION: "team:create-child",
+  /** Team session: query tree structure */
+  GET_TEAM_TREE: "team:get-tree",
+  /** Team session: send message to child */
+  SEND_TO_CHILD: "team:send-to-child",
 } as const
 
 /** 从常量对象提取值类型 */

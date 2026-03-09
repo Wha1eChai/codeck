@@ -14,6 +14,7 @@ import type {
   AskUserQuestionResponse,
   ExitPlanModeRequest,
   ExitPlanModeResponse,
+  Session,
   CreateSessionInput,
   ResumeSessionResult,
   RewindFilesResult,
@@ -288,6 +289,27 @@ const api: ElectronAPI = {
 
   closeSessionTab: (sessionId: string): Promise<void> =>
     ipcRenderer.invoke(RENDERER_TO_MAIN.CLOSE_SESSION_TAB, { sessionId }),
+
+  // ── Team session management ──
+
+  createChildSession: (params: { parentSessionId: string; name: string; role: string; projectPath: string; permissionMode: string; useWorktree?: boolean }): Promise<Session> =>
+    ipcRenderer.invoke(RENDERER_TO_MAIN.CREATE_CHILD_SESSION, params),
+
+  getTeamTree: (params: { sessionId: string }): Promise<{ parentSessionId: string; childSessionIds: string[] }> =>
+    ipcRenderer.invoke(RENDERER_TO_MAIN.GET_TEAM_TREE, params),
+
+  sendToChild: (params: { parentSessionId: string; childSessionId: string; content: string }): Promise<void> =>
+    ipcRenderer.invoke(RENDERER_TO_MAIN.SEND_TO_CHILD, params),
+
+  onChildSessionStatus: (callback: (data: { parentSessionId: string; childSessionId: string; status: string }) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: { parentSessionId: string; childSessionId: string; status: string }): void => {
+      callback(data)
+    }
+    ipcRenderer.on(MAIN_TO_RENDERER.CHILD_SESSION_STATUS, handler)
+    return () => {
+      ipcRenderer.removeListener(MAIN_TO_RENDERER.CHILD_SESSION_STATUS, handler)
+    }
+  },
 }
 
 contextBridge.exposeInMainWorld("electron", api)

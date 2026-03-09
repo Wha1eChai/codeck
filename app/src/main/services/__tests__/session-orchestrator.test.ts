@@ -39,6 +39,9 @@ vi.mock('../session', () => ({
     updateSdkState: vi.fn(),
     unregisterActiveSession: vi.fn(),
     persistRuntimeSessionId: vi.fn(),
+    registerChildSession: vi.fn(),
+    getChildSessionIds: vi.fn().mockReturnValue([]),
+    getParentSessionId: vi.fn().mockReturnValue(null),
   },
 }));
 
@@ -102,6 +105,7 @@ const CLAUDE_CAPABILITY: RuntimeCapabilityReport = {
     hooks: true,
     modelSelection: true,
     embeddedTerminal: true,
+    teamTools: false,
   },
   supportedPermissionModes: ['default'],
 };
@@ -441,5 +445,127 @@ describe('SessionOrchestrator', () => {
     expect(sessionContextStore.abort).toHaveBeenCalledWith('session-1');
     expect(sessionContextStore.remove).toHaveBeenCalledWith('session-1');
     expect(sessionManager.unregisterActiveSession).toHaveBeenCalledWith('session-1');
+  });
+
+  // ── Team Session Operations ──
+
+  describe('createChildSession', () => {
+    it('creates a session with parentSessionId and registers the relationship', async () => {
+      vi.mocked(sessionManager.createSession).mockResolvedValue({
+        id: 'child-1',
+        name: 'Child Session',
+        projectPath: '/project',
+        runtime: 'claude',
+        permissionMode: 'default',
+        createdAt: 1,
+        updatedAt: 1,
+        parentSessionId: 'parent-1',
+        role: 'researcher',
+      });
+
+      const result = await orchestrator.createChildSession('parent-1', {
+        name: 'Child Session',
+        role: 'researcher',
+        projectPath: '/project',
+        permissionMode: 'default',
+      });
+
+      expect(result.id).toBe('child-1');
+      expect(sessionManager.createSession).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'Child Session',
+          parentSessionId: 'parent-1',
+          role: 'researcher',
+          projectPath: '/project',
+          permissionMode: 'default',
+        }),
+      );
+      expect(sessionManager.registerChildSession).toHaveBeenCalledWith('parent-1', 'child-1');
+    });
+  });
+
+  describe('getTeamTree', () => {
+    it('returns correct parent and children', () => {
+      vi.mocked(sessionManager.getChildSessionIds).mockReturnValue(['child-1', 'child-2']);
+
+      const tree = orchestrator.getTeamTree('parent-1');
+
+      expect(tree).toEqual({
+        parentSessionId: 'parent-1',
+        childSessionIds: ['child-1', 'child-2'],
+      });
+      expect(sessionManager.getChildSessionIds).toHaveBeenCalledWith('parent-1');
+    });
+
+    it('returns empty children array when no children exist', () => {
+      vi.mocked(sessionManager.getChildSessionIds).mockReturnValue([]);
+
+      const tree = orchestrator.getTeamTree('parent-1');
+
+      expect(tree).toEqual({
+        parentSessionId: 'parent-1',
+        childSessionIds: [],
+      });
+    });
+  });
+
+  describe('sendMessageToChild', () => {
+    it('validates parent-child relationship and sends message', async () => {
+      vi.mocked(sessionManager.getParentSessionId).mockReturnValue('parent-1');
+      vi.mocked(sessionManager.getSession).mockResolvedValue({
+        id: 'child-1',
+        name: 'Child Session',
+        projectPath: '/project',
+        runtime: 'claude',
+        permissionMode: 'default',
+        createdAt: 1,
+        updatedAt: 1,
+      });
+
+      await orchestrator.sendMessageToChild(
+        {} as any,
+        'parent-1',
+        'child-1',
+        'hello child',
+      );
+
+      expect(sessionManager.getParentSessionId).toHaveBeenCalledWith('child-1');
+      expect(mockAdapter.startSession).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          sessionId: 'child-1',
+          prompt: 'hello child',
+        }),
+        expect.anything(),
+      );
+    });
+
+    it('throws when child does not belong to parent', async () => {
+      vi.mocked(sessionManager.getParentSessionId).mockReturnValue('other-parent');
+
+      await expect(
+        orchestrator.sendMessageToChild(
+          {} as any,
+          'parent-1',
+          'child-1',
+          'hello',
+        ),
+      ).rejects.toThrow('Session child-1 is not a child of parent-1');
+
+      expect(mockAdapter.startSession).not.toHaveBeenCalled();
+    });
+
+    it('throws when child has no parent', async () => {
+      vi.mocked(sessionManager.getParentSessionId).mockReturnValue(null);
+
+      await expect(
+        orchestrator.sendMessageToChild(
+          {} as any,
+          'parent-1',
+          'child-1',
+          'hello',
+        ),
+      ).rejects.toThrow('Session child-1 is not a child of parent-1');
+    });
   });
 });

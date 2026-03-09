@@ -88,6 +88,7 @@ export const updatePreferencesSchema = z.object({
     cliPaths: z.record(z.string(), z.string()).optional(),
     enableContextOptimization: z.boolean().optional(),
     enablePromptCaching: z.boolean().optional(),
+    enableAgentTeams: z.boolean().optional(),
 });
 
 export const sessionIdSchema = z.string().min(1, 'Session ID is required');
@@ -116,6 +117,27 @@ export const focusSessionSchema = z.object({
 
 export const closeSessionTabSchema = z.object({
   sessionId: z.string().min(1),
+});
+
+// ── Team Session Schemas ──
+
+export const createChildSessionSchema = z.object({
+  parentSessionId: z.string().min(1),
+  name: z.string().min(1),
+  role: z.string().min(1),
+  projectPath: z.string().min(1),
+  permissionMode: z.string(),
+  useWorktree: z.boolean().optional(),
+});
+
+export const teamTreeSchema = z.object({
+  sessionId: z.string().min(1),
+});
+
+export const sendToChildSchema = z.object({
+  parentSessionId: z.string().min(1),
+  childSessionId: z.string().min(1),
+  content: z.string().min(1),
 });
 
 // ── Worktree Schemas ──

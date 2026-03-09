@@ -109,6 +109,20 @@ export function createMockElectron() {
     // Multi-session management
     focusSession: vi.fn().mockResolvedValue(undefined),
     closeSessionTab: vi.fn().mockResolvedValue(undefined),
+
+    // Team session management
+    createChildSession: vi.fn().mockResolvedValue({
+      id: 'mock-child-session-id',
+      name: 'Mock Child Session',
+      projectPath: '/mock/project',
+      runtime: 'claude' as const,
+      permissionMode: 'default' as const,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    }),
+    getTeamTree: vi.fn().mockResolvedValue({ parentSessionId: '', childSessionIds: [] }),
+    sendToChild: vi.fn().mockResolvedValue(undefined),
+    onChildSessionStatus: vi.fn().mockReturnValue(vi.fn()),
   }
 }
 

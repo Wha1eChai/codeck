@@ -384,6 +384,41 @@ export class SessionOrchestrator {
     }
   }
 
+  // ── Team Session Operations ──
+
+  async createChildSession(
+    parentSessionId: string,
+    input: CreateSessionInput & { role: string },
+  ): Promise<Session> {
+    const session = await this.createSession({
+      ...input,
+      parentSessionId,
+      role: input.role,
+    });
+    sessionManager.registerChildSession(parentSessionId, session.id);
+    return session;
+  }
+
+  getTeamTree(sessionId: string): { parentSessionId: string; childSessionIds: string[] } {
+    return {
+      parentSessionId: sessionId,
+      childSessionIds: sessionManager.getChildSessionIds(sessionId),
+    };
+  }
+
+  async sendMessageToChild(
+    window: BrowserWindow,
+    parentSessionId: string,
+    childSessionId: string,
+    content: string,
+  ): Promise<void> {
+    const parentId = sessionManager.getParentSessionId(childSessionId);
+    if (parentId !== parentSessionId) {
+      throw new Error(`Session ${childSessionId} is not a child of ${parentSessionId}`);
+    }
+    await this.sendMessage(window, { sessionId: childSessionId, content });
+  }
+
   async rewindFiles(sessionId: string, userMessageId: string, dryRun?: boolean): Promise<RewindFilesResult> {
     const ctx = sessionContextStore.get(sessionId);
     if (ctx) {

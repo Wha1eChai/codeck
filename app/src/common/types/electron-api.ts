@@ -101,6 +101,12 @@ export interface ElectronAPI {
   // Multi-session management
   focusSession: (sessionId: string) => Promise<void>
   closeSessionTab: (sessionId: string) => Promise<void>
+
+  // Team session management
+  createChildSession: (params: { parentSessionId: string; name: string; role: string; projectPath: string; permissionMode: string; useWorktree?: boolean }) => Promise<Session>
+  getTeamTree: (params: { sessionId: string }) => Promise<{ parentSessionId: string; childSessionIds: string[] }>
+  sendToChild: (params: { parentSessionId: string; childSessionId: string; content: string }) => Promise<void>
+  onChildSessionStatus: (callback: (data: { parentSessionId: string; childSessionId: string; status: string }) => void) => () => void
 }
 
 declare global {
