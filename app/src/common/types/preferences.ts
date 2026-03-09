@@ -24,4 +24,8 @@ export interface AppPreferences {
   readonly anthropicBaseUrl?: string
   /** CLI tool paths for CLI runtimes (e.g. { codex: '/usr/bin/codex' }). */
   readonly cliPaths?: Readonly<Record<string, string>>
+  /** Enable automatic context window management (pruning + compression). Default: true. */
+  readonly enableContextOptimization?: boolean
+  /** Enable Anthropic prompt caching on system prompt. Default: true. */
+  readonly enablePromptCaching?: boolean
 }

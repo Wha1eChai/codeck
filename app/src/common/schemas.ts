@@ -86,6 +86,8 @@ export const updatePreferencesSchema = z.object({
     anthropicApiKey: z.string().optional(),
     anthropicBaseUrl: z.string().url('Invalid URL format').optional().or(z.literal('')),
     cliPaths: z.record(z.string(), z.string()).optional(),
+    enableContextOptimization: z.boolean().optional(),
+    enablePromptCaching: z.boolean().optional(),
 });
 
 export const sessionIdSchema = z.string().min(1, 'Session ID is required');
