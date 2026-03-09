@@ -18,6 +18,7 @@ import { reconstructCoreMessages } from '../claude-files/transcript-to-core-mess
 import { configReader } from '../config-bridge';
 import {
   assembleSystemPrompt,
+  buildTeamSection,
   bridgeMcpTools,
   connectMcpServer,
   createDefaultToolRegistry,
@@ -129,6 +130,11 @@ export class KernelService {
       const enablePromptCaching = prefs.enablePromptCaching !== false;
       const enableTeamTools = prefs.enableAgentTeams === true && this._teamBridgeDeps !== null;
 
+      // Inject team tool documentation into system prompt when team tools are enabled
+      const fullSystemPrompt = enableTeamTools
+        ? systemPrompt + '\n' + buildTeamSection()
+        : systemPrompt;
+
       // Team bridge — connects agent-core team tools to real session orchestrator
       const teamBridge = enableTeamTools
         ? this.createTeamBridge(window, sessionId, ctx.projectPath, params)
@@ -161,7 +167,7 @@ export class KernelService {
       const eventStream = resumeMessages
         ? runAgentLoop(resumeMessages, {
             model: resolved.languageModel,
-            systemPrompt,
+            systemPrompt: fullSystemPrompt,
             tools,
             toolContext,
             permissionGate,
@@ -174,7 +180,7 @@ export class KernelService {
           })
         : startAgentLoop(params.prompt, {
             model: resolved.languageModel,
-            systemPrompt,
+            systemPrompt: fullSystemPrompt,
             tools,
             toolContext,
             permissionGate,

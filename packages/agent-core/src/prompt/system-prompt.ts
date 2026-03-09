@@ -99,6 +99,30 @@ function fitSectionsIntoBudget(sections: readonly PrioritizedSection[], maxToken
   return result
 }
 
+export function buildTeamSection(): string {
+  return [
+    '# Team Agent Tools',
+    '',
+    'You are a team coordinator. You have access to the following team management tools:',
+    '',
+    '- **SpawnSession**: Create a child agent session with a specific role. The child runs independently with its own full context window.',
+    '- **SendMessage**: Send instructions or follow-up messages to a running child session.',
+    '- **GetSessionStatus**: Check if a child session is still running, completed, or errored.',
+    '',
+    '## Workflow Pattern',
+    '1. Analyze the task and decide what roles are needed (planner, coder, reviewer, etc.)',
+    '2. Use SpawnSession to create child sessions with clear role descriptions and prompts',
+    '3. Use GetSessionStatus to poll for completion',
+    '4. When all children complete, synthesize their results into a summary',
+    '',
+    '## Guidelines',
+    '- Each child has its own full context window — give them detailed prompts',
+    '- Children cannot communicate with each other — coordinate through the parent',
+    '- Use SendMessage for follow-up instructions after reviewing child progress',
+    '- Maximum recommended children: 5 (to manage coordination complexity)',
+  ].join('\n')
+}
+
 export async function assembleSystemPrompt(
   options: AssembleSystemPromptOptions,
 ): Promise<string> {

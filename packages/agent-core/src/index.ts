@@ -7,7 +7,7 @@ export type { TaskToolOptions } from './tools/index.js'
 export { createTeamTools, TEAM_TOOL_NAMES } from './tools/index.js'
 
 export type { SystemPromptOptions, ClaudeMdSource, AssembleSystemPromptOptions } from './prompt/index.js'
-export { buildEnvironmentBlock, assembleSystemPrompt } from './prompt/index.js'
+export { buildEnvironmentBlock, assembleSystemPrompt, buildTeamSection } from './prompt/index.js'
 
 export type { AgentEvent, StepUsage, TotalUsage, AgentLoopOptions } from './loop/index.js'
 export { startAgentLoop, runAgentLoop } from './loop/index.js'

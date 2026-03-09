@@ -2,7 +2,7 @@ import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { assembleSystemPrompt } from '../system-prompt.js'
+import { assembleSystemPrompt, buildTeamSection } from '../system-prompt.js'
 import { buildEnvironmentBlock } from '../environment.js'
 import type { SystemPromptOptions } from '../types.js'
 
@@ -340,5 +340,22 @@ describe('assembleSystemPrompt', () => {
       expect(result).toContain('X'.repeat(100))
       expect(result).toContain('Y'.repeat(100))
     })
+  })
+})
+
+describe('buildTeamSection', () => {
+  it('returns team tool documentation', () => {
+    const section = buildTeamSection()
+    expect(section).toContain('SpawnSession')
+    expect(section).toContain('SendMessage')
+    expect(section).toContain('GetSessionStatus')
+    expect(section).toContain('Team Agent Tools')
+  })
+
+  it('includes workflow pattern and guidelines', () => {
+    const section = buildTeamSection()
+    expect(section).toContain('Workflow Pattern')
+    expect(section).toContain('Guidelines')
+    expect(section).toContain('team coordinator')
   })
 })
