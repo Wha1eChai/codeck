@@ -7,6 +7,9 @@ import type { PermissionGate } from '../permission/gate.js'
 import type { PermissionResponse } from '../permission/types.js'
 import { createDoomDetector } from './doom-detector.js'
 import { pruneMessages as pruneMessagesForBudget, createContextBudget } from '../context/context-manager.js'
+import { createTaskTool } from '../tools/task.js'
+import type { TaskToolOptions } from '../tools/task.js'
+import { createToolRegistry } from '../tools/registry.js'
 
 export interface AgentLoopOptions {
   readonly model: LanguageModel
@@ -23,6 +26,10 @@ export interface AgentLoopOptions {
   readonly maxOutputTokens?: number
   /** Enable Anthropic prompt caching on system prompt. Defaults to false. */
   readonly enablePromptCaching?: boolean
+  /** Enable the Task (sub-agent) tool. Default: false. */
+  readonly enableSubAgent?: boolean
+  /** Maximum sub-agent recursion depth. Default: 1 (no nested sub-agents). */
+  readonly subAgentDepth?: number
 }
 
 const DEFAULT_MAX_STEPS = 100
@@ -66,6 +73,17 @@ export async function* startAgentLoop(
   yield* runAgentLoop([{ role: 'user' as const, content }], options)
 }
 
+function cloneRegistryWithTask(source: ToolRegistry, taskOptions: TaskToolOptions): ToolRegistry {
+  const clone = createToolRegistry()
+  for (const tool of source.getAll()) {
+    clone.register(tool)
+  }
+  if (taskOptions.remainingDepth >= 0) {
+    clone.register(createTaskTool(taskOptions))
+  }
+  return clone
+}
+
 export async function* runAgentLoop(
   initialMessages: readonly CoreMessage[],
   options: AgentLoopOptions,
@@ -82,7 +100,18 @@ export async function* runAgentLoop(
     contextWindow,
     maxOutputTokens: maxOutput = 64_000,
     enablePromptCaching = false,
+    enableSubAgent = false,
+    subAgentDepth = 1,
   } = options
+
+  // Sub-agent support: clone registry and register Task tool
+  const effectiveTools = enableSubAgent && subAgentDepth > 0
+    ? cloneRegistryWithTask(tools, {
+        model, parentSystemPrompt: systemPrompt, tools, permissionGate, abortSignal,
+        contextWindow, maxOutputTokens: maxOutput, enablePromptCaching,
+        remainingDepth: subAgentDepth - 1,
+      })
+    : tools
 
   const contextBudget = contextWindow
     ? createContextBudget(contextWindow, maxOutput, systemPrompt)
@@ -108,7 +137,7 @@ export async function* runAgentLoop(
       break
     }
 
-    const aiSdkTools = tools.toAISDKTools(toolContext)
+    const aiSdkTools = effectiveTools.toAISDKTools(toolContext)
 
     // Prune messages to fit context window when budget is configured
     const prunedMessages = contextBudget
@@ -169,9 +198,14 @@ export async function* runAgentLoop(
 
             const toolOutput = await executeToolCall(
               part.toolCallId, part.toolName, args,
-              tools, toolContext, permissionGate, doomDetector,
+              effectiveTools, toolContext, permissionGate, doomDetector,
             )
-            yield { type: 'tool_result', ...toolOutput }
+            // Emit batched child events from sub-agent tool
+            if (toolOutput.childEvents && toolOutput.childEvents.length > 0) {
+              yield { type: 'child_events', toolCallId: part.toolCallId, events: toolOutput.childEvents }
+            }
+            const { childEvents: _ce, ...toolResultEvent } = toolOutput
+            yield { type: 'tool_result', ...toolResultEvent }
             results.push({
               type: 'tool-result',
               toolCallId: part.toolCallId,
@@ -232,6 +266,7 @@ interface ToolCallOutput {
   readonly toolName: string
   readonly result: string
   readonly isError: boolean
+  readonly childEvents?: readonly AgentEvent[]
 }
 
 async function executeToolCall(
@@ -266,7 +301,15 @@ async function executeToolCall(
 
   try {
     const toolResult = await toolDef.execute(args, toolContext)
-    return { toolCallId, toolName, result: toolResult.output, isError: toolResult.isError ?? false }
+    const childEvents = Array.isArray(toolResult.metadata?.childEvents)
+      ? toolResult.metadata.childEvents as AgentEvent[]
+      : undefined
+    return {
+      toolCallId, toolName,
+      result: toolResult.output,
+      isError: toolResult.isError ?? false,
+      ...(childEvents ? { childEvents } : {}),
+    }
   } catch (err) {
     return { toolCallId, toolName, result: `Tool execution error: ${(err as Error).message}`, isError: true }
   }
